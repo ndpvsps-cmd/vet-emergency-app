@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vetเพื่อนยาก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="disclaimer" id="disclaimer">
+    <div class="disclaimer-text">
+      <strong>คำเตือน:</strong> เครื่องมือนี้เป็นตัวช่วยคำนวณเบื้องต้นเท่านั้น ไม่ทดแทนดุลยพินิจของสัตวแพทย์
+      กรุณาตรวจสอบขนาดยาซ้ำก่อนใช้กับผู้ป่วยจริงทุกครั้ง
+    </div>
+    <button id="disclaimer-toggle" aria-label="ย่อ/ขยายคำเตือน">ย่อ</button>
+  </div>
+
+  <header>
+    <h1>Vetเพื่อนยาก</h1>
+    <p class="subtitle">สุนัข และ แมว</p>
+  </header>
+
+  <main>
+    <div class="page" id="page-patient">
+      <section class="panel" id="input-panel">
+        <h2>ข้อมูลผู้ป่วย</h2>
+
+        <div class="field-row">
+          <label for="patient-name-input">ชื่อสัตว์ (ไม่บังคับ)</label>
+          <input type="text" id="patient-name-input" placeholder="เช่น น้องโบว์">
+        </div>
+
+        <div class="field-row">
+          <label>ชนิดสัตว์</label>
+          <div class="species-toggle" role="group" aria-label="เลือกชนิดสัตว์">
+            <button type="button" class="species-btn active" data-species="dog">🐕 สุนัข</button>
+            <button type="button" class="species-btn" data-species="cat">🐈 แมว</button>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label for="weight-kg">น้ำหนักตัว (กก.)</label>
+          <div class="weight-inputs">
+            <input type="number" id="weight-kg" min="0" step="0.1" placeholder="เช่น 12.5">
+            <span class="or-divider">หรือ</span>
+            <input type="number" id="weight-lb" min="0" step="0.1" placeholder="ปอนด์ (lb)">
+          </div>
+          <div id="weight-warning" class="warning-text" hidden></div>
+        </div>
+
+        <button type="button" class="next-page-btn" data-goto="drugs">ไปหน้ายาฉุกเฉิน →</button>
+      </section>
+    </div>
+
+    <div class="page" id="page-drugs" hidden>
+      <div class="patient-chip" id="patient-chip-drugs"></div>
+
+      <section class="panel" id="calculator-panel">
+        <h2>คำนวณยารายตัว</h2>
+
+        <div class="field-row">
+          <label for="drug-search">ค้นหายา</label>
+          <input type="text" id="drug-search" placeholder="พิมพ์ชื่อยา..." autocomplete="off">
+          <div id="drug-list" class="drug-list"></div>
+        </div>
+
+        <div class="field-row" id="concentration-row" hidden>
+          <label for="concentration-select">ความเข้มข้นยา</label>
+          <select id="concentration-select"></select>
+        </div>
+
+        <div id="calc-result" class="result-box" hidden></div>
+      </section>
+
+      <section class="panel" id="crashcart-panel">
+        <div class="crashcart-header">
+          <h2>ตาราง Crash Cart (อ้างอิงฉุกเฉินแบบเร็ว)</h2>
+          <button id="print-btn" class="print-btn">🖨️ พิมพ์</button>
+        </div>
+        <p class="hint-text" id="crashcart-hint">กรอกน้ำหนักตัวด้านบนเพื่อคำนวณตารางยาทั้งหมด</p>
+        <div class="table-wrap">
+          <table id="crashcart-table" hidden>
+            <thead>
+              <tr>
+                <th>ยา</th>
+                <th>กลุ่ม</th>
+                <th>อัตรา/นน.ตัว</th>
+                <th>ความเข้มข้น (ปรับได้)</th>
+                <th>ขนาดยารวม</th>
+                <th>ปริมาณ (mL)</th>
+                <th>ช่องทาง</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="page" id="page-nutrition" hidden>
+      <div class="patient-chip" id="patient-chip-nutrition"></div>
+
+      <section class="panel" id="nutrition-panel">
+        <h2>คำนวณปริมาณอาหาร (RER/DER)</h2>
+
+        <div class="field-row">
+          <label for="rer-factor-select">ปัจจัย RER (ภาวะ/กิจกรรมของสัตว์)</label>
+          <select id="rer-factor-select"></select>
+        </div>
+
+        <div class="field-row">
+          <label for="diet-select">ชนิดอาหาร</label>
+          <select id="diet-select"></select>
+        </div>
+
+        <div class="field-row">
+          <label for="refeeding-select">แผนค่อยเป็นค่อยไป (ป้องกัน refeeding syndrome)</label>
+          <select id="refeeding-select"></select>
+        </div>
+
+        <div class="field-row">
+          <label for="meals-select">จำนวนมื้อต่อวัน</label>
+          <select id="meals-select">
+            <option value="2">2 มื้อ/วัน</option>
+            <option value="3">3 มื้อ/วัน</option>
+            <option value="4">4 มื้อ/วัน</option>
+            <option value="6">6 มื้อ/วัน</option>
+          </select>
+        </div>
+
+        <p class="hint-text" id="nutrition-hint">กรอกน้ำหนักตัวด้านบนเพื่อคำนวณปริมาณอาหาร</p>
+        <div id="nutrition-result" class="result-box" hidden></div>
+      </section>
+
+      <section class="panel" id="feeding-card-panel">
+        <div class="crashcart-header">
+          <h2>การ์ดให้อาหาร (แผนปกติ ไม่ค่อยเป็นค่อยไป)</h2>
+          <button id="print-feeding-card-btn" class="print-btn">🖨️ พิมพ์การ์ด</button>
+        </div>
+        <p class="hint-text" id="feeding-card-hint">กรอกน้ำหนักตัวและเลือกอาหารด้านบนเพื่อสร้างการ์ด</p>
+        <div id="feeding-card" class="feeding-card" hidden></div>
+      </section>
+
+      <section class="panel" id="feeding-plan-panel">
+        <div class="crashcart-header">
+          <h2>แผนการให้อาหารรายวัน</h2>
+          <button id="print-feeding-btn" class="print-btn">🖨️ พิมพ์แผนอาหาร</button>
+        </div>
+
+        <div class="field-row">
+          <label for="feeding-start-date">วันที่เริ่มให้อาหาร</label>
+          <input type="date" id="feeding-start-date">
+        </div>
+
+        <p class="hint-text" id="feeding-plan-hint">กรอกน้ำหนักตัวและเลือกอาหารด้านบนเพื่อสร้างแผนอาหาร</p>
+        <div id="feeding-plan-meta" class="result-note" hidden></div>
+        <div class="table-wrap">
+          <table id="feeding-plan-table" hidden>
+            <thead>
+              <tr>
+                <th>วันที่</th>
+                <th>สัดส่วน RER</th>
+                <th>พลังงาน (kcal)</th>
+                <th>อาหาร/วัน (g)</th>
+                <th>อาหาร/มื้อ (g)</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="page" id="page-potassium" hidden>
+      <div class="patient-chip" id="patient-chip-potassium"></div>
+
+      <section class="panel" id="potassium-panel">
+        <h2>แก้ไขภาวะโพแทสเซียมต่ำ (Hypokalemia) — CRI</h2>
+
+        <div class="field-row">
+          <label for="serum-k-input">ระดับโพแทสเซียมในเลือด (mEq/L)</label>
+          <input type="number" id="serum-k-input" min="0" step="0.1" placeholder="เช่น 2.8">
+        </div>
+
+        <div class="field-row">
+          <label for="planned-rate-input">อัตราสารน้ำที่จะให้ (mL/hr)</label>
+          <input type="number" id="planned-rate-input" min="0" step="1" placeholder="เช่น 40">
+        </div>
+
+        <div class="field-row">
+          <label for="fluid-bag-size-select">ขนาดถุงสารน้ำที่จะผสม</label>
+          <select id="fluid-bag-size-select">
+            <option value="1000">1000 mL</option>
+            <option value="500">500 mL</option>
+            <option value="250">250 mL</option>
+            <option value="100">100 mL</option>
+          </select>
+        </div>
+
+        <p class="hint-text" id="potassium-hint">กรอกน้ำหนักตัว ระดับโพแทสเซียม และอัตราสารน้ำ เพื่อคำนวณการเตรียม CRI</p>
+        <div id="potassium-result" class="result-box" hidden></div>
+      </section>
+    </div>
+
+    <div class="page" id="page-cri" hidden>
+      <div class="patient-chip" id="patient-chip-cri"></div>
+
+      <section class="panel" id="cri-select-panel">
+        <h2>คำนวณยา CRI (Constant Rate Infusion)</h2>
+
+        <div class="field-row">
+          <label for="cri-drug-search">ค้นหายา</label>
+          <input type="text" id="cri-drug-search" placeholder="พิมพ์ชื่อยา..." autocomplete="off">
+          <div id="cri-drug-list" class="drug-list"></div>
+        </div>
+
+        <div id="cri-drug-info" class="result-note" hidden></div>
+
+        <div class="field-row" id="cri-dose-row" hidden>
+          <label for="cri-dose-input" id="cri-dose-label">ขนาดยาที่ต้องการ</label>
+          <input type="number" id="cri-dose-input" min="0" step="any" placeholder="กรอกขนาดยาในช่วงอ้างอิงด้านบน">
+        </div>
+
+        <div class="field-row" id="cri-conc-row" hidden>
+          <label for="cri-conc-select">ความเข้มข้นยาที่มี (ปรับได้)</label>
+          <select id="cri-conc-select"></select>
+        </div>
+      </section>
+
+      <section class="panel" id="cri-mix-panel">
+        <h2>เตรียมสารน้ำ CRI</h2>
+
+        <div class="field-row">
+          <label for="cri-bag-select">ขนาดถุง/ไซริงค์สารน้ำที่จะผสม</label>
+          <select id="cri-bag-select">
+            <option value="1000">1000 mL</option>
+            <option value="500">500 mL</option>
+            <option value="250" selected>250 mL</option>
+            <option value="100">100 mL</option>
+            <option value="60">60 mL (syringe)</option>
+            <option value="50">50 mL (syringe)</option>
+            <option value="20">20 mL (syringe)</option>
+            <option value="10">10 mL (syringe)</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="cri-rate-input">อัตราสารน้ำที่จะให้ (mL/hr)</label>
+          <input type="number" id="cri-rate-input" min="0" step="0.1" placeholder="เช่น 10">
+        </div>
+
+        <p class="hint-text" id="cri-hint">เลือกยา กรอกน้ำหนักตัว ขนาดยาที่ต้องการ และอัตราสารน้ำ เพื่อคำนวณการเตรียม CRI</p>
+        <div id="cri-result" class="result-box" hidden></div>
+      </section>
+    </div>
+
+    <div class="page" id="page-sodium" hidden>
+      <div class="patient-chip" id="patient-chip-sodium"></div>
+
+      <section class="panel" id="sodium-panel">
+        <h2>แก้ไขภาวะโซเดียมผิดปกติ</h2>
+
+        <div class="field-row">
+          <label>ภาวะ</label>
+          <div class="species-toggle" role="group" aria-label="เลือกภาวะโซเดียม">
+            <button type="button" class="toggle-btn active" data-sodium-direction="hypo">🔽 โซเดียมต่ำ (Hypo)</button>
+            <button type="button" class="toggle-btn" data-sodium-direction="hyper">🔼 โซเดียมสูง (Hyper)</button>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <label for="current-na-input">โซเดียมปัจจุบัน (mEq/L)</label>
+          <input type="number" id="current-na-input" step="0.1" placeholder="เช่น 125">
+        </div>
+
+        <div class="field-row">
+          <label for="target-na-input">โซเดียมเป้าหมาย (mEq/L)</label>
+          <input type="number" id="target-na-input" step="0.1" placeholder="เช่น 135">
+        </div>
+
+        <div class="field-row">
+          <label>ระยะเวลาของภาวะ</label>
+          <div class="species-toggle" role="group" aria-label="เลือกระยะเวลา">
+            <button type="button" class="toggle-btn active" data-chronicity="acute">เฉียบพลัน (&lt; 24-48 ชม.)</button>
+            <button type="button" class="toggle-btn" data-chronicity="chronic">เรื้อรัง (&gt; 24-48 ชม.)</button>
+          </div>
+        </div>
+
+        <div class="field-row" id="symptomatic-row">
+          <label>อาการทางระบบประสาท (ซึม อาเจียน ชัก จาก cerebral edema)</label>
+          <div class="species-toggle" role="group" aria-label="เลือกอาการ">
+            <button type="button" class="toggle-btn" data-symptomatic="yes">มีอาการ</button>
+            <button type="button" class="toggle-btn active" data-symptomatic="no">ไม่มีอาการ</button>
+          </div>
+        </div>
+
+        <div class="field-row" id="fluid-select-row">
+          <label for="sodium-fluid-select">ชนิดสารน้ำที่วางแผนจะให้ (สำหรับคำนวณ Adrogue-Madias)</label>
+          <select id="sodium-fluid-select"></select>
+        </div>
+
+        <div class="field-row">
+          <label class="checkbox-row">
+            <input type="checkbox" id="hypovolemic-checkbox"> มีภาวะ hypovolemia ร่วมด้วย
+          </label>
+        </div>
+
+        <p class="hint-text" id="sodium-hint">กรอกน้ำหนักตัว โซเดียมปัจจุบัน และโซเดียมเป้าหมาย เพื่อคำนวณ</p>
+        <div id="sodium-result" class="result-box" hidden></div>
+      </section>
+    </div>
+  </main>
+
+  <nav class="bottom-nav" id="bottom-nav">
+    <button type="button" class="nav-btn active" data-page="patient">
+      <span class="nav-icon">👤</span><span class="nav-label">ผู้ป่วย</span>
+    </button>
+    <button type="button" class="nav-btn" data-page="drugs">
+      <span class="nav-icon">💉</span><span class="nav-label">ยาฉุกเฉิน</span>
+    </button>
+    <button type="button" class="nav-btn" data-page="nutrition">
+      <span class="nav-icon">🍽️</span><span class="nav-label">อาหาร</span>
+    </button>
+    <button type="button" class="nav-btn" data-page="potassium">
+      <span class="nav-icon">🧪</span><span class="nav-label">K+ ต่ำ</span>
+    </button>
+    <button type="button" class="nav-btn" data-page="sodium">
+      <span class="nav-icon">🧂</span><span class="nav-label">Na ผิดปกติ</span>
+    </button>
+    <button type="button" class="nav-btn" data-page="cri">
+      <span class="nav-icon">💧</span><span class="nav-label">CRI</span>
+    </button>
+  </nav>
+
+  <footer>
+    <p>ข้อมูลยาทั้งหมดในระบบนี้ต้องอ้างอิงจากตำราที่ตรวจสอบแล้วเท่านั้น ดูแหล่งอ้างอิงของแต่ละยาได้ที่ผลลัพธ์การคำนวณ</p>
+  </footer>
+
+  <script src="data/drugs.js"></script>
+  <script src="data/diets.js"></script>
+  <script src="data/potassium.js"></script>
+  <script src="data/sodium.js"></script>
+  <script src="data/cri-drugs.js"></script>
+  <script src="app.js"></script>
+  <script src="nutrition.js"></script>
+  <script src="potassium-calc.js"></script>
+  <script src="sodium-calc.js"></script>
+  <script src="cri-calc.js"></script>
+  <script src="nav.js"></script>
+</body>
+</html>
