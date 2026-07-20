@@ -113,8 +113,31 @@
         </div>
 
         <div class="field-row">
+          <label>โหมดอาหาร</label>
+          <div class="species-toggle" role="group" aria-label="เลือกโหมดอาหาร">
+            <button type="button" class="toggle-btn active" data-diet-mode="single">อาหารชนิดเดียว</button>
+            <button type="button" class="toggle-btn" data-diet-mode="mixed">ผสม 2 ชนิด</button>
+          </div>
+        </div>
+
+        <div class="field-row" id="diet-select-row">
           <label for="diet-select">ชนิดอาหาร</label>
           <select id="diet-select"></select>
+        </div>
+
+        <div class="field-row" id="diet-select-a-row" hidden>
+          <label for="diet-select-a">อาหารชนิดที่ 1</label>
+          <select id="diet-select-a"></select>
+        </div>
+
+        <div class="field-row" id="diet-select-b-row" hidden>
+          <label for="diet-select-b">อาหารชนิดที่ 2</label>
+          <select id="diet-select-b"></select>
+        </div>
+
+        <div class="field-row" id="diet-ratio-row" hidden>
+          <label for="diet-ratio-input">สัดส่วนพลังงานจากอาหารชนิดที่ 1 (%) — ส่วนที่เหลือเป็นชนิดที่ 2</label>
+          <input type="number" id="diet-ratio-input" min="0" max="100" step="5" value="50">
         </div>
 
         <div class="field-row">
