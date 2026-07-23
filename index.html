@@ -336,6 +336,59 @@
         <div id="sodium-result" class="result-box" hidden></div>
       </section>
     </div>
+    <div class="page" id="page-neuro" hidden>
+      <div class="patient-chip" id="patient-chip-neuro"></div>
+
+      <section class="panel" id="neuro-panel">
+        <div class="neuro-stepper" id="neuro-stepper"></div>
+
+        <div class="neuro-step" data-step="history">
+          <h2>ประวัติและสัญชาตญาณ</h2>
+          <p class="neuro-step-desc">ข้อมูลนี้ใช้ระบุ mode of onset และ evolution สำหรับจัดลำดับ VITAMIN-D ในขั้นตอนสุดท้าย</p>
+          <div id="neuro-fields-history"></div>
+        </div>
+
+        <div class="neuro-step" data-step="observation" hidden>
+          <h2>Hands-off: ระดับความรู้สึกตัว ท่าทาง การเดิน</h2>
+          <p class="neuro-step-desc">สังเกตก่อนจับตัวสัตว์ — mental status, posture, gait evaluation</p>
+          <div id="neuro-fields-observation"></div>
+        </div>
+
+        <div class="neuro-step" data-step="postural" hidden>
+          <h2>Hands-on: Postural Reactions</h2>
+          <p class="neuro-step-desc">Paw positioning / hopping response แต่ละขา</p>
+          <div id="neuro-fields-postural"></div>
+        </div>
+
+        <div class="neuro-step" data-step="reflexes" hidden>
+          <h2>Hands-on: Spinal Reflexes, Tone และ Sphincter</h2>
+          <p class="neuro-step-desc">Segmental spinal reflexes, muscle tone, panniculus, anal tone, กระเพาะปัสสาวะ</p>
+          <div id="neuro-fields-reflexes"></div>
+        </div>
+
+        <div class="neuro-step" data-step="nociception" hidden>
+          <h2>Nociception Testing</h2>
+          <p class="neuro-step-desc">ทดสอบเฉพาะเมื่อไม่มี voluntary movement ของขานั้นๆ — withdrawal reflex ไม่ใช่ nociception</p>
+          <div id="neuro-fields-nociception"></div>
+        </div>
+
+        <div class="neuro-step" data-step="cranial" hidden>
+          <h2>Cranial Nerve Examination</h2>
+          <p class="neuro-step-desc">CN I-XII ที่ตรวจได้ทางคลินิก</p>
+          <div id="neuro-fields-cranial"></div>
+        </div>
+
+        <div class="neuro-step" data-step="summary" hidden>
+          <h2>สรุปผล: Lesion Localization และ VITAMIN-D</h2>
+          <div id="neuro-summary-content"></div>
+        </div>
+
+        <div class="neuro-nav-buttons">
+          <button type="button" id="neuro-back-btn" class="toggle-btn" hidden>← ย้อนกลับ</button>
+          <button type="button" id="neuro-next-btn" class="next-page-btn">ถัดไป →</button>
+        </div>
+      </section>
+    </div>
   </main>
 
   <nav class="bottom-nav" id="bottom-nav">
@@ -357,6 +410,9 @@
     <button type="button" class="nav-btn" data-page="cri">
       <span class="nav-icon">💧</span><span class="nav-label">CRI</span>
     </button>
+    <button type="button" class="nav-btn" data-page="neuro">
+      <span class="nav-icon">🧠</span><span class="nav-label">ตรวจประสาท</span>
+    </button>
   </nav>
 
   <footer>
@@ -368,11 +424,13 @@
   <script src="data/potassium.js"></script>
   <script src="data/sodium.js"></script>
   <script src="data/cri-drugs.js"></script>
+  <script src="data/neuro-content.js"></script>
   <script src="app.js"></script>
   <script src="nutrition.js"></script>
   <script src="potassium-calc.js"></script>
   <script src="sodium-calc.js"></script>
   <script src="cri-calc.js"></script>
+  <script src="neuro-exam.js"></script>
   <script src="nav.js"></script>
 </body>
 </html>

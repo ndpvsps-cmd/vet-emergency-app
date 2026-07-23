@@ -7,7 +7,8 @@
     nutrition: document.getElementById("page-nutrition"),
     potassium: document.getElementById("page-potassium"),
     sodium: document.getElementById("page-sodium"),
-    cri: document.getElementById("page-cri")
+    cri: document.getElementById("page-cri"),
+    neuro: document.getElementById("page-neuro")
   };
   const navButtons = document.querySelectorAll(".nav-btn");
   const nextButtons = document.querySelectorAll(".next-page-btn");
@@ -16,7 +17,8 @@
     document.getElementById("patient-chip-nutrition"),
     document.getElementById("patient-chip-potassium"),
     document.getElementById("patient-chip-sodium"),
-    document.getElementById("patient-chip-cri")
+    document.getElementById("patient-chip-cri"),
+    document.getElementById("patient-chip-neuro")
   ];
 
   const weightKgInput = document.getElementById("weight-kg");
