@@ -564,300 +564,59 @@ footer {
   padding: 16px;
 }
 
-/* ===== Neuro Exam wizard ===== */
+/* ===== Status Epilepticus stepwise protocol ===== */
 
-.neuro-stepper {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 16px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.neuro-stepper-dot {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  padding: 2px 4px;
-  color: var(--color-muted);
-}
-
-.neuro-stepper-dot .dot-num {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.82rem;
-  font-weight: 700;
-  background: var(--color-panel-alt);
-  border: 2px solid var(--color-border);
-  color: var(--color-muted);
-}
-
-.neuro-stepper-dot .dot-label {
-  font-size: 0.65rem;
-  white-space: nowrap;
-}
-
-.neuro-stepper-dot.done .dot-num {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-}
-
-.neuro-stepper-dot.active .dot-num {
-  border-color: var(--color-primary);
-  color: var(--color-primary-dark);
-  box-shadow: var(--shadow-glow);
-}
-
-.neuro-stepper-dot.active .dot-label {
-  color: var(--color-primary-dark);
-  font-weight: 700;
-}
-
-.neuro-step[hidden] {
-  display: none;
-}
-
-.neuro-step h2 {
-  margin: 0 0 4px;
-  font-family: var(--font-fantasy);
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--color-primary-dark);
-}
-
-.neuro-step-desc {
-  margin: 0 0 14px;
-  color: var(--color-muted);
-  font-size: 0.85rem;
-}
-
-.neuro-field {
-  margin-bottom: 16px;
-}
-
-.neuro-field:last-child {
-  margin-bottom: 0;
-}
-
-.neuro-field > .neuro-field-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 6px;
-  font-size: 0.92rem;
-  color: var(--color-text);
-}
-
-.neuro-field-hint {
-  font-size: 0.78rem;
-  color: var(--color-muted);
-  margin-top: -3px;
-  margin-bottom: 6px;
-}
-
-.limb-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
-
-.limb-grid.limb-grid-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.limb-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.limb-cell .limb-cell-label {
-  font-size: 0.7rem;
-  color: var(--color-muted);
-  text-align: center;
-}
-
-.limb-cell select {
-  padding: 8px 4px;
-  font-size: 0.8rem;
-  text-align: center;
-  text-align-last: center;
-}
-
-.neuro-toggle-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.neuro-toggle-group .toggle-btn {
-  flex: 1 1 auto;
-  min-width: 90px;
-  padding: 10px 8px;
-  font-size: 0.88rem;
-}
-
-.neuro-nav-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.neuro-nav-buttons .next-page-btn,
-.neuro-nav-buttons .toggle-btn {
-  margin-top: 0;
-  flex: 1;
-}
-
-.neuro-conditional[hidden] {
-  display: none;
-}
-
-.localization-card {
-  border: 2px solid var(--color-primary);
-  border-radius: 10px;
-  padding: 16px;
-  background: var(--color-panel-alt);
-  box-shadow: var(--shadow-glow);
-  margin-bottom: 16px;
-}
-
-.localization-card .loc-region {
-  font-family: var(--font-fantasy);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-primary-dark);
-  margin-bottom: 4px;
-}
-
-.localization-card .loc-distribution {
-  display: inline-block;
-  background: var(--gradient-gold);
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 20px;
-  margin-bottom: 10px;
-}
-
-.localization-card .loc-reasons {
-  margin: 8px 0 0;
-  padding-left: 18px;
-  font-size: 0.86rem;
-  color: var(--color-text);
-}
-
-.localization-card .loc-reasons li {
-  margin-bottom: 4px;
-}
-
-.loc-secondary {
-  font-size: 0.85rem;
-  color: var(--color-muted);
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--color-border);
-}
-
-.vitamind-group {
-  margin-bottom: 14px;
+.se-step {
   border: 1px solid var(--color-border);
   border-radius: 8px;
-  overflow: hidden;
-}
-
-.vitamind-group.likely {
-  border-color: var(--color-primary);
-}
-
-.vitamind-group-header {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 8px 12px;
+  padding: 10px 12px;
+  margin-top: 10px;
   background: var(--color-panel-alt);
-  font-family: var(--font-fantasy);
+}
+
+.se-step-head {
   font-weight: 700;
   color: var(--color-primary-dark);
-  font-size: 0.92rem;
+  margin-bottom: 6px;
 }
 
-.vitamind-group.likely .vitamind-group-header {
-  background: var(--gradient-gold);
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+.se-step-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
 }
 
-.vitamind-group-header .letter-badge {
+.se-step-row > span:first-child {
+  flex: 1;
+  min-width: 140px;
+}
+
+.se-step-dose {
+  font-size: 0.9rem;
+  color: var(--color-primary-dark);
+  font-weight: 600;
+  padding: 2px 0 6px;
+}
+
+.grade-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 0.78rem;
-  flex-shrink: 0;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #ffffff;
 }
 
-.vitamind-group.likely .vitamind-group-header .letter-badge {
-  background: #fff;
-  color: var(--color-primary-dark);
-}
-
-.vitamind-disease-list {
-  list-style: none;
-  margin: 0;
-  padding: 8px 12px;
-  background: var(--color-panel);
-}
-
-.vitamind-disease-list li {
-  padding: 5px 0;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.88rem;
-}
-
-.vitamind-disease-list li:last-child {
-  border-bottom: none;
-}
-
-.vitamind-disease-list .dz-name {
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.vitamind-disease-list .dz-note {
-  display: block;
-  color: var(--color-muted);
-  font-size: 0.8rem;
-}
-
-.summary-review {
-  font-size: 0.82rem;
-  color: var(--color-muted);
-  background: var(--color-panel-alt);
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 16px;
-}
-
-.summary-review strong {
-  color: var(--color-text);
-}
+.grade-badge.grade-A { background: #059669; }
+.grade-badge.grade-B { background: #0891b2; }
+.grade-badge.grade-C { background: #d97706; }
+.grade-badge.grade-D { background: #dc2626; }
+.grade-badge.grade-E { background: #64748b; }
 
 @media (max-width: 480px) {
   .result-grid {
@@ -867,20 +626,11 @@ footer {
     flex-direction: column;
     align-items: stretch;
   }
-  .limb-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media print {
-  .neuro-stepper, .neuro-nav-buttons, #neuro-panel .neuro-step:not([data-step="summary"]) {
-    display: none !important;
-  }
 }
 
 @media print {
   .disclaimer, header, #input-panel, #calculator-panel, .print-btn, footer,
-  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri {
+  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se {
     display: none !important;
   }
   #page-drugs {

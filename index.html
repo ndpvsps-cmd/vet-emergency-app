@@ -281,6 +281,130 @@
       </section>
     </div>
 
+    <div class="page" id="page-se" hidden>
+      <div class="patient-chip" id="patient-chip-se"></div>
+
+      <section class="panel" id="se-intro-panel">
+        <h2>จัดการภาวะ Status Epilepticus (SE) อย่างเป็นขั้นตอน</h2>
+        <div class="result-note">
+          <strong>นิยาม SE:</strong> อาการชักต่อเนื่องนานกว่า 5 นาที หรือชักซ้ำตั้งแต่ 2 ครั้งขึ้นไปโดยไม่ฟื้นรู้สึกตัวเต็มที่ระหว่างครั้ง (ILAE/IVETF)
+        </div>
+        <div class="table-wrap" style="margin-top:10px;">
+          <table>
+            <thead><tr><th>ระยะ (Stage)</th><th>ระยะเวลา</th><th>การตอบสนองต่อการรักษา</th></tr></thead>
+            <tbody id="se-stage-table-body"></tbody>
+          </table>
+        </div>
+        <div class="result-source" style="margin-top:8px;">ระดับคำแนะนำ (ACVIM recommendation grade):</div>
+        <div id="se-grade-legend" class="result-note"></div>
+      </section>
+
+      <section class="panel" id="se-supportive-panel">
+        <h2>ดูแลควบคู่กันตลอด (Supportive Care)</h2>
+        <ul style="margin:0; padding-left:20px;">
+          <li>ประเมิน/แก้ไขภาวะขาดออกซิเจน (hypoxemia), ตัวร้อนเกิน (hyperthermia), ความผิดปกติของเมตาบอลิซึม (เช่น น้ำตาลในเลือดต่ำ, เกลือแร่ผิดปกติ)</li>
+          <li>ค้นหาสาเหตุที่แก้ไขได้ควบคู่ไปกับการให้ยากันชัก อย่ารอให้คุมชักได้ก่อนจึงเริ่มค้นหาสาเหตุ</li>
+        </ul>
+        <div class="result-source">ACVIM Consensus Statement 2023, ส่วน Supportive treatment</div>
+      </section>
+
+      <section class="panel" id="se-firstline-panel">
+        <h2>ขั้นที่ 1 — First-line: Benzodiazepine (BZD)</h2>
+        <div class="hint-text">เกณฑ์ได้ผล: หยุดชักภายใน 5 นาที และไม่ชักซ้ำภายใน 10 นาที ถัดไป</div>
+
+        <div class="se-step">
+          <div class="se-step-head">Bolus แรก (ในโรงพยาบาล มี IV)</div>
+          <div class="se-step-row"><span>Midazolam IV</span><span class="grade-badge grade-A">สุนัข A</span><span class="grade-badge grade-B">แมว B</span></div>
+          <div class="se-step-dose" id="se-dose-midazolam-iv"></div>
+          <div class="se-step-row"><span>Diazepam IV</span><span class="grade-badge grade-A">สุนัข A</span><span class="grade-badge grade-B">แมว B</span></div>
+          <div class="se-step-dose" id="se-dose-diazepam-iv"></div>
+        </div>
+
+        <div class="se-step">
+          <div class="se-step-head">นอกโรงพยาบาล / ยังไม่มี IV access</div>
+          <div class="se-step-row"><span>Midazolam พ่นจมูก (IN)</span><span class="grade-badge grade-A">สุนัข A</span><span class="grade-badge grade-E">แมว E</span></div>
+          <div class="se-step-row"><span>Midazolam ฉีดกล้ามเนื้อ (IM)</span><span class="grade-badge grade-B">สุนัข B</span><span class="grade-badge grade-E">แมว E</span></div>
+          <div class="se-step-dose" id="se-dose-midazolam-im"></div>
+          <div class="se-step-row"><span>Diazepam ทางทวารหนัก (R)</span><span class="grade-badge grade-C">สุนัข C</span><span class="grade-badge grade-E">แมว E</span></div>
+          <div class="se-step-dose" id="se-dose-diazepam-r"></div>
+        </div>
+
+        <div class="se-step">
+          <div class="se-step-head">ยังชักอยู่ → Bolus ที่ 2 (ห่างจากครั้งแรกอย่างน้อย 2 นาที) — ใช้ยาชนิดเดิมซ้ำ</div>
+        </div>
+
+        <div class="se-step">
+          <div class="se-step-head">ยังชักซ้ำหลัง 2 bolus (recurrent SE) → Bolus ที่ 3 ตามด้วย BZD IV CRI ทันที</div>
+          <div class="se-step-row"><span>Midazolam IV CRI</span><span class="grade-badge grade-A">สุนัข A</span><span class="grade-badge grade-B">แมว B (แนะนำกว่า)</span></div>
+          <div class="se-step-row"><span>Diazepam IV CRI</span><span class="grade-badge grade-B">สุนัข B</span><span class="grade-badge grade-D">แมว D (หลีกเลี่ยง)</span></div>
+          <div class="result-note">ถ้ายังคุมชักไม่ได้หลัง bolus สุดท้าย → ไปยังขั้นที่ 2 (second-line) ทันที</div>
+        </div>
+        <div class="result-source">ACVIM Consensus Statement 2023, ส่วน First-line treatment, p.25-28</div>
+      </section>
+
+      <section class="panel" id="se-secondline-panel">
+        <h2>ขั้นที่ 2 — Second-line: Antiseizure medication (ASM)</h2>
+        <div class="hint-text">เริ่มได้เร็วขึ้นควบคู่กับ first-line ในผู้ป่วยที่มาโรงพยาบาล ไม่จำเป็นต้องรอให้ first-line ล้มเหลวก่อนเสมอไป</div>
+        <div class="se-step">
+          <div class="se-step-row"><span>Levetiracetam IV</span><span class="grade-badge grade-B">สุนัข/แมว B</span></div>
+          <div class="se-step-row"><span>Phenobarbital IV</span><span class="grade-badge grade-A">สุนัข A</span><span class="grade-badge grade-B">แมว B</span></div>
+          <div class="se-step-row"><span>Fosphenytoin IV (เสริม หากตอบสนองไม่พอกับยาข้างต้น)</span><span class="grade-badge grade-B">สุนัข B</span></div>
+          <div class="result-note">ขนาดยา (mg/kg) ของยากลุ่มนี้ไม่ได้ระบุไว้ในเนื้อหาหลักของเอกสาร ACVIM ที่แนบมา (อยู่ใน Supplementary file ที่ไม่ได้แนบ) — กรุณาใช้ตามขนาดยาที่คลินิกกำหนดหรือตำรายาอื่น</div>
+        </div>
+        <div class="result-source">ACVIM Consensus Statement 2023, ส่วน Second-line treatment, p.28-29</div>
+      </section>
+
+      <section class="panel" id="se-thirdline-panel">
+        <h2>ขั้นที่ 3 — Third-line: ยาสลบ (Refractory SE)</h2>
+        <div class="hint-text">ใช้เมื่อ first- และ second-line ควบคุมชักไม่ได้ — ทำตาม 4 ขั้นย่อยตามลำดับ</div>
+
+        <div class="se-step">
+          <div class="se-step-head">ขั้นย่อยที่ 1</div>
+          <div class="se-step-row"><span>Ketamine IV bolus ± CRI</span><span class="grade-badge grade-A">สุนัข A</span><span class="grade-badge grade-E">แมว E</span></div>
+          <div class="se-step-dose" id="se-dose-ketamine"></div>
+          <div class="se-step-row"><span>Dexmedetomidine IV bolus + CRI (ถ้าใช้ ketamine ไม่ได้ผล หรือสลับลำดับกันได้)</span><span class="grade-badge grade-B">สุนัข B</span><span class="grade-badge grade-E">แมว E</span></div>
+        </div>
+
+        <div class="se-step">
+          <div class="se-step-head">ขั้นย่อยที่ 2</div>
+          <div class="se-step-row"><span>Propofol IV bolus ± CRI</span><span class="grade-badge grade-A">สุนัข A</span></div>
+          <div class="se-step-dose" id="se-dose-propofol"></div>
+          <div class="warning-text">ในแมว: ใช้ด้วยความระมัดระวัง (grade C) เฝ้าระวังใกล้ชิด เสี่ยง Heinz body anemia หากใช้ต่อเนื่องนาน/ปริมาณสะสมสูง</div>
+        </div>
+
+        <div class="se-step">
+          <div class="se-step-head">ขั้นย่อยที่ 3</div>
+          <div class="se-step-row"><span>Barbiturate (Pentobarbital หรือ Sodium thiopental) IV bolus + CRI</span><span class="grade-badge grade-B">สุนัข B</span><span class="grade-badge grade-C">แมว C</span></div>
+        </div>
+
+        <div class="se-step">
+          <div class="se-step-head">ขั้นย่อยที่ 4</div>
+          <div class="se-step-row"><span>ยาสลบชนิดสูดดม (Inhalational anesthesia)</span><span class="grade-badge grade-B">สุนัข/แมว B</span></div>
+          <div class="result-note">ต้องใส่ท่อช่วยหายใจและควบคุมการหายใจ (mechanical ventilation)</div>
+        </div>
+        <div class="result-source">ACVIM Consensus Statement 2023, ส่วน Third-line treatment, p.29-31</div>
+      </section>
+
+      <section class="panel" id="se-refractory-panel">
+        <h2>หากยังคุมชักไม่ได้ทุกขั้นตอนข้างต้น (Super-refractory SE)</h2>
+        <ul style="margin:0; padding-left:20px;">
+          <li>พิจารณา IV Magnesium หรือ Allopregnanolone <span class="grade-badge grade-E">E</span></li>
+          <li>หากยังไม่ได้ผล พิจารณา Neurostimulation (non-pharmacological) <span class="grade-badge grade-E">E</span></li>
+        </ul>
+        <div class="result-source">ACVIM Consensus Statement 2023, ส่วน What if combined measures fail, p.30-31</div>
+      </section>
+
+      <section class="panel" id="se-stop-panel">
+        <h2>เมื่อไหร่จึงหยุด/ลดยากันชัก</h2>
+        <ul style="margin:0; padding-left:20px;">
+          <li>ถ้าไม่มีอาการชักอีกเลยเป็นเวลา 24-48 ชั่วโมง หลังปรับยา/เพิ่มยาครั้งล่าสุด → ไม่จำเป็นต้องเพิ่มยาสลบอีก</li>
+          <li>คงขนาดยาที่ควบคุมชักได้ต่อไปอีก 24-48 ชั่วโมงหลังหยุดชัก (ระยะสั้นสุด ~12 ชั่วโมงพิจารณาได้เพื่อลดความเสี่ยงจากการนอนโรงพยาบาลนาน) ก่อนเริ่มลดยา</li>
+          <li>ถ้ามี EEG ควรใช้ร่วมกับการประเมินทางคลินิกเพื่อยืนยันว่าหยุดชักจริง โดยเฉพาะกรณีสงสัย non-convulsive SE</li>
+        </ul>
+        <div class="result-source">ACVIM Consensus Statement 2023, ส่วน When to stop administering more antiseizure medications, p.31-32</div>
+      </section>
+    </div>
+
     <div class="page" id="page-sodium" hidden>
       <div class="patient-chip" id="patient-chip-sodium"></div>
 
@@ -336,59 +460,6 @@
         <div id="sodium-result" class="result-box" hidden></div>
       </section>
     </div>
-    <div class="page" id="page-neuro" hidden>
-      <div class="patient-chip" id="patient-chip-neuro"></div>
-
-      <section class="panel" id="neuro-panel">
-        <div class="neuro-stepper" id="neuro-stepper"></div>
-
-        <div class="neuro-step" data-step="history">
-          <h2>ประวัติและสัญชาตญาณ</h2>
-          <p class="neuro-step-desc">ข้อมูลนี้ใช้ระบุ mode of onset และ evolution สำหรับจัดลำดับ VITAMIN-D ในขั้นตอนสุดท้าย</p>
-          <div id="neuro-fields-history"></div>
-        </div>
-
-        <div class="neuro-step" data-step="observation" hidden>
-          <h2>Hands-off: ระดับความรู้สึกตัว ท่าทาง การเดิน</h2>
-          <p class="neuro-step-desc">สังเกตก่อนจับตัวสัตว์ — mental status, posture, gait evaluation</p>
-          <div id="neuro-fields-observation"></div>
-        </div>
-
-        <div class="neuro-step" data-step="postural" hidden>
-          <h2>Hands-on: Postural Reactions</h2>
-          <p class="neuro-step-desc">Paw positioning / hopping response แต่ละขา</p>
-          <div id="neuro-fields-postural"></div>
-        </div>
-
-        <div class="neuro-step" data-step="reflexes" hidden>
-          <h2>Hands-on: Spinal Reflexes, Tone และ Sphincter</h2>
-          <p class="neuro-step-desc">Segmental spinal reflexes, muscle tone, panniculus, anal tone, กระเพาะปัสสาวะ</p>
-          <div id="neuro-fields-reflexes"></div>
-        </div>
-
-        <div class="neuro-step" data-step="nociception" hidden>
-          <h2>Nociception Testing</h2>
-          <p class="neuro-step-desc">ทดสอบเฉพาะเมื่อไม่มี voluntary movement ของขานั้นๆ — withdrawal reflex ไม่ใช่ nociception</p>
-          <div id="neuro-fields-nociception"></div>
-        </div>
-
-        <div class="neuro-step" data-step="cranial" hidden>
-          <h2>Cranial Nerve Examination</h2>
-          <p class="neuro-step-desc">CN I-XII ที่ตรวจได้ทางคลินิก</p>
-          <div id="neuro-fields-cranial"></div>
-        </div>
-
-        <div class="neuro-step" data-step="summary" hidden>
-          <h2>สรุปผล: Lesion Localization และ VITAMIN-D</h2>
-          <div id="neuro-summary-content"></div>
-        </div>
-
-        <div class="neuro-nav-buttons">
-          <button type="button" id="neuro-back-btn" class="toggle-btn" hidden>← ย้อนกลับ</button>
-          <button type="button" id="neuro-next-btn" class="next-page-btn">ถัดไป →</button>
-        </div>
-      </section>
-    </div>
   </main>
 
   <nav class="bottom-nav" id="bottom-nav">
@@ -410,8 +481,8 @@
     <button type="button" class="nav-btn" data-page="cri">
       <span class="nav-icon">💧</span><span class="nav-label">CRI</span>
     </button>
-    <button type="button" class="nav-btn" data-page="neuro">
-      <span class="nav-icon">🧠</span><span class="nav-label">ตรวจประสาท</span>
+    <button type="button" class="nav-btn" data-page="se">
+      <span class="nav-icon">⚡</span><span class="nav-label">SE ชัก</span>
     </button>
   </nav>
 
@@ -424,13 +495,13 @@
   <script src="data/potassium.js"></script>
   <script src="data/sodium.js"></script>
   <script src="data/cri-drugs.js"></script>
-  <script src="data/neuro-content.js"></script>
+  <script src="data/status-epilepticus.js"></script>
   <script src="app.js"></script>
   <script src="nutrition.js"></script>
   <script src="potassium-calc.js"></script>
   <script src="sodium-calc.js"></script>
   <script src="cri-calc.js"></script>
-  <script src="neuro-exam.js"></script>
+  <script src="se-calc.js"></script>
   <script src="nav.js"></script>
 </body>
 </html>
