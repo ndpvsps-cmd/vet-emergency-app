@@ -557,11 +557,118 @@ tbody tr.out-of-range {
   min-width: 90px;
 }
 
+/* On narrow phone screens the crash cart table has too many columns to fit without
+   horizontal scrolling, which is easy to miss mid-emergency. Below 640px it switches
+   to a stacked card per drug instead — each cell becomes its own labeled row.
+   Scoped to "screen" only so the printed crash cart still renders as a real table. */
+@media screen and (max-width: 640px) {
+  #crashcart-table thead {
+    display: none;
+  }
+
+  #crashcart-table, #crashcart-table tbody, #crashcart-table tr, #crashcart-table td {
+    display: block;
+    width: 100%;
+  }
+
+  #crashcart-table tr {
+    margin-bottom: 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    background: var(--color-panel);
+  }
+
+  #crashcart-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    text-align: right;
+    border-bottom: 1px dashed var(--color-border);
+    padding: 7px 0;
+  }
+
+  #crashcart-table td:last-child {
+    border-bottom: none;
+  }
+
+  #crashcart-table td::before {
+    content: attr(data-label);
+    flex-shrink: 0;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--color-muted);
+  }
+
+  #crashcart-table td[data-label="ยา"] {
+    font-family: var(--font-fantasy);
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    font-size: 1rem;
+  }
+}
+
 footer {
   text-align: center;
   color: var(--color-muted);
   font-size: 0.8rem;
   padding: 16px;
+}
+
+/* ===== All-tools menu grid ===== */
+
+.menu-category {
+  margin-bottom: 22px;
+}
+
+.menu-category:last-child {
+  margin-bottom: 0;
+}
+
+.menu-category h3 {
+  margin: 0 0 10px;
+  font-family: var(--font-fantasy);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.menu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 8px;
+  font-family: inherit;
+  background: var(--color-panel-alt);
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.menu-card:hover, .menu-card:active {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-glow);
+}
+
+.menu-card-icon {
+  font-size: 2rem;
+}
+
+.menu-card-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
 }
 
 /* ===== Status Epilepticus stepwise protocol ===== */
@@ -630,7 +737,7 @@ footer {
 
 @media print {
   .disclaimer, header, #input-panel, #calculator-panel, .print-btn, footer,
-  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se {
+  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se, #page-apple, #page-mgcs, #page-att, #page-menu {
     display: none !important;
   }
   #page-drugs {

@@ -255,9 +255,9 @@
 
       if (contraindicatedReason) {
         row.innerHTML = `
-          <td>${drug.name}</td>
-          <td>${drug.category}</td>
-          <td colspan="4">ข้อห้ามใช้ใน${state.species === "dog" ? "สุนัข" : "แมว"}: ${contraindicatedReason}</td>
+          <td data-label="ยา">${drug.name}</td>
+          <td data-label="กลุ่ม">${drug.category}</td>
+          <td data-label="หมายเหตุ" colspan="4">ข้อห้ามใช้ใน${state.species === "dog" ? "สุนัข" : "แมว"}: ${contraindicatedReason}</td>
         `;
         crashcartBody.appendChild(row);
         return;
@@ -280,13 +280,13 @@
         .join("");
 
       row.innerHTML = `
-        <td>${drug.name}</td>
-        <td>${drug.category}</td>
-        <td>${formatRange(spec.doseLow, spec.doseHigh, 4)} ${spec.unit}</td>
-        <td><select class="conc-picker" id="${concSelectId}" data-drug="${drug.name}">${concOptions}</select></td>
-        <td>${formatRange(doseLowMg, doseHighMg, 3)} ${doseUnit}${rateSuffix}</td>
-        <td>${concentration ? formatRange(volumeLowMl, volumeHighMl, 4) : "-"}${perMinute ? "/นาที" : ""}</td>
-        <td>${spec.route}</td>
+        <td data-label="ยา">${drug.name}</td>
+        <td data-label="กลุ่ม">${drug.category}</td>
+        <td data-label="อัตรา/นน.ตัว">${formatRange(spec.doseLow, spec.doseHigh, 4)} ${spec.unit}</td>
+        <td data-label="ความเข้มข้น (ปรับได้)"><select class="conc-picker" id="${concSelectId}" data-drug="${drug.name}">${concOptions}</select></td>
+        <td data-label="ขนาดยารวม">${formatRange(doseLowMg, doseHighMg, 3)} ${doseUnit}${rateSuffix}</td>
+        <td data-label="ปริมาณ (mL)">${concentration ? formatRange(volumeLowMl, volumeHighMl, 4) : "-"}${perMinute ? "/นาที" : ""}</td>
+        <td data-label="ช่องทาง">${spec.route}</td>
       `;
       crashcartBody.appendChild(row);
     });

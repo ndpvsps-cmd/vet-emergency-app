@@ -56,6 +56,40 @@
       </section>
     </div>
 
+    <div class="page" id="page-menu" hidden>
+      <section class="panel" id="menu-panel">
+        <h2>เมนูทั้งหมด</h2>
+
+        <div class="menu-category">
+          <h3>ผู้ป่วยและยา</h3>
+          <div class="menu-grid">
+            <button type="button" class="menu-card" data-page="patient"><span class="menu-card-icon">👤</span><span class="menu-card-label">ข้อมูลผู้ป่วย</span></button>
+            <button type="button" class="menu-card" data-page="drugs"><span class="menu-card-icon">💉</span><span class="menu-card-label">ยาฉุกเฉิน</span></button>
+            <button type="button" class="menu-card" data-page="cri"><span class="menu-card-icon">💧</span><span class="menu-card-label">CRI</span></button>
+            <button type="button" class="menu-card" data-page="nutrition"><span class="menu-card-icon">🍽️</span><span class="menu-card-label">อาหาร</span></button>
+          </div>
+        </div>
+
+        <div class="menu-category">
+          <h3>แก้ไขภาวะผิดปกติ</h3>
+          <div class="menu-grid">
+            <button type="button" class="menu-card" data-page="potassium"><span class="menu-card-icon">🧪</span><span class="menu-card-label">K+ ต่ำ</span></button>
+            <button type="button" class="menu-card" data-page="sodium"><span class="menu-card-icon">🧂</span><span class="menu-card-label">Na ผิดปกติ</span></button>
+            <button type="button" class="menu-card" data-page="se"><span class="menu-card-icon">⚡</span><span class="menu-card-label">SE ชัก</span></button>
+          </div>
+        </div>
+
+        <div class="menu-category">
+          <h3>ประเมิน/พยากรณ์โรค</h3>
+          <div class="menu-grid">
+            <button type="button" class="menu-card" data-page="apple"><span class="menu-card-icon">🍎</span><span class="menu-card-label">APPLE Score</span></button>
+            <button type="button" class="menu-card" data-page="mgcs"><span class="menu-card-icon">🧠</span><span class="menu-card-label">MGCS</span></button>
+            <button type="button" class="menu-card" data-page="att"><span class="menu-card-icon">🚑</span><span class="menu-card-label">ATT Score</span></button>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <div class="page" id="page-drugs" hidden>
       <div class="patient-chip" id="patient-chip-drugs"></div>
 
@@ -405,6 +439,46 @@
       </section>
     </div>
 
+    <div class="page" id="page-apple" hidden>
+      <div class="patient-chip" id="patient-chip-apple"></div>
+
+      <section class="panel" id="apple-panel">
+        <h2>APPLE Score (สุนัข) — ประเมินความรุนแรงของโรคและพยากรณ์โรค</h2>
+
+        <div class="field-row">
+          <label>โหมดคะแนน</label>
+          <div class="species-toggle" role="group" aria-label="เลือกโหมด APPLE Score">
+            <button type="button" class="toggle-btn active" data-apple-mode="full">APPLE (Full) — 10 พารามิเตอร์</button>
+            <button type="button" class="toggle-btn" data-apple-mode="fast">APPLE (Fast) — 5 พารามิเตอร์</button>
+          </div>
+        </div>
+
+        <div id="apple-fields"></div>
+
+        <div id="apple-result" class="result-box" hidden></div>
+      </section>
+    </div>
+
+    <div class="page" id="page-mgcs" hidden>
+      <div class="patient-chip" id="patient-chip-mgcs"></div>
+
+      <section class="panel" id="mgcs-panel">
+        <h2>Modified Glasgow Coma Scale (MGCS) — ประเมินระดับความรู้สึกตัวและพยากรณ์โรค</h2>
+        <div id="mgcs-fields"></div>
+        <div id="mgcs-result" class="result-box" hidden></div>
+      </section>
+    </div>
+
+    <div class="page" id="page-att" hidden>
+      <div class="patient-chip" id="patient-chip-att"></div>
+
+      <section class="panel" id="att-panel">
+        <h2>ATT Score (Animal Trauma Triage Score) — ประเมินความรุนแรงจากอุบัติเหตุ</h2>
+        <div id="att-fields"></div>
+        <div id="att-result" class="result-box" hidden></div>
+      </section>
+    </div>
+
     <div class="page" id="page-sodium" hidden>
       <div class="patient-chip" id="patient-chip-sodium"></div>
 
@@ -472,17 +546,8 @@
     <button type="button" class="nav-btn" data-page="nutrition">
       <span class="nav-icon">🍽️</span><span class="nav-label">อาหาร</span>
     </button>
-    <button type="button" class="nav-btn" data-page="potassium">
-      <span class="nav-icon">🧪</span><span class="nav-label">K+ ต่ำ</span>
-    </button>
-    <button type="button" class="nav-btn" data-page="sodium">
-      <span class="nav-icon">🧂</span><span class="nav-label">Na ผิดปกติ</span>
-    </button>
-    <button type="button" class="nav-btn" data-page="cri">
-      <span class="nav-icon">💧</span><span class="nav-label">CRI</span>
-    </button>
-    <button type="button" class="nav-btn" data-page="se">
-      <span class="nav-icon">⚡</span><span class="nav-label">SE ชัก</span>
+    <button type="button" class="nav-btn" data-page="menu" id="nav-btn-menu">
+      <span class="nav-icon">🗂️</span><span class="nav-label">เมนูทั้งหมด</span>
     </button>
   </nav>
 
@@ -496,12 +561,18 @@
   <script src="data/sodium.js"></script>
   <script src="data/cri-drugs.js"></script>
   <script src="data/status-epilepticus.js"></script>
+  <script src="data/apple-score.js"></script>
+  <script src="data/mgcs-score.js"></script>
+  <script src="data/att-score.js"></script>
   <script src="app.js"></script>
   <script src="nutrition.js"></script>
   <script src="potassium-calc.js"></script>
   <script src="sodium-calc.js"></script>
   <script src="cri-calc.js"></script>
   <script src="se-calc.js"></script>
+  <script src="apple-score-calc.js"></script>
+  <script src="mgcs-calc.js"></script>
+  <script src="att-score-calc.js"></script>
   <script src="nav.js"></script>
 </body>
 </html>
