@@ -9,13 +9,15 @@
     sick: "ลาป่วย",
     personal: "ลากิจ",
     vacation: "ลาพักร้อน",
+    nightshift: "ออกเวรไนท์",
     seminar: "ลาสัมมนา/ราชการ",
     covering: "ทำงานแทนหน่วยอื่น"
   };
   const LEAVE_COLORS = {
     sick: "#FF00FF",
-    personal: "#4A86E8",
+    personal: "#00D4FF",
     vacation: "#34D399",
+    nightshift: "#2563EB",
     seminar: "#999999",
     covering: "#FFD966"
   };
@@ -24,6 +26,7 @@
     "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
     "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
   ];
+  const ROLE_TEXT_COLORS = { doctor: "#1d4ed8", assistant: "#db2777", other: "#6b8e23" };
 
   let DATA = { departments: [], rooms: [], staff: [], assignments: [], leaves: [] };
 
@@ -33,13 +36,37 @@
   function todayStr() { return isoDate(new Date()); }
   function daysInMonth(year, month) { return new Date(year, month, 0).getDate(); }
   function weekdayOf(year, month, day) { return THAI_WEEKDAYS[new Date(year, month - 1, day).getDay()]; }
+  function formatThaiDate(iso) {
+    if (!iso) return "";
+    const parts = iso.split("-");
+    if (parts.length !== 3) return iso;
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const d = parseInt(parts[2], 10);
+    return d + " " + THAI_MONTH_NAMES[m - 1] + " " + (y + 543);
+  }
+  function formatThaiDateRange(start, end) {
+    if (start === end) return formatThaiDate(start);
+    return formatThaiDate(start) + " ถึง " + formatThaiDate(end);
+  }
+  function personCategory(staffMember, assignmentRole) {
+    if (assignmentRole === "vet" || assignmentRole === "intern") return "doctor";
+    if (assignmentRole === "assistant") return "assistant";
+    const pos = (staffMember && staffMember.position) || "";
+    if (pos.indexOf("หมอ") !== -1 || pos.indexOf("สัตวแพทย์") !== -1) return "doctor";
+    if (pos.indexOf("ผู้ช่วย") !== -1) return "assistant";
+    return "other";
+  }
+  function personTextColor(staffMember, assignmentRole) {
+    return ROLE_TEXT_COLORS[personCategory(staffMember, assignmentRole)];
+  }
   function textColorFor(hex) {
     if (!hex) return null;
     const r = parseInt(hex.substr(1, 2), 16);
     const g = parseInt(hex.substr(3, 2), 16);
     const b = parseInt(hex.substr(5, 2), 16);
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.6 ? "#2e2416" : "#ffffff";
+    return luminance > 0.6 ? "#1e293b" : "#ffffff";
   }
 
   function byId(arr, id) { return arr.find((x) => String(x.id) === String(id)); }
@@ -272,9 +299,9 @@
       row.className = "sl-leave-row";
       const s = byId(DATA.staff, l.staffId);
       row.innerHTML =
-        '<span class="sl-chip" style="background:' + (LEAVE_COLORS[l.type] || "#ccc") + ';color:' + (textColorFor(LEAVE_COLORS[l.type]) || "#2e2416") + '">' +
+        '<span class="sl-chip" style="background:' + (LEAVE_COLORS[l.type] || "#ccc") + ';color:' + (textColorFor(LEAVE_COLORS[l.type]) || "#1e293b") + '">' +
         (s ? s.name : "?") + " · " + (LEAVE_TYPES[l.type] || l.type) + '</span>' +
-        '<span>' + l.startDate + (l.endDate !== l.startDate ? " ถึง " + l.endDate : "") + '</span>' +
+        '<span>' + formatThaiDateRange(l.startDate, l.endDate) + '</span>' +
         (l.type === "covering" ? '<span>ไปช่วย: ' + deptName(l.coveringDepartmentId) + '</span>' : '') +
         (l.note ? '<span>หมายเหตุ: ' + escapeHtml(l.note) + '</span>' : '');
       overviewDetailList.appendChild(row);
@@ -426,6 +453,7 @@
     }
     const nameSpan = document.createElement("span");
     nameSpan.textContent = staffMember.name;
+    if (!leave) nameSpan.style.color = personTextColor(staffMember, ctx && ctx.role);
     span.appendChild(nameSpan);
     if (leave) {
       const tag = document.createElement("span");
@@ -493,7 +521,7 @@
         lbl.textContent = ROLE_LABELS[role];
         const chips = document.createElement("div");
         chips.className = "sl-chips";
-        people.forEach((p) => chips.appendChild(chipEl(p.staff, p.leave, { dateStr })));
+        people.forEach((p) => chips.appendChild(chipEl(p.staff, p.leave, { dateStr, role })));
         row.appendChild(lbl);
         row.appendChild(chips);
         card.appendChild(row);
@@ -565,7 +593,7 @@
       peopleCell.className = "sl-table-cell";
       peopleCell.style.flex = "2";
       absentees.forEach((a) => {
-        const chip = chipEl(a.staff, a.leave, { dateStr });
+        const chip = chipEl(a.staff, a.leave, { dateStr, role: a.role });
         peopleCell.appendChild(chip);
       });
       row.appendChild(roomCell);
@@ -618,7 +646,7 @@
       const hit = document.createElement("div");
       hit.className = "sl-search-hit";
       const label = assigns.length
-        ? assigns.map((a) => { const r = byId(DATA.rooms, a.roomId); return (r ? r.name : "?") + " (" + a.startDate + " - " + a.endDate + ")"; }).join(", ")
+        ? assigns.map((a) => { const r = byId(DATA.rooms, a.roomId); return (r ? r.name : "?") + " (" + formatThaiDateRange(a.startDate, a.endDate) + ")"; }).join(", ")
         : "ยังไม่มีตารางเวร";
       hit.innerHTML = "<div><div>" + escapeHtml(sm.name) + "</div><div style='color:var(--color-muted);font-size:0.78rem;'>" + escapeHtml(label) + "</div></div>";
       hit.addEventListener("click", () => {
@@ -665,10 +693,11 @@
     rows.forEach((a) => {
       const row = document.createElement("div");
       row.className = "sl-table-row";
+      const smA = byId(DATA.staff, a.staffId);
       row.innerHTML =
-        '<span class="sl-table-cell">' + escapeHtml(staffName(a.staffId)) + '</span>' +
+        '<span class="sl-table-cell" style="color:' + personTextColor(smA, a.role) + ';font-weight:700;">' + escapeHtml(staffName(a.staffId)) + '</span>' +
         '<span class="sl-table-cell">' + ROLE_LABELS[a.role] + '</span>' +
-        '<span class="sl-table-cell">' + a.startDate + ' - ' + a.endDate + '</span>';
+        '<span class="sl-table-cell">' + formatThaiDateRange(a.startDate, a.endDate) + '</span>';
       const actions = document.createElement("span");
       actions.className = "sl-table-actions";
       const delBtn = document.createElement("button");
@@ -973,10 +1002,11 @@
     rows.forEach((l) => {
       const row = document.createElement("div");
       row.className = "sl-table-row";
+      const smL = byId(DATA.staff, l.staffId);
       row.innerHTML =
-        '<span class="sl-table-cell">' + escapeHtml(staffName(l.staffId)) + '</span>' +
-        '<span class="sl-table-cell">' + escapeHtml(deptName(byId(DATA.staff, l.staffId) && byId(DATA.staff, l.staffId).departmentId)) + '</span>' +
-        '<span class="sl-table-cell">' + l.startDate + (l.endDate !== l.startDate ? " - " + l.endDate : "") + '</span>' +
+        '<span class="sl-table-cell" style="color:' + personTextColor(smL) + ';font-weight:700;">' + escapeHtml(staffName(l.staffId)) + '</span>' +
+        '<span class="sl-table-cell">' + escapeHtml(deptName(smL && smL.departmentId)) + '</span>' +
+        '<span class="sl-table-cell">' + formatThaiDateRange(l.startDate, l.endDate) + '</span>' +
         '<span class="sl-table-cell">' + (LEAVE_TYPES[l.type] || l.type) + (l.type === "covering" ? " (" + escapeHtml(deptName(l.coveringDepartmentId)) + ")" : "") + '</span>';
       const actions = document.createElement("span");
       actions.className = "sl-table-actions";
@@ -1129,7 +1159,7 @@
         const row = document.createElement("div");
         row.className = "sl-table-row";
         row.innerHTML =
-          '<span class="sl-table-cell">' + escapeHtml(s.name) + '</span>' +
+          '<span class="sl-table-cell" style="color:' + personTextColor(s) + ';font-weight:700;">' + escapeHtml(s.name) + '</span>' +
           '<span class="sl-table-cell">' + escapeHtml(s.position || "") + '</span>' +
           '<span class="sl-table-cell">' + escapeHtml(deptName(s.departmentId)) + '</span>';
         staffTable.appendChild(row);
@@ -1218,9 +1248,9 @@
       const row = document.createElement("div");
       row.className = "sl-table-row";
       row.innerHTML =
-        '<span class="sl-table-cell">' + escapeHtml(sm ? sm.name : "") + '</span>' +
+        '<span class="sl-table-cell" style="color:' + personTextColor(sm) + ';font-weight:700;">' + escapeHtml(sm ? sm.name : "") + '</span>' +
         '<span class="sl-table-cell">' + escapeHtml(sm ? deptName(sm.departmentId) : "") + '</span>' +
-        '<span class="sl-table-cell">' + l.startDate + " - " + l.endDate + '</span>' +
+        '<span class="sl-table-cell">' + formatThaiDateRange(l.startDate, l.endDate) + '</span>' +
         '<span class="sl-table-cell">' + (LEAVE_TYPES[l.type] || l.type) + '</span>' +
         '<span class="sl-table-cell">' + escapeHtml(l.note || "") + '</span>';
       reportTable.appendChild(row);
