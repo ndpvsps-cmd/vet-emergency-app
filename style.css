@@ -776,6 +776,23 @@ footer {
 
 .menu-card-icon {
   font-size: 2rem;
+  display: inline-block;
+  animation: menu-icon-float 2.4s ease-in-out infinite;
+}
+
+.menu-card:nth-child(2) .menu-card-icon { animation-delay: 0.2s; }
+.menu-card:nth-child(3) .menu-card-icon { animation-delay: 0.4s; }
+.menu-card:nth-child(4) .menu-card-icon { animation-delay: 0.6s; }
+
+@keyframes menu-icon-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(-8deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-card-icon {
+    animation: none;
+  }
 }
 
 .menu-card-label {
