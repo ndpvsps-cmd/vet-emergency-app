@@ -153,11 +153,9 @@
   doseInput.addEventListener("input", refresh);
   bagSelect.addEventListener("change", refresh);
   rateInput.addEventListener("input", refresh);
-  document.querySelectorAll(".species-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      renderDrugInfo();
-      refresh();
-    });
+  document.addEventListener("species-change", () => {
+    renderDrugInfo();
+    refresh();
   });
   weightKgInput.addEventListener("input", refresh);
 

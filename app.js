@@ -21,7 +21,6 @@
   const disclaimerEl = document.getElementById("disclaimer");
   const disclaimerToggle = document.getElementById("disclaimer-toggle");
 
-  const speciesButtons = document.querySelectorAll(".species-btn");
   const weightKgInput = document.getElementById("weight-kg");
   const weightLbInput = document.getElementById("weight-lb");
   const weightWarning = document.getElementById("weight-warning");
@@ -80,15 +79,21 @@
   });
 
   // ---- species toggle ----
-  speciesButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      speciesButtons.forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      state.species = btn.dataset.species;
-      refreshWeightWarning();
-      refreshCalculator();
-      refreshCrashcart();
+  // Delegated on document (not bound to specific buttons) so it also handles the
+  // mini species toggle nav.js builds into every page's patient-chip, which doesn't
+  // exist in the DOM yet when this script runs.
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".species-btn");
+    if (!btn) return;
+    const species = btn.dataset.species;
+    document.querySelectorAll(".species-btn").forEach((b) => {
+      b.classList.toggle("active", b.dataset.species === species);
     });
+    state.species = species;
+    refreshWeightWarning();
+    refreshCalculator();
+    refreshCrashcart();
+    document.dispatchEvent(new CustomEvent("species-change", { detail: { species } }));
   });
 
   // ---- weight inputs ----

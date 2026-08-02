@@ -119,9 +119,7 @@
     `;
   }
 
-  document.querySelectorAll(".species-btn").forEach((btn) => {
-    btn.addEventListener("click", refresh);
-  });
+  document.addEventListener("species-change", refresh);
 
   renderFields();
 })();

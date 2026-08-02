@@ -76,9 +76,7 @@
   }
 
   weightKgInput.addEventListener("input", refresh);
-  document.querySelectorAll(".species-btn").forEach((btn) => {
-    btn.addEventListener("click", refresh);
-  });
+  document.addEventListener("species-change", refresh);
 
   // ---- static reference tables (grade legend + SE stage pyramid) ----
   stageTableBody.innerHTML = SE_STAGE_TABLE.map((s) => `

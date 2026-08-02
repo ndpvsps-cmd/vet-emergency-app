@@ -132,12 +132,46 @@ main {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   background: var(--color-panel);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 10px 14px;
   font-size: 0.92rem;
   color: var(--color-text);
+}
+
+.patient-chip-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.patient-chip-species-toggle {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.chip-species-btn {
+  flex: none;
+  padding: 4px 8px;
+  font-size: 0.95rem;
+  border-width: 1px;
+  border-radius: 6px;
+}
+
+.patient-chip-weight-input {
+  width: 72px;
+  padding: 4px 6px;
+  font-size: 0.92rem;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  background: var(--color-panel-alt);
+  color: var(--color-text);
+  color-scheme: light;
 }
 
 .patient-chip-actions {
@@ -641,6 +675,21 @@ input[type="range"] {
   margin-top: 6px;
 }
 
+.anemia-ddx-list {
+  margin: 8px 0 0;
+  padding-left: 20px;
+  font-size: 0.9rem;
+}
+
+.anemia-ddx-list li {
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.anemia-ddx-list li span {
+  color: var(--color-muted);
+}
+
 .result-out-of-range {
   background: var(--color-warning-bg);
   color: var(--color-warning-text);
@@ -908,7 +957,7 @@ footer {
 
 @media print {
   .disclaimer, header, #input-panel, #calculator-panel, .print-btn, footer,
-  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se, #page-apple, #page-mgcs, #page-att, #page-rehydration, #page-menu {
+  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se, #page-apple, #page-mgcs, #page-att, #page-rehydration, #page-anemia, #page-menu {
     display: none !important;
   }
   #page-drugs {

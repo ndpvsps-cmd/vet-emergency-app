@@ -13,7 +13,8 @@
     apple: document.getElementById("page-apple"),
     mgcs: document.getElementById("page-mgcs"),
     att: document.getElementById("page-att"),
-    rehydration: document.getElementById("page-rehydration")
+    rehydration: document.getElementById("page-rehydration"),
+    anemia: document.getElementById("page-anemia")
   };
   // Pages reachable directly from the bottom nav. Any other page (opened via the
   // menu grid) keeps the "เมนูทั้งหมด" tab highlighted instead of leaving nothing active.
@@ -31,11 +32,11 @@
     document.getElementById("patient-chip-apple"),
     document.getElementById("patient-chip-mgcs"),
     document.getElementById("patient-chip-att"),
-    document.getElementById("patient-chip-rehydration")
+    document.getElementById("patient-chip-rehydration"),
+    document.getElementById("patient-chip-anemia")
   ];
 
   const weightKgInput = document.getElementById("weight-kg");
-  const speciesButtons = document.querySelectorAll(".species-btn");
 
   function goToPage(pageKey) {
     Object.keys(pages).forEach((key) => {
@@ -60,19 +61,27 @@
     btn.addEventListener("click", () => goToPage(btn.dataset.goto));
   });
 
-  function currentSpeciesLabel() {
+  function currentSpecies() {
     const activeBtn = document.querySelector(".species-btn.active");
-    if (!activeBtn) return "";
-    return activeBtn.textContent.trim();
+    return activeBtn ? activeBtn.dataset.species : "dog";
   }
 
-  function updatePatientChip() {
-    const weightVal = parseFloat(weightKgInput.value);
-    const speciesLabel = currentSpeciesLabel();
-    const hasWeight = !isNaN(weightVal) && weightVal > 0;
-
+  // Chip markup (including the inline weight input and species toggle) is built once per
+  // chip and then only has its values updated afterwards — rebuilding the innerHTML on
+  // every keystroke would destroy and recreate the input the user is actively typing
+  // into, kicking focus out. Species clicks on these buttons are handled by app.js's
+  // document-level delegated listener (they carry the shared .species-btn class), so no
+  // click listener is wired up here.
+  function buildPatientChips() {
     const html = `
-      <span>${speciesLabel}${hasWeight ? " · " + weightVal + " กก." : " · ยังไม่ได้กรอกน้ำหนัก"}</span>
+      <div class="patient-chip-info">
+        <div class="patient-chip-species-toggle" role="group" aria-label="เลือกชนิดสัตว์">
+          <button type="button" class="species-btn chip-species-btn" data-species="dog">🐕</button>
+          <button type="button" class="species-btn chip-species-btn" data-species="cat">🐈</button>
+        </div>
+        <input type="number" class="patient-chip-weight-input" min="0" step="0.1" placeholder="น้ำหนัก (กก.)">
+        <span>กก.</span>
+      </div>
       <div class="patient-chip-actions">
         <button type="button" class="patient-chip-menu" data-goto="menu">🗂️ เมนู</button>
         <button type="button" class="patient-chip-edit" data-goto="patient">แก้ไข</button>
@@ -84,11 +93,30 @@
     document.querySelectorAll(".patient-chip-edit, .patient-chip-menu").forEach((btn) => {
       btn.addEventListener("click", () => goToPage(btn.dataset.goto));
     });
+    document.querySelectorAll(".patient-chip-weight-input").forEach((input) => {
+      input.addEventListener("input", () => {
+        weightKgInput.value = input.value;
+        weightKgInput.dispatchEvent(new Event("input"));
+      });
+    });
+  }
+
+  function updatePatientChip() {
+    const species = currentSpecies();
+    document.querySelectorAll(".chip-species-btn").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.species === species);
+    });
+    document.querySelectorAll(".patient-chip-weight-input").forEach((input) => {
+      if (document.activeElement !== input) {
+        input.value = weightKgInput.value;
+      }
+    });
   }
 
   weightKgInput.addEventListener("input", updatePatientChip);
-  speciesButtons.forEach((btn) => btn.addEventListener("click", updatePatientChip));
+  document.addEventListener("species-change", updatePatientChip);
 
+  buildPatientChips();
   updatePatientChip();
   goToPage("patient");
 })();

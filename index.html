@@ -118,10 +118,27 @@
           </div>
         </div>
 
-        <div class="field-row" id="uop-row" hidden>
-          <label for="uop-input">ปริมาณปัสสาวะ UOP (mL/kg/h)</label>
-          <input type="number" id="uop-input" min="0" step="0.1" placeholder="เช่น 0.3">
-          <div class="hint-text" id="uop-classify"></div>
+        <div id="uop-fields" hidden>
+          <div class="field-row">
+            <label for="uop-volume-input">ปริมาณปัสสาวะที่วัดได้ (mL)</label>
+            <input type="number" id="uop-volume-input" min="0" step="1" placeholder="เช่น 20">
+          </div>
+
+          <div class="field-row">
+            <label>ระยะเวลาที่เก็บปัสสาวะ</label>
+            <div class="species-toggle" role="group" aria-label="เลือกระยะเวลาที่เก็บปัสสาวะ">
+              <button type="button" class="toggle-btn active" data-uop-hours="1">1 ชม.</button>
+              <button type="button" class="toggle-btn" data-uop-hours="2">2 ชม.</button>
+              <button type="button" class="toggle-btn" data-uop-hours="4">4 ชม.</button>
+              <button type="button" class="toggle-btn" data-uop-hours="6">6 ชม.</button>
+              <button type="button" class="toggle-btn" data-uop-hours="8">8 ชม.</button>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="slider-value" id="uop-computed-display">UOP = -</div>
+            <div class="hint-text" id="uop-classify"></div>
+          </div>
         </div>
 
         <p class="hint-text" id="rehydration-hint">กรอกน้ำหนักตัว และเปอร์เซ็นต์ภาวะขาดน้ำ เพื่อคำนวณ</p>
@@ -174,6 +191,7 @@
             <button type="button" class="menu-card" data-page="apple"><span class="menu-card-icon">🍎</span><span class="menu-card-label">APPLE Score</span></button>
             <button type="button" class="menu-card" data-page="mgcs"><span class="menu-card-icon">🧠</span><span class="menu-card-label">MGCS</span></button>
             <button type="button" class="menu-card" data-page="att"><span class="menu-card-icon">🚑</span><span class="menu-card-label">ATT Score</span></button>
+            <button type="button" class="menu-card" data-page="anemia"><span class="menu-card-icon">🩸</span><span class="menu-card-label">Regenerative Anemia</span></button>
           </div>
         </div>
       </section>
@@ -568,6 +586,41 @@
       </section>
     </div>
 
+    <div class="page" id="page-anemia" hidden>
+      <div class="patient-chip" id="patient-chip-anemia"></div>
+
+      <section class="panel" id="anemia-panel">
+        <h2>Regenerative Anemia Calculator — ประเมินการตอบสนองของไขกระดูกและ Differential Diagnosis</h2>
+
+        <div class="field-row">
+          <label for="anemia-rbc-input">RBC count (ล้านเซลล์/µL)</label>
+          <input type="number" id="anemia-rbc-input" min="0" step="0.1" placeholder="เช่น 5.5">
+        </div>
+
+        <div class="field-row">
+          <label for="anemia-retic-input">Reticulocyte % <span style="font-weight:400;">(แมว: นับเฉพาะ Aggregate reticulocyte)</span></label>
+          <input type="number" id="anemia-retic-input" min="0" step="0.1" placeholder="เช่น 1.2">
+        </div>
+
+        <div class="field-row">
+          <label for="anemia-hct-input">Hematocrit / PCV (%) <span style="font-weight:400;">(ไม่บังคับ — ใส่เพื่อคำนวณ RPI เสริม)</span></label>
+          <input type="number" id="anemia-hct-input" min="0" step="0.1" placeholder="เช่น 22">
+        </div>
+
+        <div class="field-row">
+          <label for="anemia-indices-select">ลักษณะเม็ดเลือดแดง MCV/MCHC (ถ้าทราบ)</label>
+          <select id="anemia-indices-select">
+            <option value="">— ไม่ระบุ —</option>
+            <option value="macrocytic_normochromic">Macrocytic, Normochromic</option>
+            <option value="microcytic_hypochromic">Microcytic, Hypochromic</option>
+            <option value="macrocytic_hypochromic">Macrocytic, Hypochromic</option>
+          </select>
+        </div>
+
+        <div id="anemia-result" class="result-box" hidden></div>
+      </section>
+    </div>
+
     <div class="page" id="page-sodium" hidden>
       <div class="patient-chip" id="patient-chip-sodium"></div>
 
@@ -653,6 +706,7 @@
   <script src="data/apple-score.js"></script>
   <script src="data/mgcs-score.js"></script>
   <script src="data/att-score.js"></script>
+  <script src="data/anemia-score.js"></script>
   <script src="app.js"></script>
   <script src="nutrition.js"></script>
   <script src="potassium-calc.js"></script>
@@ -662,6 +716,7 @@
   <script src="apple-score-calc.js"></script>
   <script src="mgcs-calc.js"></script>
   <script src="att-score-calc.js"></script>
+  <script src="anemia-calc.js"></script>
   <script src="rehydration-calc.js"></script>
   <script src="mascot.js"></script>
   <script src="sparkle-fx.js"></script>

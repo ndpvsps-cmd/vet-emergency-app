@@ -12,8 +12,10 @@
   const ageButtons = document.querySelectorAll("[data-age-group]");
   const maintRow = document.getElementById("maintenance-rate-row");
   const maintButtons = document.querySelectorAll("[data-maint-rate]");
-  const uopRow = document.getElementById("uop-row");
-  const uopInput = document.getElementById("uop-input");
+  const uopFields = document.getElementById("uop-fields");
+  const uopVolumeInput = document.getElementById("uop-volume-input");
+  const uopHoursButtons = document.querySelectorAll("[data-uop-hours]");
+  const uopComputedDisplay = document.getElementById("uop-computed-display");
   const uopClassifyEl = document.getElementById("uop-classify");
   const hintEl = document.getElementById("rehydration-hint");
   const resultEl = document.getElementById("rehydration-result");
@@ -30,7 +32,8 @@
     hours: 8,
     maintMode: "standard",
     ageGroup: "adult",
-    maintRate: 2.5
+    maintRate: 2.5,
+    uopHours: 1
   };
 
   // default the start time to right now
@@ -94,7 +97,7 @@
       btn.classList.add("active");
       state.maintMode = btn.dataset.maintMode;
       standardFields.hidden = state.maintMode !== "standard";
-      uopRow.hidden = state.maintMode !== "uop";
+      uopFields.hidden = state.maintMode !== "uop";
       refreshAll();
     });
   });
@@ -118,7 +121,16 @@
     });
   });
 
-  uopInput.addEventListener("input", refreshAll);
+  uopHoursButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      uopHoursButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.uopHours = parseFloat(btn.dataset.uopHours);
+      refreshAll();
+    });
+  });
+
+  uopVolumeInput.addEventListener("input", refreshAll);
   dehydrationSlider.addEventListener("input", () => {
     updateDehydrationDisplay();
     refreshAll();
@@ -126,9 +138,7 @@
   weightKgInput.addEventListener("input", refreshAll);
   startTimeInput.addEventListener("input", refreshFluidCard);
   patientNameInput.addEventListener("input", refreshFluidCard);
-  document.querySelectorAll(".species-btn").forEach((btn) => {
-    btn.addEventListener("click", refreshFluidCard);
-  });
+  document.addEventListener("species-change", refreshAll);
 
   function refreshAll() {
     refresh();
@@ -139,11 +149,14 @@
   // required inputs (eg UOP) aren't filled in yet.
   function computeMaintenance(weightKg) {
     if (state.maintMode === "uop") {
-      const uop = parseFloat(uopInput.value);
-      if (isNaN(uop) || uop < 0) {
+      const volumeMl = parseFloat(uopVolumeInput.value);
+      if (isNaN(volumeMl) || volumeMl < 0) {
+        uopComputedDisplay.textContent = "UOP = -";
         uopClassifyEl.textContent = "";
         return null;
       }
+      const uop = volumeMl / (weightKg * state.uopHours);
+      uopComputedDisplay.textContent = `UOP = ${round(uop, 3)} mL/kg/h`;
       uopClassifyEl.textContent = `การแปลผล UOP: ${classifyUop(uop)}`;
 
       const insensibleMlPerHour = weightKg * INSENSIBLE_ML_PER_KG_H;
@@ -155,7 +168,7 @@
         breakdownHtml: `
           <strong>Maintenance (ตาม UOP):</strong>
           Insensible loss ${round(insensibleMlPerHour, 2)} mL/h (${INSENSIBLE_ML_PER_KG_H} mL/kg/h) +
-          Sensible loss ${round(sensibleMlPerHour, 2)} mL/h (UOP ${uop} mL/kg/h) =
+          Sensible loss ${round(sensibleMlPerHour, 2)} mL/h (UOP ${round(uop, 3)} mL/kg/h) =
           ${round(maintenanceMlPerHour, 2)} mL/h
         `
       };
@@ -193,12 +206,38 @@
       resultEl.hidden = true;
       hintEl.hidden = false;
       hintEl.textContent = state.maintMode === "uop" && currentWeightKg() !== null
-        ? "กรอกปริมาณปัสสาวะ (UOP) เพื่อคำนวณ"
+        ? "กรอกปริมาณปัสสาวะที่วัดได้ เพื่อคำนวณ UOP"
         : "กรอกน้ำหนักตัว และเปอร์เซ็นต์ภาวะขาดน้ำ เพื่อคำนวณ";
       return;
     }
     hintEl.hidden = true;
     resultEl.hidden = false;
+
+    const noDehydration = rates.dehydrationPercent === 0;
+    const ratesHtml = noDehydration
+      ? `
+        <div class="result-grid">
+          <div class="result-item">
+            <span class="label">อัตราสารน้ำ (Maintenance เท่านั้น — ไม่มีภาวะขาดน้ำให้แก้ไข)</span>
+            <span class="value">${round(rates.phase2RateMlPerHour, 1)} mL/h</span>
+          </div>
+        </div>
+      `
+      : `
+        <div class="result-grid">
+          <div class="result-item">
+            <span class="label">ช่วงที่ 1: แก้ไขภาวะขาดน้ำ (${state.hours} ชม.แรก)</span>
+            <span class="value">${round(rates.phase1RateMlPerHour, 1)} mL/h</span>
+          </div>
+          <div class="result-item">
+            <span class="label">ช่วงที่ 2: หลังจากนั้น (Maintenance เท่านั้น)</span>
+            <span class="value">${round(rates.phase2RateMlPerHour, 1)} mL/h</span>
+          </div>
+        </div>
+      `;
+    const formulaNote = noDehydration
+      ? "ไม่มีภาวะขาดน้ำ — ให้อัตรา Maintenance ต่อเนื่องเพียงอัตราเดียว"
+      : `อัตราช่วงที่ 1 = (Deficit ÷ ชั่วโมงที่เลือก) + Maintenance rate &nbsp;|&nbsp; อัตราช่วงที่ 2 = Maintenance rate เท่านั้น`;
 
     resultEl.innerHTML = `
       <div class="result-rate">
@@ -206,20 +245,10 @@
         <strong>ปริมาณที่ขาด (Deficit):</strong> ${round(rates.deficitMl, 1)} mL
         <br>${rates.maint.breakdownHtml}
       </div>
-      <div class="result-grid">
-        <div class="result-item">
-          <span class="label">ช่วงที่ 1: แก้ไขภาวะขาดน้ำ (${state.hours} ชม.แรก)</span>
-          <span class="value">${round(rates.phase1RateMlPerHour, 1)} mL/h</span>
-        </div>
-        <div class="result-item">
-          <span class="label">ช่วงที่ 2: หลังจากนั้น (Maintenance เท่านั้น)</span>
-          <span class="value">${round(rates.phase2RateMlPerHour, 1)} mL/h</span>
-        </div>
-      </div>
+      ${ratesHtml}
       <div class="result-note">
         <strong>สูตรที่ใช้:</strong> Deficit (mL) = %ขาดน้ำ × น้ำหนัก (กก.) × 10 &nbsp;|&nbsp;
-        อัตราช่วงที่ 1 = (Deficit ÷ ชั่วโมงที่เลือก) + Maintenance rate &nbsp;|&nbsp;
-        อัตราช่วงที่ 2 = Maintenance rate เท่านั้น
+        ${formulaNote}
       </div>
       <div class="result-source">
         สูตรมาตรฐานการคำนวณสารน้ำ (rehydration deficit + maintenance) — Maintenance มาตรฐาน 2-3 mL/kg/h สำหรับสัตว์โตเต็มวัย,
@@ -246,19 +275,25 @@
 
     const speciesLabel = currentSpecies() === "dog" ? "สุนัข" : "แมว";
     const name = patientNameInput.value.trim();
+    const noDehydration = rates.dehydrationPercent === 0;
 
-    const phase1Html = `
-      <div class="feeding-card-highlight">
-        <div class="feeding-card-highlight-label">ช่วงที่ 1: ${formatTime(startDate)} - ${formatTime(endDate)} (${state.hours} ชม.)</div>
-        <div class="feeding-card-highlight-value">${round(rates.phase1RateMlPerHour, 1)} mL/h</div>
-      </div>
-    `;
-    const phase2Html = `
-      <div class="feeding-card-highlight">
-        <div class="feeding-card-highlight-label">ช่วงที่ 2: ตั้งแต่ ${formatTime(endDate)} เป็นต้นไป</div>
-        <div class="feeding-card-highlight-value">${round(rates.phase2RateMlPerHour, 1)} mL/h</div>
-      </div>
-    `;
+    const ratesHtml = noDehydration
+      ? `
+        <div class="feeding-card-highlight">
+          <div class="feeding-card-highlight-label">อัตราสารน้ำ ตั้งแต่ ${formatTime(startDate)} เป็นต้นไป (Maintenance)</div>
+          <div class="feeding-card-highlight-value">${round(rates.phase2RateMlPerHour, 1)} mL/h</div>
+        </div>
+      `
+      : `
+        <div class="feeding-card-highlight">
+          <div class="feeding-card-highlight-label">ช่วงที่ 1: ${formatTime(startDate)} - ${formatTime(endDate)} (${state.hours} ชม.)</div>
+          <div class="feeding-card-highlight-value">${round(rates.phase1RateMlPerHour, 1)} mL/h</div>
+        </div>
+        <div class="feeding-card-highlight">
+          <div class="feeding-card-highlight-label">ช่วงที่ 2: ตั้งแต่ ${formatTime(endDate)} เป็นต้นไป</div>
+          <div class="feeding-card-highlight-value">${round(rates.phase2RateMlPerHour, 1)} mL/h</div>
+        </div>
+      `;
 
     fluidCardEl.innerHTML = `
       <div class="feeding-card-title">🐾 การ์ดแผนให้สารน้ำ</div>
@@ -266,8 +301,7 @@
       <div class="feeding-card-row"><span>ชนิดสัตว์</span><span>${speciesLabel}</span></div>
       <div class="feeding-card-row"><span>น้ำหนักตัว</span><span>${rates.weightKg} กก.</span></div>
       <div class="feeding-card-row"><span>ภาวะขาดน้ำ</span><span>${rates.dehydrationPercent}%</span></div>
-      ${phase1Html}
-      ${phase2Html}
+      ${ratesHtml}
       <div class="feeding-card-footer">พิมพ์เมื่อ ${formatTime(new Date())} — ปรับอัตราตามเวลาที่กำหนดไว้ด้านบน</div>
     `;
   }

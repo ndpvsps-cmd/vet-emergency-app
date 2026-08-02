@@ -3,7 +3,6 @@
 
   const weightKgInput = document.getElementById("weight-kg");
   const weightLbInput = document.getElementById("weight-lb");
-  const speciesButtons = document.querySelectorAll(".species-btn");
   const patientNameInput = document.getElementById("patient-name-input");
 
   const factorSelect = document.getElementById("rer-factor-select");
@@ -190,13 +189,12 @@
 
   populateDietSelects();
 
-  // ---- keep species in sync with the shared species toggle ----
-  speciesButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.species = btn.dataset.species;
-      populateDietSelects();
-      refreshAll();
-    });
+  // ---- keep species in sync with the shared species toggle (fired from any page's
+  // patient-chip mini toggle or the main patient page) ----
+  document.addEventListener("species-change", (e) => {
+    state.species = e.detail.species;
+    populateDietSelects();
+    refreshAll();
   });
 
   // ---- single vs mixed diet mode ----

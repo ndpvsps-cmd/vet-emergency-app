@@ -3,7 +3,6 @@
 
   const weightKgInput = document.getElementById("weight-kg");
   const weightLbInput = document.getElementById("weight-lb");
-  const speciesButtons = document.querySelectorAll(".species-btn[data-species]");
 
   const directionButtons = document.querySelectorAll(".toggle-btn[data-sodium-direction]");
   const chronicityButtons = document.querySelectorAll(".toggle-btn[data-chronicity]");
@@ -80,7 +79,7 @@
 
   weightKgInput.addEventListener("input", refresh);
   weightLbInput.addEventListener("input", refresh);
-  speciesButtons.forEach((btn) => btn.addEventListener("click", refresh));
+  document.addEventListener("species-change", refresh);
   currentNaInput.addEventListener("input", refresh);
   targetNaInput.addEventListener("input", refresh);
   fluidSelect.addEventListener("change", refresh);
