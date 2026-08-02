@@ -140,15 +140,23 @@ main {
   color: var(--color-text);
 }
 
-.patient-chip-edit {
+.patient-chip-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.patient-chip-edit, .patient-chip-menu {
   background: none;
   border: 1px solid var(--color-primary);
   color: var(--color-primary-bright);
   border-radius: 6px;
   padding: 4px 10px;
   font-size: 0.82rem;
+  font-family: inherit;
   cursor: pointer;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .bottom-nav {
@@ -382,6 +390,38 @@ input::placeholder {
 input:focus, select:focus {
   outline: 2px solid var(--color-primary);
   outline-offset: 1px;
+}
+
+input[type="range"] {
+  width: 100%;
+  accent-color: var(--color-primary);
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.slider-value {
+  text-align: center;
+  font-family: var(--font-fantasy);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin-bottom: 4px;
+}
+
+.slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  padding: 0 2px;
+  margin-top: -4px;
+}
+
+.field-row-muted {
+  opacity: 0.4;
+  transition: opacity 0.2s;
 }
 
 .species-toggle {
@@ -868,7 +908,7 @@ footer {
 
 @media print {
   .disclaimer, header, #input-panel, #calculator-panel, .print-btn, footer,
-  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se, #page-apple, #page-mgcs, #page-att, #page-menu {
+  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se, #page-apple, #page-mgcs, #page-att, #page-rehydration, #page-menu {
     display: none !important;
   }
   #page-drugs {
@@ -923,6 +963,29 @@ footer {
     border: none;
   }
   body.print-feeding-card .feeding-card {
+    margin: 0 auto;
+    border: 2px dashed #999 !important;
+  }
+
+  body.print-fluid-card #page-drugs {
+    display: none !important;
+  }
+  body.print-fluid-card #page-rehydration {
+    display: flex !important;
+  }
+  body.print-fluid-card #rehydration-panel {
+    display: none !important;
+  }
+  body.print-fluid-card #fluid-card-panel {
+    border: none;
+  }
+  body.print-fluid-card #fluid-start-time-input {
+    display: none !important;
+  }
+  body.print-fluid-card #fluid-card-panel > .field-row {
+    display: none !important;
+  }
+  body.print-fluid-card .feeding-card {
     margin: 0 auto;
     border: 2px dashed #999 !important;
   }
