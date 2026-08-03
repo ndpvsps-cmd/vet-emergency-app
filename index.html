@@ -161,6 +161,50 @@
       </section>
     </div>
 
+    <div class="page" id="page-bicarb" hidden>
+      <div class="patient-chip" id="patient-chip-bicarb"></div>
+
+      <section class="panel" id="bicarb-panel">
+        <h2>Sodium Bicarbonate Correction — แก้ไขภาวะกรดในเลือด (Metabolic Acidosis)</h2>
+
+        <div class="field-row">
+          <label>สถานการณ์</label>
+          <div class="species-toggle" role="group" aria-label="เลือกสถานการณ์การให้ Sodium Bicarbonate">
+            <button type="button" class="toggle-btn active" data-sb-mode="general">แก้ไขภาวะกรดทั่วไป</button>
+            <button type="button" class="toggle-btn" data-sb-mode="cpa">CPA (หัวใจหยุดเต้น)</button>
+          </div>
+        </div>
+
+        <div id="sb-general-fields">
+          <div class="field-row">
+            <label for="sb-be-input">Base Excess (mEq/L) <span style="font-weight:400;">(ปกติมักติดลบ เช่น -18)</span></label>
+            <input type="number" id="sb-be-input" step="0.1" placeholder="เช่น -18">
+          </div>
+          <div class="field-row">
+            <label for="sb-ph-input">pH ปัจจุบัน (ไม่บังคับ)</label>
+            <input type="number" id="sb-ph-input" step="0.01" placeholder="เช่น 6.98">
+          </div>
+          <div class="field-row">
+            <label for="sb-hco3-input">HCO3 ปัจจุบัน (mmol/L) (ไม่บังคับ)</label>
+            <input type="number" id="sb-hco3-input" step="0.1" placeholder="เช่น 8.5">
+          </div>
+        </div>
+
+        <div id="sb-cpa-fields" hidden>
+          <div class="field-row">
+            <label for="sb-cpa-k-input">K+ ปัจจุบัน (mmol/L) (ไม่บังคับ)</label>
+            <input type="number" id="sb-cpa-k-input" step="0.1" placeholder="เช่น 8.0">
+          </div>
+          <div class="field-row">
+            <label for="sb-cpa-ph-input">pH ปัจจุบัน (ไม่บังคับ)</label>
+            <input type="number" id="sb-cpa-ph-input" step="0.01" placeholder="เช่น 7.05">
+          </div>
+        </div>
+
+        <div id="sb-result" class="result-box" hidden></div>
+      </section>
+    </div>
+
     <div class="page" id="page-menu" hidden>
       <section class="panel" id="menu-panel">
         <h2>เมนูทั้งหมด</h2>
@@ -178,10 +222,11 @@
         <div class="menu-category">
           <h3>แก้ไขภาวะผิดปกติ</h3>
           <div class="menu-grid">
-            <button type="button" class="menu-card" data-page="potassium"><span class="menu-card-icon">🧪</span><span class="menu-card-label">K+ ต่ำ</span></button>
+            <button type="button" class="menu-card" data-page="potassium"><span class="menu-card-icon">🧪</span><span class="menu-card-label">K+ / Phosphorus ต่ำ</span></button>
             <button type="button" class="menu-card" data-page="sodium"><span class="menu-card-icon">🧂</span><span class="menu-card-label">Na ผิดปกติ</span></button>
             <button type="button" class="menu-card" data-page="se"><span class="menu-card-icon">⚡</span><span class="menu-card-label">SE ชัก</span></button>
             <button type="button" class="menu-card" data-page="rehydration"><span class="menu-card-icon">💦</span><span class="menu-card-label">สารน้ำ Rehydration</span></button>
+            <button type="button" class="menu-card" data-page="bicarb"><span class="menu-card-icon">🧫</span><span class="menu-card-label">Sodium Bicarbonate</span></button>
           </div>
         </div>
 
@@ -367,6 +412,82 @@
 
         <p class="hint-text" id="potassium-hint">กรอกน้ำหนักตัว ระดับโพแทสเซียม และอัตราสารน้ำ เพื่อคำนวณการเตรียม CRI</p>
         <div id="potassium-result" class="result-box" hidden></div>
+      </section>
+
+      <section class="panel" id="phosphorus-panel">
+        <h2>แก้ไขภาวะฟอสฟอรัสต่ำ (Hypophosphatemia) — CRI</h2>
+        <p class="hint-text">ใช้ยา Dipotassium Phosphate (1.74g/20mL) ซึ่งมี Phosphorus 0.5 mmol/mL และ Potassium 1 mEq/mL ร่วมด้วยเสมอ</p>
+
+        <div class="field-row">
+          <label for="serum-p-input">ระดับฟอสฟอรัสในเลือด (mg/dL)</label>
+          <input type="number" id="serum-p-input" min="0" step="0.1" placeholder="เช่น 1.2">
+        </div>
+
+        <div class="field-row">
+          <label for="phosphorus-rate-input">อัตราสารน้ำที่จะให้ (mL/hr)</label>
+          <input type="number" id="phosphorus-rate-input" min="0" step="1" placeholder="เช่น 40">
+        </div>
+
+        <div class="field-row">
+          <label for="phosphorus-bag-size-select">ขนาดถุงสารน้ำที่จะผสม (ต้องไม่มีแคลเซียม)</label>
+          <select id="phosphorus-bag-size-select">
+            <option value="1000">1000 mL</option>
+            <option value="500">500 mL</option>
+            <option value="250">250 mL</option>
+            <option value="100">100 mL</option>
+          </select>
+        </div>
+
+        <p class="hint-text" id="phosphorus-hint">กรอกน้ำหนักตัว ระดับฟอสฟอรัส และอัตราสารน้ำ เพื่อคำนวณการเตรียม CRI</p>
+        <div id="phosphorus-result" class="result-box" hidden></div>
+      </section>
+
+      <section class="panel" id="combined-panel">
+        <h2>แก้ไข Potassium และ Phosphorus พร้อมกัน (2 สาย)</h2>
+        <p class="hint-text">สายที่ 1 = KCl, สายที่ 2 = Dipotassium Phosphate — K+ ที่ได้จากสายที่ 2 จะถูกหักออกจากปริมาณ KCl ที่ต้องเติมในสายที่ 1 เพื่อไม่ให้ได้รับ Potassium เกินความจำเป็น</p>
+
+        <div class="field-row">
+          <label for="combined-k-input">ระดับโพแทสเซียมในเลือด (mEq/L)</label>
+          <input type="number" id="combined-k-input" min="0" step="0.1" placeholder="เช่น 2.8">
+        </div>
+
+        <div class="field-row">
+          <label for="combined-p-input">ระดับฟอสฟอรัสในเลือด (mg/dL)</label>
+          <input type="number" id="combined-p-input" min="0" step="0.1" placeholder="เช่น 1.2">
+        </div>
+
+        <div class="field-row">
+          <label for="combined-kcl-rate-input">สายที่ 1 (KCl) — อัตราสารน้ำ (mL/hr)</label>
+          <input type="number" id="combined-kcl-rate-input" min="0" step="1" placeholder="เช่น 40">
+        </div>
+
+        <div class="field-row">
+          <label for="combined-kcl-bag-select">สายที่ 1 (KCl) — ขนาดถุงสารน้ำ</label>
+          <select id="combined-kcl-bag-select">
+            <option value="1000">1000 mL</option>
+            <option value="500">500 mL</option>
+            <option value="250">250 mL</option>
+            <option value="100">100 mL</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="combined-phos-rate-input">สายที่ 2 (Dipotassium Phosphate) — อัตราสารน้ำ (mL/hr)</label>
+          <input type="number" id="combined-phos-rate-input" min="0" step="1" placeholder="เช่น 40">
+        </div>
+
+        <div class="field-row">
+          <label for="combined-phos-bag-select">สายที่ 2 (Dipotassium Phosphate) — ขนาดถุงสารน้ำ (ต้องไม่มีแคลเซียม)</label>
+          <select id="combined-phos-bag-select">
+            <option value="1000">1000 mL</option>
+            <option value="500">500 mL</option>
+            <option value="250">250 mL</option>
+            <option value="100">100 mL</option>
+          </select>
+        </div>
+
+        <p class="hint-text" id="combined-hint">กรอกน้ำหนักตัว ระดับ K+ และ Phosphorus และอัตราสารน้ำทั้งสองสาย เพื่อคำนวณการเตรียม CRI ทั้งสองขา</p>
+        <div id="combined-result" class="result-box" hidden></div>
       </section>
     </div>
 
@@ -707,6 +828,7 @@
   <script src="data/mgcs-score.js"></script>
   <script src="data/att-score.js"></script>
   <script src="data/anemia-score.js"></script>
+  <script src="data/sodium-bicarbonate.js"></script>
   <script src="app.js"></script>
   <script src="nutrition.js"></script>
   <script src="potassium-calc.js"></script>
@@ -717,6 +839,7 @@
   <script src="mgcs-calc.js"></script>
   <script src="att-score-calc.js"></script>
   <script src="anemia-calc.js"></script>
+  <script src="sodium-bicarb-calc.js"></script>
   <script src="rehydration-calc.js"></script>
   <script src="mascot.js"></script>
   <script src="sparkle-fx.js"></script>
