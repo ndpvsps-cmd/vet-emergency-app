@@ -5,6 +5,8 @@
   const weightLbInput = document.getElementById("weight-lb");
 
   const serumKInput = document.getElementById("serum-k-input");
+  const potassiumDoseInput = document.getElementById("potassium-dose-input");
+  const potassiumDoseRangeHint = document.getElementById("potassium-dose-range-hint");
   const bagSizeSelect = document.getElementById("fluid-bag-size-select");
   const rateInput = document.getElementById("planned-rate-input");
   const resultEl = document.getElementById("potassium-result");
@@ -31,15 +33,21 @@
   function refresh() {
     const weightKg = currentWeightKg();
     const k = parseFloat(serumKInput.value);
-    const fluidRateMlHr = parseFloat(rateInput.value);
 
-    if (weightKg === null || isNaN(k) || k <= 0 || isNaN(fluidRateMlHr) || fluidRateMlHr <= 0) {
+    if (weightKg === null || isNaN(k) || k <= 0) {
       resultEl.hidden = true;
       hintEl.hidden = false;
+      potassiumDoseRangeHint.textContent = "";
       return;
     }
 
     const tier = findTier(k);
+
+    // แสดงช่วงขนาดที่แนะนำทันทีที่ทราบระดับ K+ — ไม่ต้องรอกรอกอัตราสารน้ำก่อน
+    potassiumDoseRangeHint.textContent = tier
+      ? `ช่วงที่แนะนำตาม Table 11 (${tier.label}): ${tier.doseLow} - ${tier.doseHigh} mEq/kg/hr`
+      : "";
+
     if (!tier) {
       hintEl.hidden = true;
       resultEl.hidden = false;
@@ -49,48 +57,47 @@
       return;
     }
 
+    const doseInput = parseFloat(potassiumDoseInput.value);
+    const fluidRateMlHr = parseFloat(rateInput.value);
+
+    if (isNaN(doseInput) || doseInput <= 0 || isNaN(fluidRateMlHr) || fluidRateMlHr <= 0) {
+      resultEl.hidden = true;
+      hintEl.hidden = false;
+      return;
+    }
+
     hintEl.hidden = true;
     resultEl.hidden = false;
 
     const bagSizeMl = parseFloat(bagSizeSelect.value);
+    const outOfRange = doseInput < tier.doseLow || doseInput > tier.doseHigh;
 
-    // Table 11 gives the KCl dose directly as mEq/kg/hr (a CRI rate). Given the actual fluid rate
-    // the CRI will run at, back-calculate the concentration (mEq/mL) the fluid bag needs to be
-    // mixed to, then how much 2 mEq/mL KCl concentrate to draw up into the chosen bag size.
-    const totalMeqPerHrLow = tier.doseLow * weightKg;
-    const totalMeqPerHrHigh = tier.doseHigh * weightKg;
-
-    const concMeqPerMlLow = totalMeqPerHrLow / fluidRateMlHr;
-    const concMeqPerMlHigh = totalMeqPerHrHigh / fluidRateMlHr;
-
-    const kclVolumeLow = (concMeqPerMlLow * bagSizeMl) / KCL_CONCENTRATE_MEQ_PER_ML;
-    const kclVolumeHigh = (concMeqPerMlHigh * bagSizeMl) / KCL_CONCENTRATE_MEQ_PER_ML;
-
-    function fmtRange(low, high, decimals) {
-      const l = round(low, decimals);
-      const h = round(high, decimals);
-      return l === h ? String(l) : `${l} - ${h}`;
-    }
+    // ขนาดที่กรอก (mEq/kg/hr) เป็นอัตรา CRI ที่ต้องการ ให้ back-calculate ความเข้มข้น (mEq/mL)
+    // ที่ต้องผสมในถุงตามอัตราสารน้ำจริง แล้วแปลงเป็นปริมาณ KCl เข้มข้น (2 mEq/mL) ที่ต้องเติม
+    const totalMeqPerHr = doseInput * weightKg;
+    const concMeqPerMl = totalMeqPerHr / fluidRateMlHr;
+    const kclVolume = (concMeqPerMl * bagSizeMl) / KCL_CONCENTRATE_MEQ_PER_ML;
 
     resultEl.innerHTML = `
       <div class="result-rate">
         <strong>ระดับ K+:</strong> ${k} mEq/L (${tier.label}) &nbsp;|&nbsp;
-        <strong>ขนาด KCl ตาม Table 11:</strong> ${fmtRange(tier.doseLow, tier.doseHigh, 2)} mEq/kg/hr
+        <strong>ขนาด KCl ที่กรอก:</strong> ${doseInput} mEq/kg/hr
       </div>
+      ${outOfRange ? `<div class="result-note">ขนาดที่กรอก (${doseInput} mEq/kg/hr) อยู่นอกช่วงที่ Table 11 แนะนำ (${tier.doseLow} - ${tier.doseHigh} mEq/kg/hr) สำหรับระดับ K+ นี้</div>` : ""}
       <div class="result-grid">
         <div class="result-item">
           <span class="label">KCl ที่ผู้ป่วยต้องได้รับ</span>
-          <span class="value">${fmtRange(totalMeqPerHrLow, totalMeqPerHrHigh, 3)} mEq/hr</span>
+          <span class="value">${round(totalMeqPerHr, 3)} mEq/hr</span>
         </div>
         <div class="result-item">
           <span class="label">ที่อัตราสารน้ำ ${fluidRateMlHr} mL/hr</span>
-          <span class="value">${fmtRange(concMeqPerMlLow * 1000, concMeqPerMlHigh * 1000, 1)} mEq/L</span>
+          <span class="value">${round(concMeqPerMl * 1000, 1)} mEq/L</span>
         </div>
       </div>
       <div class="result-grid">
         <div class="result-item">
           <span class="label">ปริมาณ KCl เข้มข้น (2 mEq/mL) ที่ต้องเติมในถุง ${bagSizeMl} mL</span>
-          <span class="value">${fmtRange(kclVolumeLow, kclVolumeHigh, 2)} mL</span>
+          <span class="value">${round(kclVolume, 2)} mL</span>
         </div>
       </div>
       <div class="result-note">
@@ -108,6 +115,7 @@
   weightKgInput.addEventListener("input", refresh);
   weightLbInput.addEventListener("input", refresh);
   serumKInput.addEventListener("input", refresh);
+  potassiumDoseInput.addEventListener("input", refresh);
   bagSizeSelect.addEventListener("change", refresh);
   rateInput.addEventListener("input", refresh);
 
@@ -115,6 +123,8 @@
 
   // ---- Phosphorus (Dipotassium Phosphate) correction ----
   const serumPInput = document.getElementById("serum-p-input");
+  const phosphorusDoseInput = document.getElementById("phosphorus-dose-input");
+  const phosphorusDoseRangeHint = document.getElementById("phosphorus-dose-range-hint");
   const pBagSizeSelect = document.getElementById("phosphorus-bag-size-select");
   const pRateInput = document.getElementById("phosphorus-rate-input");
   const pResultEl = document.getElementById("phosphorus-result");
@@ -133,25 +143,25 @@
     return null;
   }
 
-  function fmtRange(low, high, decimals) {
-    const l = round(low, decimals);
-    const h = round(high, decimals);
-    return l === h ? String(l) : `${l} - ${h}`;
-  }
-
   function refreshPhosphorus() {
     const weightKg = currentWeightKg();
     const p = parseFloat(serumPInput.value);
-    const fluidRateMlHr = parseFloat(pRateInput.value);
 
-    if (weightKg === null || isNaN(p) || p <= 0 || isNaN(fluidRateMlHr) || fluidRateMlHr <= 0) {
+    if (weightKg === null || isNaN(p) || p <= 0) {
       pResultEl.hidden = true;
       pHintEl.hidden = false;
+      phosphorusDoseRangeHint.textContent = "";
       return;
     }
 
     const species = currentSpecies();
     const tier = findPhosphorusTier(species, p);
+
+    // แสดงช่วงขนาดที่แนะนำทันทีที่ทราบระดับ P — ไม่ต้องรอกรอกอัตราสารน้ำก่อน
+    phosphorusDoseRangeHint.textContent = tier
+      ? `ช่วงที่แนะนำ (${tier.label}, ${species === "dog" ? "สุนัข" : "แมว"}): ${tier.doseLow} - ${tier.doseHigh} mmol/kg/hr`
+      : "";
+
     if (!tier) {
       pHintEl.hidden = true;
       pResultEl.hidden = false;
@@ -161,51 +171,55 @@
       return;
     }
 
+    const doseInput = parseFloat(phosphorusDoseInput.value);
+    const fluidRateMlHr = parseFloat(pRateInput.value);
+
+    if (isNaN(doseInput) || doseInput <= 0 || isNaN(fluidRateMlHr) || fluidRateMlHr <= 0) {
+      pResultEl.hidden = true;
+      pHintEl.hidden = false;
+      return;
+    }
+
     pHintEl.hidden = true;
     pResultEl.hidden = false;
 
     const bagSizeMl = parseFloat(pBagSizeSelect.value);
+    const outOfRange = doseInput < tier.doseLow || doseInput > tier.doseHigh;
 
-    const totalMmolPerHrLow = tier.doseLow * weightKg;
-    const totalMmolPerHrHigh = tier.doseHigh * weightKg;
+    const totalMmolPerHr = doseInput * weightKg;
+    const concMmolPerMl = totalMmolPerHr / fluidRateMlHr;
+    const volume = (concMmolPerMl * bagSizeMl) / DIPOTASSIUM_PHOSPHATE.phosphorusMmolPerMl;
 
-    const concMmolPerMlLow = totalMmolPerHrLow / fluidRateMlHr;
-    const concMmolPerMlHigh = totalMmolPerHrHigh / fluidRateMlHr;
-
-    const volumeLow = (concMmolPerMlLow * bagSizeMl) / DIPOTASSIUM_PHOSPHATE.phosphorusMmolPerMl;
-    const volumeHigh = (concMmolPerMlHigh * bagSizeMl) / DIPOTASSIUM_PHOSPHATE.phosphorusMmolPerMl;
-
-    // Dipotassium Phosphate delivers 1 mEq K+ per mL alongside the phosphorus — the same
-    // volume drawn up for phosphorus correction also determines how much extra potassium
-    // the patient receives, which must be checked against the same KCl safety ceiling.
-    const kFromVolumeLow = volumeLow * DIPOTASSIUM_PHOSPHATE.potassiumMeqPerMl;
-    const kFromVolumeHigh = volumeHigh * DIPOTASSIUM_PHOSPHATE.potassiumMeqPerMl;
-    const kMeqPerHrLow = kFromVolumeLow;
-    const kMeqPerHrHigh = kFromVolumeHigh;
-    const kMeqPerKgHrLow = kMeqPerHrLow / weightKg;
-    const kMeqPerKgHrHigh = kMeqPerHrHigh / weightKg;
-    const exceedsKSafety = kMeqPerKgHrHigh > KCL_SAFETY_LIMIT_MEQ_PER_KG_HR;
+    // Dipotassium Phosphate has a fixed K:P ratio (1 mEq K+ per 0.5 mmol P = 2 mEq K+ per mmol P).
+    // The actual K+ DELIVERY RATE therefore only depends on the phosphorus delivery rate — it is
+    // NOT the mEq content of the volume mixed into the bag (that total also depends on the chosen
+    // fluid rate/bag size, which only sets the mixing concentration, not the dose delivered per hour).
+    const K_PER_P_RATIO = DIPOTASSIUM_PHOSPHATE.potassiumMeqPerMl / DIPOTASSIUM_PHOSPHATE.phosphorusMmolPerMl;
+    const kMeqPerHr = totalMmolPerHr * K_PER_P_RATIO;
+    const kMeqPerKgHr = kMeqPerHr / weightKg;
+    const exceedsKSafety = kMeqPerKgHr > KCL_SAFETY_LIMIT_MEQ_PER_KG_HR;
 
     pResultEl.innerHTML = `
       <div class="result-rate">
         <strong>ระดับ P:</strong> ${p} mg/dL (${tier.label}, ${species === "dog" ? "สุนัข" : "แมว"}) &nbsp;|&nbsp;
-        <strong>ขนาด Phosphorus:</strong> ${fmtRange(tier.doseLow, tier.doseHigh, 3)} mmol/kg/hr
+        <strong>ขนาด Phosphorus ที่กรอก:</strong> ${doseInput} mmol/kg/hr
       </div>
+      ${outOfRange ? `<div class="result-note">ขนาดที่กรอก (${doseInput} mmol/kg/hr) อยู่นอกช่วงที่แนะนำ (${tier.doseLow} - ${tier.doseHigh} mmol/kg/hr) สำหรับระดับ P นี้</div>` : ""}
       <div class="result-grid">
         <div class="result-item">
           <span class="label">Phosphorus ที่ผู้ป่วยต้องได้รับ</span>
-          <span class="value">${fmtRange(totalMmolPerHrLow, totalMmolPerHrHigh, 3)} mmol/hr</span>
+          <span class="value">${round(totalMmolPerHr, 3)} mmol/hr</span>
         </div>
         <div class="result-item">
           <span class="label">ปริมาณ Dipotassium Phosphate ที่ต้องเติมในถุง ${bagSizeMl} mL</span>
-          <span class="value">${fmtRange(volumeLow, volumeHigh, 2)} mL</span>
+          <span class="value">${round(volume, 2)} mL</span>
         </div>
       </div>
       <div class="result-grid">
         <div class="result-item">
           <span class="label">Potassium ที่ได้รับร่วมด้วยจากยานี้</span>
-          <span class="value">${fmtRange(kMeqPerHrLow, kMeqPerHrHigh, 3)} mEq/hr
-            (${fmtRange(kMeqPerKgHrLow, kMeqPerKgHrHigh, 3)} mEq/kg/hr)</span>
+          <span class="value">${round(kMeqPerHr, 3)} mEq/hr
+            (${round(kMeqPerKgHr, 3)} mEq/kg/hr)</span>
         </div>
       </div>
       ${exceedsKSafety
@@ -223,6 +237,7 @@
   }
 
   serumPInput.addEventListener("input", refreshPhosphorus);
+  phosphorusDoseInput.addEventListener("input", refreshPhosphorus);
   pBagSizeSelect.addEventListener("change", refreshPhosphorus);
   pRateInput.addEventListener("input", refreshPhosphorus);
   weightKgInput.addEventListener("input", refreshPhosphorus);
@@ -234,6 +249,10 @@
   // ---- Combined correction: line 1 = KCl, line 2 = Dipotassium Phosphate ----
   const combinedKInput = document.getElementById("combined-k-input");
   const combinedPInput = document.getElementById("combined-p-input");
+  const combinedKDoseInput = document.getElementById("combined-k-dose-input");
+  const combinedPDoseInput = document.getElementById("combined-p-dose-input");
+  const combinedKDoseRangeHint = document.getElementById("combined-k-dose-range-hint");
+  const combinedPDoseRangeHint = document.getElementById("combined-p-dose-range-hint");
   const combinedKclRateInput = document.getElementById("combined-kcl-rate-input");
   const combinedKclBagSelect = document.getElementById("combined-kcl-bag-select");
   const combinedPhosRateInput = document.getElementById("combined-phos-rate-input");
@@ -245,12 +264,45 @@
     const weightKg = currentWeightKg();
     const k = parseFloat(combinedKInput.value);
     const p = parseFloat(combinedPInput.value);
+
+    if (weightKg === null || isNaN(k) || k <= 0 || isNaN(p) || p <= 0) {
+      combinedResultEl.hidden = true;
+      combinedHintEl.hidden = false;
+      combinedKDoseRangeHint.textContent = "";
+      combinedPDoseRangeHint.textContent = "";
+      return;
+    }
+
+    const species = currentSpecies();
+    const kTier = findTier(k);
+    const pTier = findPhosphorusTier(species, p);
+
+    // แสดงช่วงขนาดยาที่แนะนำทันทีที่ทราบระดับ K+/P — ไม่ต้องรอให้กรอกอัตราสารน้ำก่อน
+    combinedKDoseRangeHint.textContent = kTier
+      ? `ช่วงที่แนะนำตาม Table 11 (${kTier.label}): ${kTier.doseLow} - ${kTier.doseHigh} mEq/kg/hr`
+      : "ระดับ K+ อยู่ในช่วงปกติ/สูง — Table 11 ไม่มีข้อบ่งชี้ให้ KCl (ยังกรอกขนาดเองได้หากต้องการ)";
+    combinedPDoseRangeHint.textContent = pTier
+      ? `ช่วงที่แนะนำ (${pTier.label}, ${species === "dog" ? "สุนัข" : "แมว"}): ${pTier.doseLow} - ${pTier.doseHigh} mmol/kg/hr`
+      : "";
+
+    if (!pTier) {
+      combinedHintEl.hidden = true;
+      combinedResultEl.hidden = false;
+      combinedResultEl.innerHTML = `
+        <div class="result-note">ระดับฟอสฟอรัส ${p} mg/dL อยู่ในหรือเกินช่วงที่ตารางนี้ครอบคลุม ไม่จำเป็นต้องให้สายที่ 2 (Dipotassium Phosphate) —
+        หากยังต้องการแก้ไข Potassium เพียงอย่างเดียว ให้ใช้เครื่องคำนวณ "แก้ไขภาวะโพแทสเซียมต่ำ" ด้านบนแทน</div>
+      `;
+      return;
+    }
+
     const kclRate = parseFloat(combinedKclRateInput.value);
     const phosRate = parseFloat(combinedPhosRateInput.value);
+    const kDoseInput = parseFloat(combinedKDoseInput.value);
+    const pDoseInput = parseFloat(combinedPDoseInput.value);
 
     if (
-      weightKg === null || isNaN(k) || k <= 0 || isNaN(p) || p <= 0 ||
-      isNaN(kclRate) || kclRate <= 0 || isNaN(phosRate) || phosRate <= 0
+      isNaN(kclRate) || kclRate <= 0 || isNaN(phosRate) || phosRate <= 0 ||
+      isNaN(pDoseInput) || pDoseInput <= 0
     ) {
       combinedResultEl.hidden = true;
       combinedHintEl.hidden = false;
@@ -260,79 +312,67 @@
     combinedHintEl.hidden = true;
     combinedResultEl.hidden = false;
 
-    const species = currentSpecies();
-    const kTier = findTier(k);
-    const pTier = findPhosphorusTier(species, p);
-
-    if (!pTier) {
-      combinedResultEl.innerHTML = `
-        <div class="result-note">ระดับฟอสฟอรัส ${p} mg/dL อยู่ในหรือเกินช่วงที่ตารางนี้ครอบคลุม ไม่จำเป็นต้องให้สายที่ 2 (Dipotassium Phosphate) —
-        หากยังต้องการแก้ไข Potassium เพียงอย่างเดียว ให้ใช้เครื่องคำนวณ "แก้ไขภาวะโพแทสเซียมต่ำ" ด้านบนแทน</div>
-      `;
-      return;
-    }
-
     const kclBagMl = parseFloat(combinedKclBagSelect.value);
     const phosBagMl = parseFloat(combinedPhosBagSelect.value);
 
-    // สายที่ 2: Dipotassium Phosphate — ให้ Phosphorus ตามระดับที่วัดได้ โดย Potassium ติดมาด้วยเสมอ
-    const totalMmolLow = pTier.doseLow * weightKg;
-    const totalMmolHigh = pTier.doseHigh * weightKg;
-    const concMmolLow = totalMmolLow / phosRate;
-    const concMmolHigh = totalMmolHigh / phosRate;
-    const phosVolumeLow = (concMmolLow * phosBagMl) / DIPOTASSIUM_PHOSPHATE.phosphorusMmolPerMl;
-    const phosVolumeHigh = (concMmolHigh * phosBagMl) / DIPOTASSIUM_PHOSPHATE.phosphorusMmolPerMl;
-    const kFromPhosLow = phosVolumeLow * DIPOTASSIUM_PHOSPHATE.potassiumMeqPerMl;
-    const kFromPhosHigh = phosVolumeHigh * DIPOTASSIUM_PHOSPHATE.potassiumMeqPerMl;
+    // สายที่ 2: Dipotassium Phosphate — ให้ Phosphorus ตามขนาดที่กรอก โดย Potassium ติดมาด้วยเสมอ
+    const totalMmol = pDoseInput * weightKg;
+    const concMmol = totalMmol / phosRate;
+    const phosVolume = (concMmol * phosBagMl) / DIPOTASSIUM_PHOSPHATE.phosphorusMmolPerMl;
+    const pOutOfRange = pDoseInput < pTier.doseLow || pDoseInput > pTier.doseHigh;
 
-    // สายที่ 1: KCl — เติมเฉพาะส่วนของ Potassium ที่ยังขาดหลังหักจากที่ได้รับทางสายที่ 2 แล้ว
-    // เพื่อไม่ให้ผู้ป่วยได้รับ Potassium รวมเกินความจำเป็น
-    const totalKNeededLow = kTier ? kTier.doseLow * weightKg : 0;
-    const totalKNeededHigh = kTier ? kTier.doseHigh * weightKg : 0;
-
-    // Pair the lowest "still needed" case with the highest phosphate-K estimate (and vice versa)
-    // so the displayed range stays ascending — the phosphate line's own dose range means its K+
-    // contribution isn't monotonic with the potassium tier's range.
-    const remainingKLow = Math.max(0, totalKNeededLow - kFromPhosHigh);
-    const remainingKHigh = Math.max(0, totalKNeededHigh - kFromPhosLow);
-
-    const concKclLow = remainingKLow / kclRate;
-    const concKclHigh = remainingKHigh / kclRate;
-    const kclVolumeLow = (concKclLow * kclBagMl) / KCL_CONCENTRATE_MEQ_PER_ML;
-    const kclVolumeHigh = (concKclHigh * kclBagMl) / KCL_CONCENTRATE_MEQ_PER_ML;
-
-    const combinedKLow = remainingKLow + kFromPhosLow;
-    const combinedKHigh = remainingKHigh + kFromPhosHigh;
-    const combinedKPerKgLow = combinedKLow / weightKg;
-    const combinedKPerKgHigh = combinedKHigh / weightKg;
-    const exceedsSafety = combinedKPerKgHigh > KCL_SAFETY_LIMIT_MEQ_PER_KG_HR;
+    // K+ delivery RATE from this line depends only on the fixed K:P ratio of the drug (1 mEq
+    // K+ per 0.5 mmol P = 2 mEq K+ per mmol P) applied to the phosphorus delivery rate — not on
+    // the mEq content of the volume mixed into the bag, which also depends on rate/bag size and
+    // does not by itself represent an hourly rate.
+    const K_PER_P_RATIO = DIPOTASSIUM_PHOSPHATE.potassiumMeqPerMl / DIPOTASSIUM_PHOSPHATE.phosphorusMmolPerMl;
+    const kFromPhos = totalMmol * K_PER_P_RATIO;
 
     let line1Html;
-    if (!kTier) {
-      line1Html = `
-        <div class="result-note">ระดับ K+ อยู่ในช่วงปกติ/สูง ไม่มีข้อบ่งชี้ให้ KCl เพิ่มเติมในสายที่ 1 แต่ผู้ป่วยจะยังได้รับ Potassium
-        จากสายที่ 2 ด้วย (${fmtRange(kFromPhosLow, kFromPhosHigh, 3)} mEq/hr) ควรติดตามระดับ K+ ระหว่างให้ยา</div>
-      `;
-    } else if (remainingKHigh <= 0) {
-      line1Html = `
-        <div class="result-note">Potassium ที่ได้รับจากสายที่ 2 เพียงพอหรือเกินความต้องการ Potassium ที่ขาด
-        (${fmtRange(totalKNeededLow, totalKNeededHigh, 3)} mEq/hr) แล้ว จึง<strong>ไม่จำเป็นต้องเติม KCl ในสายที่ 1 เพิ่ม</strong> —
-        อาจให้สายที่ 1 เป็นสารน้ำเปล่า หรือปรับลดอัตรา/เพิ่มขนาดถุงของสายที่ 2 หากต้องการลดปริมาณ Potassium ที่ได้รับ</div>
-      `;
+    let combinedK;
+    if (isNaN(kDoseInput) || kDoseInput <= 0) {
+      // ยังไม่ได้กรอกขนาด KCl ที่ต้องการ — แสดงเฉพาะสิ่งที่ได้จากสายที่ 2 ไปก่อน
+      combinedK = kFromPhos;
+      line1Html = `<div class="result-note">กรอกขนาด KCl ที่ต้องการให้ (mEq/kg/hr) ด้านบน เพื่อคำนวณปริมาณที่ต้องเติมในสายที่ 1</div>`;
     } else {
-      line1Html = `
-        <div class="result-grid">
-          <div class="result-item">
-            <span class="label">Potassium ที่ยังขาด (หลังหักจากสายที่ 2 แล้ว)</span>
-            <span class="value">${fmtRange(remainingKLow, remainingKHigh, 3)} mEq/hr</span>
+      const kOutOfRangeNote = kTier
+        ? (kDoseInput < kTier.doseLow || kDoseInput > kTier.doseHigh
+            ? `<div class="result-note">ขนาด KCl ที่กรอก (${kDoseInput} mEq/kg/hr) อยู่นอกช่วงที่ Table 11 แนะนำ (${kTier.doseLow} - ${kTier.doseHigh} mEq/kg/hr) สำหรับระดับ K+ นี้</div>`
+            : "")
+        : `<div class="result-note">ระดับ K+ อยู่ในช่วงปกติ/สูง ไม่เข้าเกณฑ์ hypokalemia ตาม Table 11 แต่จะคำนวณตามขนาดที่กรอกเอง</div>`;
+
+      const totalKNeeded = kDoseInput * weightKg;
+      const remainingK = Math.max(0, totalKNeeded - kFromPhos);
+      combinedK = remainingK + kFromPhos;
+
+      if (remainingK <= 0) {
+        line1Html = `
+          ${kOutOfRangeNote}
+          <div class="result-note">Potassium ที่ได้รับจากสายที่ 2 (${round(kFromPhos, 3)} mEq/hr) เพียงพอหรือเกินขนาด KCl ที่กรอกไว้
+          (${round(totalKNeeded, 3)} mEq/hr) แล้ว จึง<strong>ไม่จำเป็นต้องเติม KCl ในสายที่ 1 เพิ่ม</strong> —
+          อาจให้สายที่ 1 เป็นสารน้ำเปล่า หรือปรับลดขนาด Phosphorus ที่กรอก (หากยังอยู่ในช่วงที่ยอมรับได้) เพื่อลดปริมาณ Potassium ที่ได้รับ</div>
+        `;
+      } else {
+        const concKcl = remainingK / kclRate;
+        const kclVolume = (concKcl * kclBagMl) / KCL_CONCENTRATE_MEQ_PER_ML;
+        line1Html = `
+          ${kOutOfRangeNote}
+          <div class="result-grid">
+            <div class="result-item">
+              <span class="label">Potassium ที่ยังขาด (หลังหักจากสายที่ 2 แล้ว)</span>
+              <span class="value">${round(remainingK, 3)} mEq/hr</span>
+            </div>
+            <div class="result-item">
+              <span class="label">ปริมาณ KCl เข้มข้น (2 mEq/mL) ที่ต้องเติมในถุง ${kclBagMl} mL (อัตรา ${kclRate} mL/hr)</span>
+              <span class="value">${round(kclVolume, 2)} mL</span>
+            </div>
           </div>
-          <div class="result-item">
-            <span class="label">ปริมาณ KCl เข้มข้น (2 mEq/mL) ที่ต้องเติมในถุง ${kclBagMl} mL (อัตรา ${kclRate} mL/hr)</span>
-            <span class="value">${fmtRange(kclVolumeLow, kclVolumeHigh, 2)} mL</span>
-          </div>
-        </div>
-      `;
+        `;
+      }
     }
+
+    const combinedKPerKg = combinedK / weightKg;
+    const exceedsSafety = combinedKPerKg > KCL_SAFETY_LIMIT_MEQ_PER_KG_HR;
 
     combinedResultEl.innerHTML = `
       <div class="result-rate">
@@ -341,18 +381,19 @@
       </div>
 
       <h4>สายที่ 2: Dipotassium Phosphate</h4>
+      ${pOutOfRange ? `<div class="result-note">ขนาด Phosphorus ที่กรอก (${pDoseInput} mmol/kg/hr) อยู่นอกช่วงที่แนะนำ (${pTier.doseLow} - ${pTier.doseHigh} mmol/kg/hr) สำหรับระดับ P นี้</div>` : ""}
       <div class="result-grid">
         <div class="result-item">
-          <span class="label">Phosphorus ที่ต้องได้รับ</span>
-          <span class="value">${fmtRange(totalMmolLow, totalMmolHigh, 3)} mmol/hr</span>
+          <span class="label">Phosphorus ที่ต้องได้รับ (${round(pDoseInput, 3)} mmol/kg/hr)</span>
+          <span class="value">${round(totalMmol, 3)} mmol/hr</span>
         </div>
         <div class="result-item">
           <span class="label">ปริมาณที่ต้องเติมในถุง ${phosBagMl} mL (อัตรา ${phosRate} mL/hr)</span>
-          <span class="value">${fmtRange(phosVolumeLow, phosVolumeHigh, 2)} mL</span>
+          <span class="value">${round(phosVolume, 2)} mL</span>
         </div>
         <div class="result-item">
           <span class="label">Potassium ที่ติดมาจากสายนี้</span>
-          <span class="value">${fmtRange(kFromPhosLow, kFromPhosHigh, 3)} mEq/hr</span>
+          <span class="value">${round(kFromPhos, 3)} mEq/hr</span>
         </div>
       </div>
 
@@ -363,8 +404,8 @@
       <div class="result-grid">
         <div class="result-item">
           <span class="label">Potassium รวมที่ได้รับจริง (สายที่ 1 + สายที่ 2)</span>
-          <span class="value">${fmtRange(combinedKLow, combinedKHigh, 3)} mEq/hr
-            (${fmtRange(combinedKPerKgLow, combinedKPerKgHigh, 3)} mEq/kg/hr)</span>
+          <span class="value">${round(combinedK, 3)} mEq/hr
+            (${round(combinedKPerKg, 3)} mEq/kg/hr)</span>
         </div>
       </div>
       ${exceedsSafety
@@ -386,6 +427,8 @@
 
   combinedKInput.addEventListener("input", refreshCombined);
   combinedPInput.addEventListener("input", refreshCombined);
+  combinedKDoseInput.addEventListener("input", refreshCombined);
+  combinedPDoseInput.addEventListener("input", refreshCombined);
   combinedKclRateInput.addEventListener("input", refreshCombined);
   combinedKclBagSelect.addEventListener("change", refreshCombined);
   combinedPhosRateInput.addEventListener("input", refreshCombined);

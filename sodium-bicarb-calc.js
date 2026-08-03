@@ -15,7 +15,9 @@
 
   const resultEl = document.getElementById("sb-result");
 
-  const state = { mode: "general" };
+  const fractionButtons = document.querySelectorAll("[data-sb-fraction]");
+
+  const state = { mode: "general", fraction: "quarter" };
 
   function round(num, decimals) {
     const factor = Math.pow(10, decimals);
@@ -65,6 +67,15 @@
     });
   });
 
+  fractionButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      fractionButtons.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.fraction = btn.dataset.sbFraction;
+      refresh();
+    });
+  });
+
   function refresh() {
     const weightKg = currentWeightKg();
     if (weightKg === null) {
@@ -81,10 +92,17 @@
         return;
       }
       const deficit = weightKg * Math.abs(be) * SODIUM_BICARB_DEFICIT_FACTOR;
-      const startLow = deficit * SODIUM_BICARB_STARTING_FRACTION.low;
-      const startHigh = deficit * SODIUM_BICARB_STARTING_FRACTION.high;
-      const volLow = mlFromMeq(startLow);
-      const volHigh = mlFromMeq(startHigh);
+      const fraction = state.fraction === "third"
+        ? SODIUM_BICARB_STARTING_FRACTION.high
+        : SODIUM_BICARB_STARTING_FRACTION.low;
+      const fractionLabel = state.fraction === "third" ? "1/3" : "1/4";
+      const startDose = deficit * fraction;
+      const startVol = mlFromMeq(startDose);
+
+      // ส่วนที่เหลือของ deficit หลังให้ขนาดเริ่มต้นไปแล้ว — ไม่ได้ให้ต่อทันที แต่ไว้เป็นแนวทาง
+      // คร่าวๆ ว่าเหลืออีกเท่าไรหากประเมินซ้ำแล้วยังต้องแก้ไขภาวะกรดต่อ
+      const remaining = deficit - startDose;
+      const remainingVol = mlFromMeq(remaining);
 
       const ph = parseFloat(phInput.value);
       const hco3 = parseFloat(hco3Input.value);
@@ -109,9 +127,15 @@
             <span class="value">${round(deficit, 2)} mEq</span>
           </div>
           <div class="result-item">
-            <span class="label">ขนาดเริ่มต้นที่แนะนำ (1/4 - 1/3 ของ deficit) จากขวด ${SODIUM_BICARB_STOCK.totalMeq} mEq/${SODIUM_BICARB_STOCK.totalMl} mL</span>
-            <span class="value">${round(volLow, 2)} - ${round(volHigh, 2)} mL
-              <span style="font-size:0.7em; font-weight:400;">(${round(startLow, 2)} - ${round(startHigh, 2)} mEq)</span>
+            <span class="label">ขนาดเริ่มต้นที่จะให้ (${fractionLabel} ของ deficit) จากขวด ${SODIUM_BICARB_STOCK.totalMeq} mEq/${SODIUM_BICARB_STOCK.totalMl} mL</span>
+            <span class="value">${round(startVol, 2)} mL
+              <span style="font-size:0.7em; font-weight:400;">(${round(startDose, 2)} mEq)</span>
+            </span>
+          </div>
+          <div class="result-item">
+            <span class="label">ปริมาณ SB ที่เหลือ (หากประเมินซ้ำแล้วยังต้องแก้ไข deficit ส่วนที่เหลือต่อ)</span>
+            <span class="value">${round(remainingVol, 2)} mL
+              <span style="font-size:0.7em; font-weight:400;">(${round(remaining, 2)} mEq)</span>
             </span>
           </div>
         </div>
