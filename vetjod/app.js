@@ -791,6 +791,11 @@ function confirmAction(title, message, onConfirm) {
   cancelBtn.addEventListener("click", onCancel);
 }
 
+function showSaveSuccess(record) {
+  $("save-success-message").textContent = `บันทึกข้อมูลของ "${record.name || record.cage || "สัตว์ตัวนี้"}" เรียบร้อยแล้ว`;
+  $("save-success-modal").hidden = false;
+}
+
 // ===================== Firestore adapter =====================
 function subscribeToday() {
   $("today-date-label").textContent = todayLabel();
@@ -962,6 +967,10 @@ function init() {
   $("new-entry-fab").addEventListener("click", goToNewEntry);
   $("entry-back-btn").addEventListener("click", goToList);
   $("entry-cancel-btn").addEventListener("click", goToList);
+  $("save-success-ok-btn").addEventListener("click", () => {
+    $("save-success-modal").hidden = true;
+    goToList();
+  });
 
   $("entry-save-btn").addEventListener("click", async () => {
     const record = collectForm();
@@ -976,8 +985,7 @@ function init() {
     const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 12000));
     try {
       await Promise.race([saveRecord(record), timeout]);
-      showToast("บันทึกแล้ว");
-      goToList();
+      showSaveSuccess(record);
     } catch (err) {
       console.error("VETJOD save error", err);
       if (err.message === "timeout") {
