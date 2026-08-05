@@ -1,14 +1,21 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, addDoc, deleteDoc, doc, query, where, orderBy,
+  initializeFirestore, persistentLocalCache, persistentSingleTabManager,
+  collection, addDoc, deleteDoc, doc, query, where, orderBy,
   onSnapshot, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // FIREBASE_CONFIG / TEAM_PASSCODE come from firebase-config.js (plain <script> before this module).
 const fbApp = initializeApp(FIREBASE_CONFIG);
 const auth = getAuth(fbApp);
-const db = getFirestore(fbApp);
+// Persistent (IndexedDB-backed) local cache: writes are queued durably on-device and
+// retried automatically once the network is available, instead of only living in memory.
+// Without this, a save made on a slow/flaky connection can be lost entirely if the page
+// is refreshed before the write finishes reaching Firestore's servers.
+const db = initializeFirestore(fbApp, {
+  localCache: persistentLocalCache({ tabManager: persistentSingleTabManager() })
+});
 
 let todayRecords = [];
 let unsubscribeToday = null;
