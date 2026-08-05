@@ -863,6 +863,11 @@ footer {
   box-shadow: var(--shadow-glow);
 }
 
+a.menu-card {
+  text-decoration: none;
+  color: inherit;
+}
+
 .menu-card-icon {
   font-size: 2rem;
   display: inline-block;

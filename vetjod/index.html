@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>VETJOD</title>
+<meta name="theme-color" content="#0f172a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===================== PASSCODE GATE ===================== -->
+  <div class="screen" id="screen-gate">
+    <div class="gate-card">
+      <div class="gate-logo">VETJOD</div>
+      <p class="gate-subtitle">เวชระเบียนหน้ากรง</p>
+      <p class="gate-hint">กรอกรหัสผ่านทีมเพื่อเข้าใช้งาน</p>
+      <input type="password" id="gate-passcode-input" inputmode="numeric" autocomplete="off" placeholder="รหัสผ่าน">
+      <button type="button" id="gate-submit-btn" class="primary-btn">เข้าสู่ระบบ</button>
+      <p class="gate-error" id="gate-error" hidden></p>
+      <p class="gate-status" id="gate-status" hidden></p>
+    </div>
+  </div>
+
+  <!-- ===================== TODAY'S LIST ===================== -->
+  <div class="screen" id="screen-list" hidden>
+    <header class="app-header">
+      <div class="app-header-title">
+        <span class="brand">VETJOD</span>
+        <span class="brand-date" id="today-date-label"></span>
+      </div>
+      <div class="app-header-actions">
+        <button type="button" class="icon-btn" id="export-btn" title="ส่งออกข้อมูลวันนี้" aria-label="ส่งออกข้อมูลวันนี้">⇪</button>
+        <button type="button" class="icon-btn icon-btn-danger" id="new-day-btn" title="เริ่มบันทึกวันใหม่" aria-label="เริ่มบันทึกวันใหม่">🗑</button>
+      </div>
+    </header>
+
+    <div class="list-toolbar">
+      <input type="text" id="list-search-input" placeholder="ค้นหา กรง / ชื่อสัตว์...">
+      <span class="list-count" id="list-count">0 รายการ</span>
+    </div>
+
+    <div class="sync-banner" id="sync-banner" hidden></div>
+
+    <main class="card-list" id="card-list">
+      <div class="empty-state" id="empty-state">
+        <p>ยังไม่มีบันทึกวันนี้</p>
+        <p class="empty-state-sub">แตะปุ่ม + เพื่อเริ่มบันทึกตัวแรก</p>
+      </div>
+    </main>
+
+    <button type="button" class="fab" id="new-entry-fab" aria-label="บันทึกใหม่">+</button>
+  </div>
+
+  <!-- ===================== NEW / EDIT ENTRY ===================== -->
+  <div class="screen" id="screen-entry" hidden>
+    <header class="app-header">
+      <button type="button" class="icon-btn" id="entry-back-btn" aria-label="ย้อนกลับ">←</button>
+      <div class="app-header-title">
+        <span class="brand" id="entry-title">บันทึกใหม่</span>
+      </div>
+      <div class="app-header-actions"></div>
+    </header>
+
+    <nav class="jump-nav" id="jump-nav">
+      <button type="button" class="jump-nav-btn" data-jump-to="section-patient">สัตว์</button>
+      <button type="button" class="jump-nav-btn" data-jump-to="section-vitals">Vitals</button>
+      <button type="button" class="jump-nav-btn" data-jump-to="section-exam">Physical exam</button>
+      <button type="button" class="jump-nav-btn" data-jump-to="section-labs">Labs</button>
+      <button type="button" class="jump-nav-btn" data-jump-to="section-tx">Tx</button>
+      <button type="button" class="jump-nav-btn" data-jump-to="section-supply">เบิกของ</button>
+      <button type="button" class="jump-nav-btn" data-jump-to="section-summary">สรุป</button>
+    </nav>
+
+    <main class="entry-form">
+      <!-- ---- Patient identity ---- -->
+      <section class="panel" id="section-patient">
+        <div class="field-row">
+          <label for="p-cage">กรง / ห้อง</label>
+          <input type="text" id="p-cage" placeholder="เช่น IPD-3">
+        </div>
+        <div class="field-row">
+          <label for="p-name">ชื่อสัตว์</label>
+          <input type="text" id="p-name" placeholder="เช่น น้องโบว์">
+        </div>
+        <div class="field-row">
+          <label>ชนิดสัตว์</label>
+          <div class="field-group" data-field="p-species" data-multi="false">
+            <div class="chips">
+              <button type="button" class="chip active" data-value="dog">🐕 สุนัข</button>
+              <button type="button" class="chip" data-value="cat">🐈 แมว</button>
+              <button type="button" class="chip" data-value="__other__">อื่นๆ</button>
+            </div>
+            <input type="text" class="chip-other-input" hidden placeholder="ระบุชนิดสัตว์">
+          </div>
+        </div>
+        <div class="field-row">
+          <label for="p-weight">น้ำหนักตัว (ไม่บังคับ — ใช้คำนวณ UOP)</label>
+          <div class="number-input-row">
+            <input type="number" id="p-weight" step="0.1" min="0" placeholder="เช่น 12.5">
+            <span class="unit">กก.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---- VITALS ---- -->
+      <section class="accordion open" id="section-vitals">
+        <button type="button" class="accordion-header">
+          <span>Vitals</span><span class="accordion-caret">⌄</span>
+        </button>
+        <div class="accordion-body">
+
+          <div class="field-row">
+            <label for="v-temp">อุณหภูมิ</label>
+            <div class="number-input-row">
+              <input type="number" id="v-temp" step="0.1" placeholder="เช่น 101.3">
+              <div class="unit-toggle" data-field="v-temp-unit" data-multi="false">
+                <button type="button" class="chip chip-sm" data-value="C">°C</button>
+                <button type="button" class="chip chip-sm active" data-value="F">°F</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feces -->
+          <div class="field-group" data-field="v-feces-presence" data-multi="false">
+            <label>อุจจาระ</label>
+            <div class="chips">
+              <button type="button" class="chip active" data-value="none">ไม่มี</button>
+              <button type="button" class="chip" data-value="yes">มี</button>
+            </div>
+          </div>
+          <div class="reveal-block" data-show-field="v-feces-presence" data-show-values="yes" hidden>
+            <div class="field-group" data-field="v-feces-score" data-multi="false">
+              <label>คะแนนอุจจาระ (Fecal score)</label>
+              <div class="chips chips-scale">
+                <button type="button" class="chip" data-value="1">1</button>
+                <button type="button" class="chip" data-value="2">2</button>
+                <button type="button" class="chip" data-value="3">3</button>
+                <button type="button" class="chip" data-value="4">4</button>
+                <button type="button" class="chip" data-value="5">5</button>
+                <button type="button" class="chip" data-value="6">6</button>
+                <button type="button" class="chip" data-value="7">7</button>
+              </div>
+            </div>
+            <div class="field-group" data-field="v-feces-color" data-multi="true">
+              <label>ลักษณะ/สี</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="yellow">Yellow</button>
+                <button type="button" class="chip" data-value="green">Green</button>
+                <button type="button" class="chip" data-value="brown">Brown</button>
+                <button type="button" class="chip" data-value="melena">Melena</button>
+                <button type="button" class="chip" data-value="bloody diarrhea">Bloody diarrhea</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vomit / Regurgitation -->
+          <div class="field-group" data-field="v-vomit-type" data-multi="false">
+            <label>Vomit / Regurgitation</label>
+            <div class="chips">
+              <button type="button" class="chip active" data-value="none">ไม่มี</button>
+              <button type="button" class="chip" data-value="vomit">Vomit</button>
+              <button type="button" class="chip" data-value="regurgitation">Regurgitation</button>
+              <button type="button" class="chip" data-value="both">ทั้งคู่</button>
+            </div>
+          </div>
+          <div class="reveal-block" data-show-field="v-vomit-type" data-show-values="vomit,both" hidden>
+            <div class="field-group" data-field="v-vomit-character" data-multi="true">
+              <label>ลักษณะ Vomit</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="gastric juice">Gastric juice</button>
+                <button type="button" class="chip" data-value="bile">Bile</button>
+                <button type="button" class="chip" data-value="blood">Blood</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Urine -->
+          <div class="field-group" data-field="v-urine-presence" data-multi="false">
+            <label>ปัสสาวะ</label>
+            <div class="chips">
+              <button type="button" class="chip active" data-value="none">ไม่มี</button>
+              <button type="button" class="chip" data-value="yes">มี</button>
+            </div>
+          </div>
+          <div class="reveal-block" data-show-field="v-urine-presence" data-show-values="yes" hidden>
+            <div class="field-group" data-field="v-urine-color" data-multi="false">
+              <label>สีปัสสาวะ</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="light yellow">Light yellow</button>
+                <button type="button" class="chip" data-value="yellow">Yellow</button>
+                <button type="button" class="chip" data-value="amber">Amber</button>
+                <button type="button" class="chip" data-value="red">Red</button>
+                <button type="button" class="chip" data-value="greenish">Greenish</button>
+                <button type="button" class="chip" data-value="dark brown">Dark brown</button>
+              </div>
+            </div>
+            <div class="field-row">
+              <label for="v-urine-amount">ปริมาณ (mL)</label>
+              <div class="number-input-row">
+                <input type="number" id="v-urine-amount" step="1" min="0" placeholder="เช่น 20">
+                <span class="unit">mL</span>
+              </div>
+            </div>
+            <div class="field-group" data-field="v-urine-uop-hours" data-multi="false">
+              <label>ระยะเวลาที่เก็บปัสสาวะ (สำหรับคำนวณ UOP)</label>
+              <div class="chips">
+                <button type="button" class="chip active" data-value="4">4 ชม.</button>
+                <button type="button" class="chip" data-value="8">8 ชม.</button>
+              </div>
+            </div>
+            <p class="hint-text" id="v-urine-uop-display"></p>
+          </div>
+
+          <div class="field-row">
+            <label for="v-spo2">SpO2</label>
+            <div class="number-input-row">
+              <input type="number" id="v-spo2" step="1" min="0" max="100" placeholder="เช่น 98">
+              <span class="unit">%</span>
+            </div>
+          </div>
+
+          <!-- Fluids (repeatable) -->
+          <div class="field-row">
+            <label>สารน้ำที่ให้อยู่</label>
+            <div id="v-fluids-list" class="fluids-list"></div>
+            <button type="button" class="add-row-btn" id="v-fluids-add-btn">+ เพิ่มสารน้ำ</button>
+          </div>
+
+          <div class="field-row">
+            <label for="v-bp">Blood pressure</label>
+            <input type="text" id="v-bp" placeholder="เช่น 120/80 หรือ MAP 90">
+          </div>
+
+          <!-- Feeding -->
+          <div class="field-group" data-field="v-feed-state" data-multi="false">
+            <label>การกินอาหาร</label>
+            <div class="chips">
+              <button type="button" class="chip active" data-value="normal">ป้อน/กินได้</button>
+              <button type="button" class="chip" data-value="not eating">ไม่กิน</button>
+              <button type="button" class="chip" data-value="npo">งดน้ำงดอาหาร (NPO)</button>
+              <button type="button" class="chip" data-value="held for vomit">ไม่ป้อน (อาเจียน)</button>
+            </div>
+          </div>
+          <div class="reveal-block" data-show-field="v-feed-state" data-show-values="normal" hidden>
+            <div class="field-group" data-field="v-feed-diet" data-multi="false">
+              <label>ชนิดอาหาร</label>
+              <div class="chips" id="v-feed-diet-chips"></div>
+              <input type="text" class="chip-other-input" hidden placeholder="ระบุชนิดอาหาร">
+            </div>
+            <div class="field-row">
+              <label for="v-feed-amount">ปริมาณที่ป้อนได้</label>
+              <div class="number-input-row">
+                <input type="number" id="v-feed-amount" step="1" placeholder="เช่น 30">
+                <div class="unit-toggle" data-field="v-feed-unit" data-multi="false">
+                  <button type="button" class="chip chip-sm active" data-value="mL">mL</button>
+                  <button type="button" class="chip chip-sm" data-value="g">g</button>
+                </div>
+              </div>
+            </div>
+            <div class="field-group" data-field="v-feed-score" data-multi="false">
+              <label>คะแนนการกิน (1-4/4)</label>
+              <div class="chips chips-scale">
+                <button type="button" class="chip" data-value="1">1</button>
+                <button type="button" class="chip" data-value="2">2</button>
+                <button type="button" class="chip" data-value="3">3</button>
+                <button type="button" class="chip" data-value="4">4</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ---- PHYSICAL EXAM ---- -->
+      <section class="accordion" id="section-exam">
+        <button type="button" class="accordion-header">
+          <span>Physical exam</span><span class="accordion-caret">⌄</span>
+        </button>
+        <div class="accordion-body">
+
+          <div class="field-group" data-field="e-mentation" data-multi="false">
+            <label>Mentation</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="BAR">BAR</button>
+              <button type="button" class="chip" data-value="QAR">QAR</button>
+              <button type="button" class="chip" data-value="depressed">Depressed</button>
+              <button type="button" class="chip" data-value="obtunded">Obtunded</button>
+              <button type="button" class="chip" data-value="stuporous">Stuporous</button>
+              <button type="button" class="chip" data-value="comatose">Comatose</button>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-mm-color" data-multi="true">
+            <label>Mucous membrane color (เลือกได้มากกว่า 1 เช่น icteric ร่วมกับสีอื่น)</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="pale">Pale</button>
+              <button type="button" class="chip" data-value="pale pink">Pale pink</button>
+              <button type="button" class="chip" data-value="pink">Pink</button>
+              <button type="button" class="chip" data-value="icteric">Icteric</button>
+              <button type="button" class="chip" data-value="red">Red</button>
+              <button type="button" class="chip" data-value="cyanosis">Cyanosis</button>
+              <button type="button" class="chip" data-value="gray">Gray</button>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-mm-texture" data-multi="false">
+            <label>Mucous membrane texture</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="moist">Moist</button>
+              <button type="button" class="chip" data-value="dry">Dry</button>
+              <button type="button" class="chip" data-value="tacky">Tacky</button>
+              <button type="button" class="chip" data-value="sticky">Sticky</button>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-crt" data-multi="false">
+            <label>CRT</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="<2sec">&lt; 2 sec</button>
+              <button type="button" class="chip" data-value="=2sec">= 2 sec</button>
+              <button type="button" class="chip" data-value=">2sec">&gt; 2 sec</button>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-hydration" data-multi="false">
+            <label>Hydration</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="normal">Normal</button>
+              <button type="button" class="chip" data-value="<5%">&lt;5%</button>
+              <button type="button" class="chip" data-value="5%">5%</button>
+              <button type="button" class="chip" data-value="6%">6%</button>
+              <button type="button" class="chip" data-value="7%">7%</button>
+              <button type="button" class="chip" data-value="8%">8%</button>
+              <button type="button" class="chip" data-value="10%">10%</button>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-heart-sound" data-multi="true">
+            <label>Heart sound</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="normal">Normal</button>
+              <button type="button" class="chip" data-value="murmur">Murmur</button>
+              <button type="button" class="chip" data-value="gallop">Gallop</button>
+              <button type="button" class="chip" data-value="muffle">Muffle</button>
+            </div>
+          </div>
+          <div class="reveal-block" data-show-field="e-heart-sound" data-show-values="murmur" hidden>
+            <div class="field-group" data-field="e-murmur-grade" data-multi="false">
+              <label>Murmur grade</label>
+              <div class="chips chips-scale">
+                <button type="button" class="chip" data-value="1">1</button>
+                <button type="button" class="chip" data-value="2">2</button>
+                <button type="button" class="chip" data-value="3">3</button>
+                <button type="button" class="chip" data-value="4">4</button>
+                <button type="button" class="chip" data-value="5">5</button>
+                <button type="button" class="chip" data-value="6">6</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="e-hr">Heart rate</label>
+            <div class="number-input-row">
+              <input type="number" id="e-hr" step="1" placeholder="เช่น 110">
+              <span class="unit">bpm</span>
+              <div class="unit-toggle" data-field="e-hr-rhythm" data-multi="false">
+                <button type="button" class="chip chip-sm active" data-value="regular">Regular</button>
+                <button type="button" class="chip chip-sm" data-value="arrhythmia">Arrhythmia</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-pulse" data-multi="true">
+            <label>Pulse</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="regular">Regular</button>
+              <button type="button" class="chip" data-value="deficit">Deficit</button>
+              <button type="button" class="chip" data-value="weak">Weak</button>
+              <button type="button" class="chip" data-value="bounding">Bounding</button>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-lung-sound" data-multi="true">
+            <label>Lung sound</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="normal">Normal</button>
+              <button type="button" class="chip" data-value="decrease">Decrease</button>
+              <button type="button" class="chip" data-value="increase">Increase</button>
+              <button type="button" class="chip" data-value="crackle">Crackle</button>
+            </div>
+          </div>
+          <div class="reveal-block" data-show-field="e-lung-sound" data-show-values="decrease,increase,crackle" hidden>
+            <div class="field-group" data-field="e-lung-location" data-multi="false">
+              <label>ตำแหน่ง</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="both">Both side</button>
+                <button type="button" class="chip" data-value="right">Right side</button>
+                <button type="button" class="chip" data-value="left">Left side</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="e-rr">Respiratory rate</label>
+            <div class="number-input-row">
+              <input type="number" id="e-rr" step="1" min="0" placeholder="เช่น 24">
+              <span class="unit">tpm</span>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-breath-pattern" data-multi="true">
+            <label>Breathing pattern</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="inspiratory distress">Inspiration distress</button>
+              <button type="button" class="chip" data-value="expiratory distress">Expiration distress</button>
+              <button type="button" class="chip" data-value="restrictive">Restrictive</button>
+              <button type="button" class="chip" data-value="asynchronous">Asynchronous</button>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-breath-sound" data-multi="false">
+            <label>Breathing sound</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="no">No abnormal sound</button>
+              <button type="button" class="chip" data-value="stridor">Stridor</button>
+              <button type="button" class="chip" data-value="stertor">Stertor</button>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-cough" data-multi="false">
+            <label>Induce cough</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="negative">Negative</button>
+              <button type="button" class="chip" data-value="positive">Positive</button>
+            </div>
+          </div>
+          <div class="reveal-block" data-show-field="e-cough" data-show-values="positive" hidden>
+            <div class="field-group" data-field="e-cough-type" data-multi="false">
+              <label>ลักษณะไอ</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="dry">Dry</button>
+                <button type="button" class="chip" data-value="productive">Productive</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-abd" data-multi="true">
+            <label>Abdominal</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="cramp">Cramp</button>
+              <button type="button" class="chip" data-value="distension">Distension</button>
+              <button type="button" class="chip" data-value="fluctuation">Fluctuation</button>
+              <button type="button" class="chip" data-value="hernia">Hernia</button>
+            </div>
+          </div>
+
+          <!-- Eye -->
+          <div class="sub-block">
+            <p class="sub-block-title">Eye — OD (Right)</p>
+            <div class="field-group" data-field="e-eye-od-menace" data-multi="false">
+              <label>Menace</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="positive">Positive</button>
+                <button type="button" class="chip" data-value="negative">Negative</button>
+              </div>
+            </div>
+            <div class="field-group" data-field="e-eye-od-plr" data-multi="true">
+              <label>PLR</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="direct positive">Direct +</button>
+                <button type="button" class="chip" data-value="direct negative">Direct -</button>
+                <button type="button" class="chip" data-value="indirect positive">Indirect +</button>
+                <button type="button" class="chip" data-value="indirect negative">Indirect -</button>
+              </div>
+            </div>
+            <div class="field-group" data-field="e-eye-od-pupil" data-multi="false">
+              <label>Pupil size</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="normal">Normal</button>
+                <button type="button" class="chip" data-value="miosis">Miosis</button>
+                <button type="button" class="chip" data-value="mydriasis">Mydriasis</button>
+              </div>
+            </div>
+            <div class="field-group" data-field="e-eye-od-findings" data-multi="true">
+              <label>ตรวจพบเพิ่มเติม</label>
+              <div class="chips" id="e-eye-od-findings-chips"></div>
+            </div>
+            <div class="field-group" data-field="e-eye-od-fls" data-multi="false">
+              <label>FLS (Fluorescein stain)</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="positive">FLS +</button>
+                <button type="button" class="chip" data-value="negative">FLS -</button>
+              </div>
+            </div>
+            <div class="field-row">
+              <label for="e-eye-od-stt">STT (Schirmer Tear Test)</label>
+              <div class="number-input-row">
+                <input type="number" id="e-eye-od-stt" step="1" min="0" placeholder="เช่น 15">
+                <span class="unit">mm/min</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sub-block">
+            <p class="sub-block-title">Eye — OS (Left)</p>
+            <div class="field-group" data-field="e-eye-os-menace" data-multi="false">
+              <label>Menace</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="positive">Positive</button>
+                <button type="button" class="chip" data-value="negative">Negative</button>
+              </div>
+            </div>
+            <div class="field-group" data-field="e-eye-os-plr" data-multi="true">
+              <label>PLR</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="direct positive">Direct +</button>
+                <button type="button" class="chip" data-value="direct negative">Direct -</button>
+                <button type="button" class="chip" data-value="indirect positive">Indirect +</button>
+                <button type="button" class="chip" data-value="indirect negative">Indirect -</button>
+              </div>
+            </div>
+            <div class="field-group" data-field="e-eye-os-pupil" data-multi="false">
+              <label>Pupil size</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="normal">Normal</button>
+                <button type="button" class="chip" data-value="miosis">Miosis</button>
+                <button type="button" class="chip" data-value="mydriasis">Mydriasis</button>
+              </div>
+            </div>
+            <div class="field-group" data-field="e-eye-os-findings" data-multi="true">
+              <label>ตรวจพบเพิ่มเติม</label>
+              <div class="chips" id="e-eye-os-findings-chips"></div>
+            </div>
+            <div class="field-group" data-field="e-eye-os-fls" data-multi="false">
+              <label>FLS (Fluorescein stain)</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="positive">FLS +</button>
+                <button type="button" class="chip" data-value="negative">FLS -</button>
+              </div>
+            </div>
+            <div class="field-row">
+              <label for="e-eye-os-stt">STT (Schirmer Tear Test)</label>
+              <div class="number-input-row">
+                <input type="number" id="e-eye-os-stt" step="1" min="0" placeholder="เช่น 15">
+                <span class="unit">mm/min</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Skeleton -->
+          <div class="sub-block">
+            <p class="sub-block-title">Skeleton</p>
+            <div class="field-group" data-field="e-lame" data-multi="false">
+              <label>Lame</label>
+              <div class="chips">
+                <button type="button" class="chip active" data-value="none">ไม่มี</button>
+                <button type="button" class="chip" data-value="yes">มี</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-lame" data-show-values="yes" hidden>
+              <div class="field-group" data-field="e-lame-limb" data-multi="true">
+                <label>ขาที่ lame</label>
+                <div class="chips" id="e-lame-limb-chips"></div>
+              </div>
+            </div>
+            <div class="field-group" data-field="e-crepitus" data-multi="false">
+              <label>Crepitus</label>
+              <div class="chips">
+                <button type="button" class="chip active" data-value="none">ไม่มี</button>
+                <button type="button" class="chip" data-value="yes">มี</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-crepitus" data-show-values="yes" hidden>
+              <div class="field-group" data-field="e-crepitus-limb" data-multi="true">
+                <label>ขาที่ crepitus</label>
+                <div class="chips" id="e-crepitus-limb-chips"></div>
+              </div>
+            </div>
+            <div class="field-group" data-field="e-splint" data-multi="false">
+              <label>Splint</label>
+              <div class="chips">
+                <button type="button" class="chip active" data-value="none">ไม่มี</button>
+                <button type="button" class="chip" data-value="yes">มี</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-splint" data-show-values="yes" hidden>
+              <div class="field-group" data-field="e-splint-status" data-multi="true">
+                <label>สภาพ Splint</label>
+                <div class="chips" id="e-splint-status-chips"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Neuro -->
+          <div class="sub-block">
+            <p class="sub-block-title">Neuro — Spinal reflex</p>
+
+            <div class="field-group" data-field="e-proprioception" data-multi="false">
+              <label>Proprioception</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="normal">Normal</button>
+                <button type="button" class="chip" data-value="deficit">Deficit</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-proprioception" data-show-values="deficit" hidden>
+              <div class="field-group" data-field="e-proprioception-limb" data-multi="true">
+                <label>ขาที่ deficit</label>
+                <div class="chips" id="e-proprioception-limb-chips"></div>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="e-patella" data-multi="false">
+              <label>Patella</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="normal">Normal</button>
+                <button type="button" class="chip" data-value="hyporeflexia">Hyporeflexia</button>
+                <button type="button" class="chip" data-value="hyperreflexia">Hyperreflexia</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-patella" data-show-values="hyporeflexia,hyperreflexia" hidden>
+              <div class="field-group" data-field="e-patella-limb" data-multi="true">
+                <label>ขาที่ผิดปกติ</label>
+                <div class="chips" id="e-patella-limb-chips"></div>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="e-flexor" data-multi="false">
+              <label>Flexor</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="normal">Normal</button>
+                <button type="button" class="chip" data-value="hyporeflexia">Hyporeflexia</button>
+                <button type="button" class="chip" data-value="hyperreflexia">Hyperreflexia</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-flexor" data-show-values="hyporeflexia,hyperreflexia" hidden>
+              <div class="field-group" data-field="e-flexor-limb" data-multi="true">
+                <label>ขาที่ผิดปกติ</label>
+                <div class="chips" id="e-flexor-limb-chips"></div>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="e-tail-tone" data-multi="false">
+              <label>Tail tone</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="positive">+</button>
+                <button type="button" class="chip" data-value="negative">-</button>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="e-perineal" data-multi="false">
+              <label>Perineal</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="positive">+</button>
+                <button type="button" class="chip" data-value="negative">-</button>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="e-bladder" data-multi="true">
+              <label>Bladder</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="UMN Bladder">UMN Bladder</button>
+                <button type="button" class="chip" data-value="LMN Bladder">LMN Bladder</button>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="e-panniculus-stop">Panniculus — Stop at</label>
+              <input type="text" id="e-panniculus-stop" placeholder="เช่น L3">
+            </div>
+
+            <div class="field-group" data-field="e-superficial-pain" data-multi="false">
+              <label>Superficial pain</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="positive">Positive</button>
+                <button type="button" class="chip" data-value="negative">Negative</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-superficial-pain" data-show-values="positive,negative" hidden>
+              <div class="field-group" data-field="e-superficial-pain-limb" data-multi="true">
+                <label>ขาที่ตรวจ</label>
+                <div class="chips" id="e-superficial-pain-limb-chips"></div>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="e-deep-pain" data-multi="false">
+              <label>Deep pain</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="positive">Positive</button>
+                <button type="button" class="chip" data-value="negative">Negative</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-deep-pain" data-show-values="positive,negative" hidden>
+              <div class="field-group" data-field="e-deep-pain-limb" data-multi="true">
+                <label>ขาที่ตรวจ</label>
+                <div class="chips" id="e-deep-pain-limb-chips"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Neuro — vestibular / seizure -->
+          <div class="sub-block">
+            <p class="sub-block-title">Neuro — Vestibular / Seizure</p>
+
+            <div class="field-group" data-field="e-head-turn" data-multi="false">
+              <label>Head turn</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="RT">RT</button>
+                <button type="button" class="chip" data-value="LT">LT</button>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="e-head-tilt" data-multi="false">
+              <label>Head tilt</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="Right">Right</button>
+                <button type="button" class="chip" data-value="Left">Left</button>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="e-circling" data-multi="false">
+              <label>Circling</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="Right">Right</button>
+                <button type="button" class="chip" data-value="Left">Left</button>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="e-ataxia" data-multi="false">
+              <label>Ataxia</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="none">ไม่มี</button>
+                <button type="button" class="chip" data-value="positive">มี</button>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="e-nystagmus" data-multi="true">
+              <label>Nystagmus</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="horizontal">Horizontal</button>
+                <button type="button" class="chip" data-value="vertical">Vertical</button>
+                <button type="button" class="chip" data-value="rotational">Rotational</button>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="e-seizure" data-multi="false">
+              <label>Seizure</label>
+              <div class="chips">
+                <button type="button" class="chip active" data-value="none">ไม่มี</button>
+                <button type="button" class="chip" data-value="yes">มี</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-seizure" data-show-values="yes" hidden>
+              <div class="field-group" data-field="e-seizure-type" data-multi="false">
+                <label>ชนิด</label>
+                <div class="chips">
+                  <button type="button" class="chip" data-value="tonic-clonic">Tonic-clonic</button>
+                  <button type="button" class="chip" data-value="focal">Focal seizure</button>
+                </div>
+              </div>
+              <div class="field-row">
+                <label for="e-seizure-time">เวลาที่ชัก</label>
+                <input type="time" id="e-seizure-time">
+              </div>
+              <div class="field-row">
+                <label for="e-seizure-duration">ระยะเวลาชัก</label>
+                <div class="number-input-row">
+                  <input type="number" id="e-seizure-duration" step="1" min="0" placeholder="เช่น 3">
+                  <span class="unit">นาที</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wound -->
+          <div class="sub-block">
+            <p class="sub-block-title">Wound</p>
+            <div class="field-row">
+              <label for="e-wound-location">ตำแหน่งแผล</label>
+              <input type="text" id="e-wound-location" placeholder="เช่น Right forelimb, lateral">
+            </div>
+            <div class="field-group" data-field="e-wound-char" data-multi="true">
+              <label>ลักษณะแผล</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="inflammation">Inflammation</button>
+                <button type="button" class="chip" data-value="granulation">Granulation</button>
+                <button type="button" class="chip" data-value="discharge">Discharge</button>
+                <button type="button" class="chip" data-value="necrotic tissue">Necrotic tissue</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-wound-char" data-show-values="discharge" hidden>
+              <div class="field-group" data-field="e-wound-discharge" data-multi="true">
+                <label>ลักษณะ discharge</label>
+                <div class="chips">
+                  <button type="button" class="chip" data-value="serosanguinous">Serosanguinous</button>
+                  <button type="button" class="chip" data-value="purulent">Purulent</button>
+                  <button type="button" class="chip" data-value="blood">Blood</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="sub-block">
+            <p class="sub-block-title">Scores</p>
+            <div class="field-row">
+              <label for="e-mgcs">MGCS</label>
+              <div class="number-input-row">
+                <input type="number" id="e-mgcs" step="1" min="1" max="18" placeholder="เช่น 15">
+                <span class="unit">/ 18</span>
+              </div>
+            </div>
+            <div class="field-group" data-field="e-pain-score" data-multi="false">
+              <label>Pain score (1-4/4)</label>
+              <div class="chips chips-scale">
+                <button type="button" class="chip" data-value="1">1</button>
+                <button type="button" class="chip" data-value="2">2</button>
+                <button type="button" class="chip" data-value="3">3</button>
+                <button type="button" class="chip" data-value="4">4</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <label for="e-other">อื่นๆ ที่ตรวจได้ (free text)</label>
+            <textarea id="e-other" rows="2" placeholder="พิมพ์สิ่งที่ตรวจพบเพิ่มเติม..."></textarea>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ---- LABS ---- -->
+      <section class="accordion" id="section-labs">
+        <button type="button" class="accordion-header">
+          <span>Labs</span><span class="accordion-caret">⌄</span>
+        </button>
+        <div class="accordion-body" id="labs-body"></div>
+      </section>
+
+      <!-- ---- TX ---- -->
+      <section class="accordion" id="section-tx">
+        <button type="button" class="accordion-header">
+          <span>Tx</span><span class="accordion-caret">⌄</span>
+        </button>
+        <div class="accordion-body">
+          <div class="field-row">
+            <label for="t-rehydration-rate">Rehydration rate</label>
+            <div class="number-input-row">
+              <input type="number" id="t-rehydration-rate" step="1" placeholder="เช่น 40">
+              <span class="unit">mL/h</span>
+            </div>
+          </div>
+          <div class="field-row">
+            <label for="t-resuscitation-rate">Fluid resuscitation rate (15 min)</label>
+            <div class="number-input-row">
+              <input type="number" id="t-resuscitation-rate" step="1" placeholder="เช่น 100">
+              <span class="unit">mL/15min</span>
+            </div>
+          </div>
+          <div class="field-group" data-field="t-wound-dressing" data-multi="false">
+            <label>Wound dressing</label>
+            <div class="chips chips-vertical" id="t-wound-dressing-chips"></div>
+          </div>
+          <div class="field-group" data-field="t-checklist" data-multi="true">
+            <label>หัตถการอื่นๆ</label>
+            <div class="chips" id="t-checklist-chips"></div>
+          </div>
+
+          <div class="sub-block">
+            <p class="sub-block-title">หัตถการพิเศษ</p>
+
+            <div class="field-group" data-field="t-icd" data-multi="false">
+              <label>ICD suction</label>
+              <div class="chips">
+                <button type="button" class="chip active" data-value="none">ไม่มี</button>
+                <button type="button" class="chip" data-value="yes">มี</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="t-icd" data-show-values="yes" hidden>
+              <div class="field-group" data-field="t-icd-side" data-multi="true">
+                <label>ข้าง</label>
+                <div class="chips">
+                  <button type="button" class="chip" data-value="left">Left side</button>
+                  <button type="button" class="chip" data-value="right">Right side</button>
+                </div>
+              </div>
+              <div class="field-group" data-field="t-icd-fluid" data-multi="false">
+                <label>ลักษณะ</label>
+                <div class="chips" id="t-icd-fluid-chips"></div>
+              </div>
+              <div class="field-row">
+                <label for="t-icd-volume">ปริมาณที่ได้</label>
+                <div class="number-input-row">
+                  <input type="number" id="t-icd-volume" step="1" min="0" placeholder="เช่น 50">
+                  <span class="unit">mL</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="t-thoraco" data-multi="false">
+              <label>Thoracocentesis</label>
+              <div class="chips">
+                <button type="button" class="chip active" data-value="none">ไม่มี</button>
+                <button type="button" class="chip" data-value="yes">มี</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="t-thoraco" data-show-values="yes" hidden>
+              <div class="field-group" data-field="t-thoraco-side" data-multi="true">
+                <label>ข้าง</label>
+                <div class="chips">
+                  <button type="button" class="chip" data-value="left">Left side</button>
+                  <button type="button" class="chip" data-value="right">Right side</button>
+                </div>
+              </div>
+              <div class="field-group" data-field="t-thoraco-fluid" data-multi="false">
+                <label>ลักษณะ</label>
+                <div class="chips" id="t-thoraco-fluid-chips"></div>
+              </div>
+              <div class="field-row">
+                <label for="t-thoraco-volume">ปริมาณที่ได้</label>
+                <div class="number-input-row">
+                  <input type="number" id="t-thoraco-volume" step="1" min="0" placeholder="เช่น 50">
+                  <span class="unit">mL</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="t-abdomino" data-multi="false">
+              <label>Abdominocentesis</label>
+              <div class="chips">
+                <button type="button" class="chip active" data-value="none">ไม่มี</button>
+                <button type="button" class="chip" data-value="yes">มี</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="t-abdomino" data-show-values="yes" hidden>
+              <div class="field-group" data-field="t-abdomino-fluid" data-multi="false">
+                <label>ลักษณะ</label>
+                <div class="chips" id="t-abdomino-fluid-chips"></div>
+              </div>
+              <div class="field-row">
+                <label for="t-abdomino-volume">ปริมาณที่ได้</label>
+                <div class="number-input-row">
+                  <input type="number" id="t-abdomino-volume" step="1" min="0" placeholder="เช่น 50">
+                  <span class="unit">mL</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="t-cysto" data-multi="false">
+              <label>Cystocentesis</label>
+              <div class="chips">
+                <button type="button" class="chip active" data-value="none">ไม่มี</button>
+                <button type="button" class="chip" data-value="yes">มี</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="t-cysto" data-show-values="yes" hidden>
+              <div class="field-row">
+                <label for="t-cysto-volume">ปริมาณที่ได้</label>
+                <div class="number-input-row">
+                  <input type="number" id="t-cysto-volume" step="1" min="0" placeholder="เช่น 10">
+                  <span class="unit">mL</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="field-group" data-field="t-ga" data-multi="false">
+              <label>GA (General Anesthesia)</label>
+              <div class="chips">
+                <button type="button" class="chip active" data-value="none">ไม่มี</button>
+                <button type="button" class="chip" data-value="yes">มี</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="t-ga" data-show-values="yes" hidden>
+              <div class="field-row">
+                <label for="t-ga-drug">ยาที่ใช้</label>
+                <input type="text" id="t-ga-drug" placeholder="เช่น Propofol">
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label for="t-other-procedure">หัตถการอื่นๆ (free text)</label>
+              <textarea id="t-other-procedure" rows="2" placeholder="พิมพ์หัตถการอื่นๆ..."></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---- SUPPLY REQUISITION ---- -->
+      <section class="accordion" id="section-supply">
+        <button type="button" class="accordion-header">
+          <span>เบิกเวชภัณฑ์ / แจ้งของหมด</span><span class="accordion-caret">⌄</span>
+        </button>
+        <div class="accordion-body">
+          <div id="supply-body"></div>
+          <div class="field-group" data-field="s-diet-out" data-multi="true">
+            <label>แจ้งอาหารหมด (ชนิดอาหารที่หมด)</label>
+            <div class="chips" id="s-diet-out-chips"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---- Live note preview ---- -->
+      <section class="panel note-preview-panel" id="section-summary">
+        <h2>ตัวอย่างบันทึก</h2>
+        <pre class="note-preview" id="note-preview">— ยังไม่มีข้อมูล —</pre>
+      </section>
+
+      <div class="entry-actions">
+        <button type="button" class="secondary-btn" id="entry-cancel-btn">ยกเลิก</button>
+        <button type="button" class="primary-btn" id="entry-save-btn">บันทึก</button>
+      </div>
+    </main>
+  </div>
+
+  <!-- ===================== EXPORT MODAL ===================== -->
+  <div class="modal-overlay" id="export-modal" hidden>
+    <div class="modal">
+      <h2>ส่งออกข้อมูลวันนี้</h2>
+      <textarea id="export-textarea" readonly rows="14"></textarea>
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" id="export-close-btn">ปิด</button>
+        <button type="button" class="secondary-btn" id="export-download-btn">ดาวน์โหลด .txt</button>
+        <button type="button" class="primary-btn" id="export-copy-btn">คัดลอก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== CONFIRM MODAL ===================== -->
+  <div class="modal-overlay" id="confirm-modal" hidden>
+    <div class="modal modal-sm">
+      <h2 id="confirm-title">ยืนยัน</h2>
+      <p id="confirm-message"></p>
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" id="confirm-cancel-btn">ยกเลิก</button>
+        <button type="button" class="danger-btn" id="confirm-ok-btn">ยืนยัน</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+
+  <script src="data.js"></script>
+  <script src="firebase-config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
