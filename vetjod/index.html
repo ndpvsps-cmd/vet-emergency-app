@@ -65,6 +65,8 @@
       <div class="app-header-actions"></div>
     </header>
 
+    <button type="button" class="jump-nav-handle" id="jump-nav-handle" aria-label="เมนูลัด">‹</button>
+    <div class="jump-nav-backdrop" id="jump-nav-backdrop" hidden></div>
     <nav class="jump-nav" id="jump-nav">
       <button type="button" class="jump-nav-btn" data-jump-to="section-patient">สัตว์</button>
       <button type="button" class="jump-nav-btn" data-jump-to="section-vitals">Vitals</button>
@@ -594,8 +596,12 @@
           </section>
 
           <!-- Integument -->
+          <section class="accordion">
+            <button type="button" class="accordion-header">
+              <span>Integument</span><span class="accordion-caret">⌄</span>
+            </button>
+            <div class="accordion-body">
           <div class="sub-block">
-            <p class="sub-block-title">Integument</p>
             <div class="field-group" data-field="e-integument" data-multi="true">
               <label>ตรวจพบ</label>
               <div class="chips">
@@ -623,6 +629,8 @@
               </div>
             </div>
           </div>
+            </div>
+          </section>
 
           <!-- Skeleton -->
           <section class="accordion">

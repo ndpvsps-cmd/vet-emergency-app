@@ -830,6 +830,7 @@ function activateDefault(fieldId, value) {
 }
 
 function resetForm() {
+  closeJumpNav();
   document.querySelectorAll("#screen-entry .chip.active").forEach((c) => c.classList.remove("active"));
   document.querySelectorAll("#screen-entry input[type=text], #screen-entry input[type=number], #screen-entry input[type=time], #screen-entry textarea")
     .forEach((i) => { i.value = ""; });
@@ -1233,9 +1234,20 @@ function buildExportText() {
 }
 
 // ===================== navigation =====================
+function openJumpNav() {
+  $("jump-nav").classList.add("open");
+  $("jump-nav-backdrop").hidden = false;
+}
+
+function closeJumpNav() {
+  $("jump-nav").classList.remove("open");
+  $("jump-nav-backdrop").hidden = true;
+}
+
 function goToList() {
   $("screen-entry").hidden = true;
   $("screen-list").hidden = false;
+  closeJumpNav();
 }
 
 function goToNewEntry() {
@@ -1349,8 +1361,32 @@ function init() {
       if (target.classList.contains("accordion")) target.classList.add("open");
       target.scrollIntoView({ behavior: "smooth", block: "start" });
       document.querySelectorAll(".jump-nav-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      closeJumpNav();
     });
   });
+
+  $("jump-nav-handle").addEventListener("click", () => {
+    if ($("jump-nav").classList.contains("open")) closeJumpNav(); else openJumpNav();
+  });
+  $("jump-nav-backdrop").addEventListener("click", closeJumpNav);
+
+  // edge-swipe: start near the right edge and drag left to open, drag right to close
+  let jumpNavTouchStartX = null;
+  document.addEventListener("touchstart", (e) => {
+    jumpNavTouchStartX = e.touches[0].clientX;
+  }, { passive: true });
+  document.addEventListener("touchend", (e) => {
+    if (jumpNavTouchStartX === null) return;
+    const dx = e.changedTouches[0].clientX - jumpNavTouchStartX;
+    const startedNearRightEdge = jumpNavTouchStartX > window.innerWidth - 40;
+    const isOpen = $("jump-nav").classList.contains("open");
+    if (!isOpen && startedNearRightEdge && dx < -40) {
+      openJumpNav();
+    } else if (isOpen && dx > 40) {
+      closeJumpNav();
+    }
+    jumpNavTouchStartX = null;
+  }, { passive: true });
 
   $("gate-submit-btn").addEventListener("click", attemptUnlock);
   $("gate-passcode-input").addEventListener("keydown", (e) => { if (e.key === "Enter") attemptUnlock(); });
