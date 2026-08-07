@@ -219,11 +219,10 @@
             </div>
           </div>
 
-          <!-- Fluids (repeatable) -->
+          <!-- Fluids -->
           <div class="field-row">
             <label>สารน้ำที่ให้อยู่</label>
-            <div id="v-fluids-list" class="fluids-list"></div>
-            <button type="button" class="add-row-btn" id="v-fluids-add-btn">+ เพิ่มสารน้ำ</button>
+            <div id="v-fluids-body"></div>
           </div>
 
           <div class="field-row">
@@ -288,6 +287,17 @@
               <button type="button" class="chip" data-value="stuporous">Stuporous</button>
               <button type="button" class="chip" data-value="comatose">Comatose</button>
               <button type="button" class="chip" data-value="with vocalization">With vocalization</button>
+            </div>
+          </div>
+
+          <div class="field-group" data-field="e-behavior" data-multi="true">
+            <label>ลักษณะนิสัย</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="stress">Stress</button>
+              <button type="button" class="chip" data-value="hiding">Hiding</button>
+              <button type="button" class="chip" data-value="aggression">Aggression</button>
+              <button type="button" class="chip" data-value="fear">Fear</button>
+              <button type="button" class="chip" data-value="frighten">Frighten</button>
             </div>
           </div>
 
@@ -556,8 +566,12 @@
           </section>
 
           <!-- Maxillofacial -->
+          <section class="accordion">
+            <button type="button" class="accordion-header">
+              <span>Maxillofacial</span><span class="accordion-caret">⌄</span>
+            </button>
+            <div class="accordion-body">
           <div class="sub-block">
-            <p class="sub-block-title">Maxillofacial</p>
             <div class="field-group" data-field="e-occlusion" data-multi="false">
               <label>Occlusion</label>
               <div class="chips">
@@ -573,6 +587,39 @@
                 <button type="button" class="chip" data-value="Faucitis">Faucitis</button>
                 <button type="button" class="chip" data-value="Gingivitis">Gingivitis</button>
                 <button type="button" class="chip" data-value="Hypersalivation">Hypersalivation</button>
+              </div>
+            </div>
+          </div>
+            </div>
+          </section>
+
+          <!-- Integument -->
+          <div class="sub-block">
+            <p class="sub-block-title">Integument</p>
+            <div class="field-group" data-field="e-integument" data-multi="true">
+              <label>ตรวจพบ</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="itching">Itching</button>
+                <button type="button" class="chip" data-value="alopecia">Alopecia</button>
+                <button type="button" class="chip" data-value="otitis">Otitis</button>
+                <button type="button" class="chip" data-value="flea/tick infestation">Flea/tick infestation</button>
+                <button type="button" class="chip" data-value="crust">Crust</button>
+                <button type="button" class="chip" data-value="dermatitis">Dermatitis</button>
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-integument" data-show-values="alopecia" hidden>
+              <div class="field-row">
+                <label for="e-alopecia-site">Alopecia — ตำแหน่ง</label>
+                <input type="text" id="e-alopecia-site" placeholder="เช่น bilateral flank">
+              </div>
+            </div>
+            <div class="reveal-block" data-show-field="e-integument" data-show-values="otitis" hidden>
+              <div class="field-group" data-field="e-otitis-side" data-multi="true">
+                <label>Otitis — ข้าง</label>
+                <div class="chips">
+                  <button type="button" class="chip" data-value="right">Right</button>
+                  <button type="button" class="chip" data-value="left">Left</button>
+                </div>
               </div>
             </div>
           </div>
@@ -816,8 +863,12 @@
           </section>
 
           <!-- Wound -->
+          <section class="accordion">
+            <button type="button" class="accordion-header">
+              <span>Wound</span><span class="accordion-caret">⌄</span>
+            </button>
+            <div class="accordion-body">
           <div class="sub-block">
-            <p class="sub-block-title">Wound</p>
             <div class="field-row">
               <label for="e-wound-location">ตำแหน่งแผล</label>
               <input type="text" id="e-wound-location" placeholder="เช่น Right forelimb, lateral">
@@ -851,6 +902,8 @@
               </div>
             </div>
           </div>
+            </div>
+          </section>
 
           <div class="sub-block">
             <p class="sub-block-title">Scores</p>
@@ -899,14 +952,24 @@
             <input type="time" id="t-rehydration-start">
           </div>
           <div class="field-row">
-            <label for="t-rehydration-hours">ระยะเวลา Rehydration</label>
+            <label for="t-dehydration-percent">ภาวะขาดน้ำ (% Dehydration)</label>
             <div class="number-input-row">
-              <input type="number" id="t-rehydration-hours" step="0.5" min="0" placeholder="เช่น 8">
-              <span class="unit">ชม.</span>
+              <input type="number" id="t-dehydration-percent" step="1" min="0" max="15" placeholder="เช่น 8">
+              <span class="unit">%</span>
             </div>
           </div>
+          <div class="field-group" data-field="t-rehydration-hours" data-multi="false">
+            <label>ระยะเวลาแก้ไขภาวะขาดน้ำ</label>
+            <div class="chips">
+              <button type="button" class="chip active" data-value="8">8 ชม.</button>
+              <button type="button" class="chip" data-value="10">10 ชม.</button>
+              <button type="button" class="chip" data-value="12">12 ชม.</button>
+              <button type="button" class="chip" data-value="24">24 ชม.</button>
+            </div>
+          </div>
+          <p class="hint-text" id="t-rehydration-calc-display"></p>
           <div class="field-row">
-            <label for="t-rehydration-rate">Rehydration rate</label>
+            <label for="t-rehydration-rate">Rehydration rate (คำนวณอัตโนมัติ ปรับได้)</label>
             <div class="number-input-row">
               <input type="number" id="t-rehydration-rate" step="1" placeholder="เช่น 40">
               <span class="unit">mL/h</span>

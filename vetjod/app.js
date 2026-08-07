@@ -62,6 +62,17 @@ function classifyUop(uop) {
   return "Polyuria";
 }
 
+// Same deficit/maintenance formula as the main app's rehydration-calc.js, but with a
+// maintenance rate fixed at weightKg * 2 mL/kg/h (not the selectable 2/2.5/3 there).
+function computeRehydration(weightKg, dehydrationPercent, hours) {
+  if (!weightKg || dehydrationPercent == null || isNaN(dehydrationPercent) || !hours) return null;
+  const deficitMl = (dehydrationPercent / 100) * weightKg * 1000;
+  const maintenanceMlPerHour = weightKg * 2;
+  const phase1Rate = deficitMl / hours + maintenanceMlPerHour;
+  const phase2Rate = maintenanceMlPerHour;
+  return { deficitMl, maintenanceMlPerHour, phase1Rate, phase2Rate };
+}
+
 function todayKey() {
   return new Date().toLocaleDateString("en-CA");
 }
@@ -246,43 +257,55 @@ function buildLabsLine(labs) {
   });
 }
 
-// ===================== fluids (repeatable rows) =====================
-let fluidRowSeq = 0;
-function addFluidRow() {
-  const list = $("v-fluids-list");
-  const row = document.createElement("div");
-  row.className = "fluid-row";
-  row.dataset.rowId = String(fluidRowSeq++);
-  const options = FLUID_TYPES.map((f) => `<option value="${f}">${f}</option>`).join("");
-  row.innerHTML = `
-    <select class="fluid-type-select"><option value="">เลือกชนิดสารน้ำ</option>${options}<option value="__other__">อื่นๆ (พิมพ์เอง)</option></select>
-    <input type="number" class="fluid-rate-input" placeholder="mL/h">
-    <button type="button" class="fluid-remove-btn" aria-label="ลบ">✕</button>
+// ===================== fluids (compact chips + per-item rate) =====================
+function renderFluidsContainer() {
+  $("v-fluids-body").innerHTML = `
+    <div class="chips" id="fluids-chips"></div>
+    <div id="fluids-detail-list" class="detail-row-list"></div>
   `;
-  const otherInput = document.createElement("input");
-  otherInput.type = "text";
-  otherInput.className = "chip-other-input";
-  otherInput.placeholder = "ระบุชนิดสารน้ำ";
-  otherInput.hidden = true;
-  row.appendChild(otherInput);
+  $("fluids-chips").innerHTML = FLUID_TYPES.map((f) => `<button type="button" class="chip" data-item-id="${f}">${f}</button>`).join("")
+    + `<button type="button" class="chip" data-item-id="__other__">อื่นๆ (พิมพ์เอง)</button>`;
 
-  const select = row.querySelector(".fluid-type-select");
-  select.addEventListener("change", () => {
-    otherInput.hidden = select.value !== "__other__";
-    onFormChange();
+  document.querySelectorAll("#fluids-chips .chip").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      chip.classList.toggle("active");
+      syncFluidsRows();
+      onFormChange();
+    });
   });
-  otherInput.addEventListener("input", onFormChange);
-  row.querySelector(".fluid-remove-btn").addEventListener("click", () => { row.remove(); onFormChange(); });
-  row.querySelector(".fluid-rate-input").addEventListener("input", onFormChange);
-  list.appendChild(row);
+}
+
+function syncFluidsRows() {
+  const activeIds = [...document.querySelectorAll("#fluids-chips .chip.active")].map((c) => c.dataset.itemId);
+  const list = $("fluids-detail-list");
+  const existing = {};
+  list.querySelectorAll(".detail-row").forEach((row) => {
+    existing[row.dataset.itemId] = {
+      rate: row.querySelector(".fluid-rate-input").value,
+      other: row.querySelector(".fluid-other-name") ? row.querySelector(".fluid-other-name").value : ""
+    };
+  });
+  list.innerHTML = activeIds.map((id) => {
+    const prev = existing[id] || { rate: "", other: "" };
+    if (id === "__other__") {
+      return `<div class="detail-row" data-item-id="__other__">
+        <input type="text" class="fluid-other-name" placeholder="ระบุชนิดสารน้ำ" value="${escapeHtml(prev.other)}">
+        <input type="number" class="fluid-rate-input" placeholder="mL/h" value="${escapeHtml(prev.rate)}">
+      </div>`;
+    }
+    return `<div class="detail-row" data-item-id="${id}">
+      <span>${id}</span>
+      <input type="number" class="fluid-rate-input" placeholder="mL/h" value="${escapeHtml(prev.rate)}">
+    </div>`;
+  }).join("");
+  list.querySelectorAll("input").forEach((input) => input.addEventListener("input", onFormChange));
 }
 
 function collectFluids() {
-  return [...document.querySelectorAll("#v-fluids-list .fluid-row")].map((row) => {
-    const select = row.querySelector(".fluid-type-select");
-    let type = select.value;
+  return [...document.querySelectorAll("#fluids-detail-list .detail-row")].map((row) => {
+    let type = row.dataset.itemId;
     if (type === "__other__") {
-      const otherInput = row.querySelector(".chip-other-input");
+      const otherInput = row.querySelector(".fluid-other-name");
       type = otherInput && otherInput.value.trim() ? otherInput.value.trim() : "";
     }
     const rateRaw = row.querySelector(".fluid-rate-input").value;
@@ -297,6 +320,9 @@ function collectForm() {
   const urineAmount = num("v-urine-amount");
   const uopHours = parseFloat(getFieldValue("v-urine-uop-hours") || "4");
   const uop = computeUop(urineAmount, weightKg, uopHours);
+  const dehydrationPercent = num("t-dehydration-percent");
+  const rehydrationHoursVal = getFieldValue("t-rehydration-hours");
+  const rehydrationCalc = computeRehydration(weightKg, dehydrationPercent, parseFloat(rehydrationHoursVal || ""));
 
   return {
     name: val("p-name"),
@@ -326,6 +352,7 @@ function collectForm() {
     },
     exam: {
       mentation: getFieldValue("e-mentation"),
+      behavior: getFieldValue("e-behavior"),
       mmColor: getFieldValue("e-mm-color"),
       mmTexture: getFieldValue("e-mm-texture"),
       crt: getFieldValue("e-crt"),
@@ -390,6 +417,9 @@ function collectForm() {
       seizureDuration: num("e-seizure-duration"),
       occlusion: getFieldValue("e-occlusion"),
       maxillofacialFindings: getFieldValue("e-maxillofacial-findings"),
+      integument: getFieldValue("e-integument"),
+      alopeciaSite: val("e-alopecia-site"),
+      otitisSide: getFieldValue("e-otitis-side"),
       woundLocation: val("e-wound-location"),
       woundChar: getFieldValue("e-wound-char"),
       woundDischarge: getFieldValue("e-wound-discharge"),
@@ -401,8 +431,10 @@ function collectForm() {
     labs: collectLabs(),
     tx: {
       rehydrationStart: val("t-rehydration-start"),
-      rehydrationHours: num("t-rehydration-hours"),
+      dehydrationPercent,
+      rehydrationHours: rehydrationHoursVal,
       rehydrationRate: num("t-rehydration-rate"),
+      maintenanceRate: rehydrationCalc ? round(rehydrationCalc.phase2Rate, 1) : null,
       resuscitationRate: num("t-resuscitation-rate"),
       resuscitationBolus: getFieldValue("t-resuscitation-bolus"),
       woundDressing: getFieldValue("t-wound-dressing"),
@@ -480,6 +512,7 @@ function buildVitalsParts(v) {
 function buildPeParts(e) {
   const parts = [];
   if (e.mentation) parts.push(e.mentation);
+  if (fmtList(e.behavior)) parts.push(fmtList(e.behavior));
 
   const mm = [];
   if (fmtList(e.mmColor)) mm.push(fmtList(e.mmColor));
@@ -528,6 +561,19 @@ function buildMaxillofacialParts(e) {
   const parts = [];
   if (e.occlusion) parts.push(e.occlusion === "normal" ? "Occlusion normal" : "Malocclusion");
   if (fmtList(e.maxillofacialFindings)) parts.push(fmtList(e.maxillofacialFindings));
+  return parts;
+}
+
+function buildIntegumentParts(e) {
+  const parts = [];
+  if (fmtList(e.integument)) {
+    let s = fmtList(e.integument);
+    const bits = [];
+    if (e.alopeciaSite) bits.push(`alopecia site: ${e.alopeciaSite}`);
+    if (fmtList(e.otitisSide)) bits.push(`otitis ${fmtList(e.otitisSide)}`);
+    if (bits.length) s += ` (${bits.join(", ")})`;
+    parts.push(s);
+  }
   return parts;
 }
 
@@ -591,10 +637,12 @@ function buildTxParts(tx) {
   if (tx.rehydrationRate != null) {
     let s = `Rehydration ${tx.rehydrationRate} mL/h`;
     const bits = [];
-    if (tx.rehydrationHours != null) bits.push(`${tx.rehydrationHours} h`);
+    if (tx.dehydrationPercent != null) bits.push(`${tx.dehydrationPercent}% dehydration`);
+    if (tx.rehydrationHours) bits.push(`${tx.rehydrationHours} h`);
     if (tx.rehydrationStart) bits.push(`from ${tx.rehydrationStart}`);
     if (bits.length) s += ` (${bits.join(", ")})`;
     parts.push(s);
+    if (tx.maintenanceRate != null) parts.push(`Maintenance after rehydration ${tx.maintenanceRate} mL/h`);
   }
   if (tx.resuscitationRate != null) {
     let s = `Fluid resuscitation ${tx.resuscitationRate} mL/kg/15min`;
@@ -687,6 +735,9 @@ function buildNoteText(record) {
   const maxillofacialParts = buildMaxillofacialParts(record.exam);
   if (maxillofacialParts.length) lines.push("Maxillofacial: " + maxillofacialParts.join(", "));
 
+  const integumentParts = buildIntegumentParts(record.exam);
+  if (integumentParts.length) lines.push("Integument: " + integumentParts.join(", "));
+
   const mskParts = buildMskParts(record.exam);
   if (mskParts.length) lines.push("MSK: " + mskParts.join(", "));
 
@@ -715,6 +766,7 @@ function buildNoteText(record) {
 function onFormChange() {
   updateReveals();
   updateUopDisplay();
+  updateRehydrationCalc();
   updateNotePreview();
 }
 
@@ -729,6 +781,30 @@ function updateUopDisplay() {
     return;
   }
   el.textContent = `UOP = ${round(uop, 3)} mL/kg/h (${classifyUop(uop)})`;
+}
+
+// Tracks the last value we auto-filled so a manual edit to the rate field (which also
+// flows through onFormChange) doesn't get silently clobbered on the next recompute —
+// only overwrite while the field still matches what we last computed (or is empty).
+let lastAutoRehydrationRate = null;
+function updateRehydrationCalc() {
+  const el = $("t-rehydration-calc-display");
+  const weightKg = num("p-weight");
+  const percent = num("t-dehydration-percent");
+  const hours = parseFloat(getFieldValue("t-rehydration-hours") || "");
+  const calc = computeRehydration(weightKg, percent, hours);
+  if (!calc) {
+    el.textContent = !weightKg ? "กรอกน้ำหนักตัวในหน้าแรก เพื่อคำนวณ" : (percent == null ? "กรอก % ขาดน้ำ เพื่อคำนวณ" : "");
+    return;
+  }
+  el.textContent = `Deficit ${round(calc.deficitMl, 1)} mL → ช่วงแก้ไข (${hours} ชม.) ${round(calc.phase1Rate, 1)} mL/h → หลังจากนั้น (Maintenance) ${round(calc.phase2Rate, 1)} mL/h`;
+  const rateInput = $("t-rehydration-rate");
+  const computed = round(calc.phase1Rate, 1);
+  const currentVal = rateInput.value === "" ? null : parseFloat(rateInput.value);
+  if (currentVal === null || currentVal === lastAutoRehydrationRate) {
+    rateInput.value = computed;
+  }
+  lastAutoRehydrationRate = computed;
 }
 
 function updateNotePreview() {
@@ -749,10 +825,12 @@ function resetForm() {
   document.querySelectorAll("#screen-entry input[type=text], #screen-entry input[type=number], #screen-entry input[type=time], #screen-entry textarea")
     .forEach((i) => { i.value = ""; });
   document.querySelectorAll("#screen-entry .chip-other-input").forEach((i) => { i.hidden = true; });
-  $("v-fluids-list").innerHTML = "";
+  $("fluids-detail-list").innerHTML = "";
   $("labs-list").innerHTML = "";
   $("supply-detail-list").innerHTML = "";
   $("v-urine-uop-display").textContent = "";
+  $("t-rehydration-calc-display").textContent = "";
+  lastAutoRehydrationRate = null;
 
   activateDefault("p-species", "dog");
   activateDefault("v-temp-unit", "F");
@@ -760,6 +838,7 @@ function resetForm() {
   activateDefault("v-vomit-type", "none");
   activateDefault("v-urine-presence", "none");
   activateDefault("v-urine-uop-hours", "4");
+  activateDefault("t-rehydration-hours", "8");
   activateDefault("v-feed-unit", "mL");
   activateDefault("e-hr-rhythm", "regular");
   activateDefault("e-lame", "none");
@@ -959,6 +1038,7 @@ onAuthStateChanged(auth, (user) => {
 function init() {
   renderLabsContainer();
   renderSupply();
+  renderFluidsContainer();
   $("v-feed-diet-chips").innerHTML = chipsHtml(DIET_TYPES) + '<button type="button" class="chip" data-value="__other__">อื่นๆ</button>';
   $("e-lame-limb-chips").innerHTML = chipsHtml(LIMBS);
   $("e-crepitus-limb-chips").innerHTML = chipsHtml(LIMBS);
@@ -1002,7 +1082,6 @@ function init() {
     header.addEventListener("click", () => header.closest(".accordion").classList.toggle("open"));
   });
 
-  $("v-fluids-add-btn").addEventListener("click", addFluidRow);
 
   document.querySelectorAll(".jump-nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
