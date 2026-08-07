@@ -1029,22 +1029,32 @@
               </div>
             </div>
             <div class="reveal-block" data-show-field="t-icd" data-show-values="yes" hidden>
-              <div class="field-group" data-field="t-icd-side" data-multi="true">
-                <label>ข้าง</label>
-                <div class="chips">
-                  <button type="button" class="chip" data-value="left">Left side</button>
-                  <button type="button" class="chip" data-value="right">Right side</button>
+              <div class="sub-block">
+                <p class="sub-block-title">ICD suction — Left side</p>
+                <div class="field-group" data-field="t-icd-left-fluid" data-multi="false">
+                  <label>ลักษณะ</label>
+                  <div class="chips" id="t-icd-left-fluid-chips"></div>
+                </div>
+                <div class="field-row">
+                  <label for="t-icd-left-volume">ปริมาณที่ได้</label>
+                  <div class="number-input-row">
+                    <input type="number" id="t-icd-left-volume" step="1" min="0" placeholder="เช่น 50">
+                    <span class="unit">mL</span>
+                  </div>
                 </div>
               </div>
-              <div class="field-group" data-field="t-icd-fluid" data-multi="false">
-                <label>ลักษณะ</label>
-                <div class="chips" id="t-icd-fluid-chips"></div>
-              </div>
-              <div class="field-row">
-                <label for="t-icd-volume">ปริมาณที่ได้</label>
-                <div class="number-input-row">
-                  <input type="number" id="t-icd-volume" step="1" min="0" placeholder="เช่น 50">
-                  <span class="unit">mL</span>
+              <div class="sub-block">
+                <p class="sub-block-title">ICD suction — Right side</p>
+                <div class="field-group" data-field="t-icd-right-fluid" data-multi="false">
+                  <label>ลักษณะ</label>
+                  <div class="chips" id="t-icd-right-fluid-chips"></div>
+                </div>
+                <div class="field-row">
+                  <label for="t-icd-right-volume">ปริมาณที่ได้</label>
+                  <div class="number-input-row">
+                    <input type="number" id="t-icd-right-volume" step="1" min="0" placeholder="เช่น 50">
+                    <span class="unit">mL</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1057,22 +1067,32 @@
               </div>
             </div>
             <div class="reveal-block" data-show-field="t-thoraco" data-show-values="yes" hidden>
-              <div class="field-group" data-field="t-thoraco-side" data-multi="true">
-                <label>ข้าง</label>
-                <div class="chips">
-                  <button type="button" class="chip" data-value="left">Left side</button>
-                  <button type="button" class="chip" data-value="right">Right side</button>
+              <div class="sub-block">
+                <p class="sub-block-title">Thoracocentesis — Left side</p>
+                <div class="field-group" data-field="t-thoraco-left-fluid" data-multi="false">
+                  <label>ลักษณะ</label>
+                  <div class="chips" id="t-thoraco-left-fluid-chips"></div>
+                </div>
+                <div class="field-row">
+                  <label for="t-thoraco-left-volume">ปริมาณที่ได้</label>
+                  <div class="number-input-row">
+                    <input type="number" id="t-thoraco-left-volume" step="1" min="0" placeholder="เช่น 50">
+                    <span class="unit">mL</span>
+                  </div>
                 </div>
               </div>
-              <div class="field-group" data-field="t-thoraco-fluid" data-multi="false">
-                <label>ลักษณะ</label>
-                <div class="chips" id="t-thoraco-fluid-chips"></div>
-              </div>
-              <div class="field-row">
-                <label for="t-thoraco-volume">ปริมาณที่ได้</label>
-                <div class="number-input-row">
-                  <input type="number" id="t-thoraco-volume" step="1" min="0" placeholder="เช่น 50">
-                  <span class="unit">mL</span>
+              <div class="sub-block">
+                <p class="sub-block-title">Thoracocentesis — Right side</p>
+                <div class="field-group" data-field="t-thoraco-right-fluid" data-multi="false">
+                  <label>ลักษณะ</label>
+                  <div class="chips" id="t-thoraco-right-fluid-chips"></div>
+                </div>
+                <div class="field-row">
+                  <label for="t-thoraco-right-volume">ปริมาณที่ได้</label>
+                  <div class="number-input-row">
+                    <input type="number" id="t-thoraco-right-volume" step="1" min="0" placeholder="เช่น 50">
+                    <span class="unit">mL</span>
+                  </div>
                 </div>
               </div>
             </div>

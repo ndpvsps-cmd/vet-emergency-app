@@ -468,13 +468,15 @@ function collectForm() {
       woundDressing: getFieldValue("t-wound-dressing"),
       checklist: getFieldValue("t-checklist"),
       icd: getFieldValue("t-icd"),
-      icdSide: getFieldValue("t-icd-side"),
-      icdFluid: getFieldValue("t-icd-fluid"),
-      icdVolume: num("t-icd-volume"),
+      icdLeftFluid: getFieldValue("t-icd-left-fluid"),
+      icdLeftVolume: num("t-icd-left-volume"),
+      icdRightFluid: getFieldValue("t-icd-right-fluid"),
+      icdRightVolume: num("t-icd-right-volume"),
       thoraco: getFieldValue("t-thoraco"),
-      thoracoSide: getFieldValue("t-thoraco-side"),
-      thoracoFluid: getFieldValue("t-thoraco-fluid"),
-      thoracoVolume: num("t-thoraco-volume"),
+      thoracoLeftFluid: getFieldValue("t-thoraco-left-fluid"),
+      thoracoLeftVolume: num("t-thoraco-left-volume"),
+      thoracoRightFluid: getFieldValue("t-thoraco-right-fluid"),
+      thoracoRightVolume: num("t-thoraco-right-volume"),
       abdomino: getFieldValue("t-abdomino"),
       abdominoFluid: getFieldValue("t-abdomino-fluid"),
       abdominoVolume: num("t-abdomino-volume"),
@@ -660,6 +662,13 @@ function buildWoundParts(e) {
   return bits.length ? [bits.join(" - ")] : [];
 }
 
+function fmtProcedureSide(label, fluid, volume) {
+  const bits = [];
+  if (fluid) bits.push(fluid);
+  if (volume != null) bits.push(`${volume} mL`);
+  return bits.length ? `${label}: ${bits.join(", ")}` : null;
+}
+
 function buildTxParts(tx) {
   const parts = [];
   if (tx.rehydrationRate != null) {
@@ -682,18 +691,18 @@ function buildTxParts(tx) {
   if (fmtList(tx.checklist)) parts.push(fmtList(tx.checklist));
 
   if (tx.icd === "yes") {
-    const bits = [];
-    if (fmtList(tx.icdSide)) bits.push(fmtList(tx.icdSide));
-    if (tx.icdFluid) bits.push(tx.icdFluid);
-    if (tx.icdVolume != null) bits.push(`${tx.icdVolume} mL`);
-    parts.push(`ICD suction${bits.length ? " (" + bits.join(", ") + ")" : ""}`);
+    const sides = [
+      fmtProcedureSide("Left", tx.icdLeftFluid, tx.icdLeftVolume),
+      fmtProcedureSide("Right", tx.icdRightFluid, tx.icdRightVolume)
+    ].filter(Boolean);
+    parts.push(`ICD suction${sides.length ? " (" + sides.join("; ") + ")" : ""}`);
   }
   if (tx.thoraco === "yes") {
-    const bits = [];
-    if (fmtList(tx.thoracoSide)) bits.push(fmtList(tx.thoracoSide));
-    if (tx.thoracoFluid) bits.push(tx.thoracoFluid);
-    if (tx.thoracoVolume != null) bits.push(`${tx.thoracoVolume} mL`);
-    parts.push(`Thoracocentesis${bits.length ? " (" + bits.join(", ") + ")" : ""}`);
+    const sides = [
+      fmtProcedureSide("Left", tx.thoracoLeftFluid, tx.thoracoLeftVolume),
+      fmtProcedureSide("Right", tx.thoracoRightFluid, tx.thoracoRightVolume)
+    ].filter(Boolean);
+    parts.push(`Thoracocentesis${sides.length ? " (" + sides.join("; ") + ")" : ""}`);
   }
   if (tx.abdomino === "yes") {
     const bits = [];
@@ -1092,13 +1101,15 @@ function populateForm(record) {
   setChipFieldValue("t-wound-dressing", tx.woundDressing);
   setChipFieldValue("t-checklist", tx.checklist);
   setChipFieldValue("t-icd", tx.icd);
-  setChipFieldValue("t-icd-side", tx.icdSide);
-  setChipFieldValue("t-icd-fluid", tx.icdFluid);
-  setInputValue("t-icd-volume", tx.icdVolume);
+  setChipFieldValue("t-icd-left-fluid", tx.icdLeftFluid);
+  setInputValue("t-icd-left-volume", tx.icdLeftVolume);
+  setChipFieldValue("t-icd-right-fluid", tx.icdRightFluid);
+  setInputValue("t-icd-right-volume", tx.icdRightVolume);
   setChipFieldValue("t-thoraco", tx.thoraco);
-  setChipFieldValue("t-thoraco-side", tx.thoracoSide);
-  setChipFieldValue("t-thoraco-fluid", tx.thoracoFluid);
-  setInputValue("t-thoraco-volume", tx.thoracoVolume);
+  setChipFieldValue("t-thoraco-left-fluid", tx.thoracoLeftFluid);
+  setInputValue("t-thoraco-left-volume", tx.thoracoLeftVolume);
+  setChipFieldValue("t-thoraco-right-fluid", tx.thoracoRightFluid);
+  setInputValue("t-thoraco-right-volume", tx.thoracoRightVolume);
   setChipFieldValue("t-abdomino", tx.abdomino);
   setChipFieldValue("t-abdomino-fluid", tx.abdominoFluid);
   setInputValue("t-abdomino-volume", tx.abdominoVolume);
@@ -1347,8 +1358,10 @@ function init() {
   $("e-splint-status-chips").innerHTML = chipsHtml(SPLINT_STATUS);
   $("t-wound-dressing-chips").innerHTML = chipsHtml(WOUND_DRESSING_PROTOCOLS);
   $("t-checklist-chips").innerHTML = chipsHtml(TX_CHECKLIST);
-  $("t-icd-fluid-chips").innerHTML = chipsHtml(ICD_FLUID_TYPES);
-  $("t-thoraco-fluid-chips").innerHTML = chipsHtml(CAVITY_FLUID_TYPES);
+  $("t-icd-left-fluid-chips").innerHTML = chipsHtml(ICD_FLUID_TYPES);
+  $("t-icd-right-fluid-chips").innerHTML = chipsHtml(ICD_FLUID_TYPES);
+  $("t-thoraco-left-fluid-chips").innerHTML = chipsHtml(CAVITY_FLUID_TYPES);
+  $("t-thoraco-right-fluid-chips").innerHTML = chipsHtml(CAVITY_FLUID_TYPES);
   $("t-abdomino-fluid-chips").innerHTML = chipsHtml(CAVITY_FLUID_TYPES);
   $("s-diet-out-chips").innerHTML = chipsHtml(DIET_TYPES);
 
