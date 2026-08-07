@@ -576,7 +576,7 @@ button, input, textarea, select {
   transition: transform 0.2s ease;
 }
 
-.accordion.open .accordion-caret {
+.accordion.open > .accordion-header .accordion-caret {
   transform: rotate(180deg);
 }
 
@@ -587,8 +587,20 @@ button, input, textarea, select {
   gap: 14px;
 }
 
-.accordion.open .accordion-body {
+.accordion.open > .accordion-body {
   display: flex;
+}
+
+/* nested accordions (sub-sections collapsed inside Physical exam / Tx) */
+.accordion-body .accordion {
+  border-color: var(--vj-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.accordion-body .accordion .accordion-header {
+  padding: 12px 14px;
+  font-size: 0.92rem;
+  color: var(--vj-muted);
 }
 
 /* ===================== CHIPS ===================== */
@@ -756,6 +768,62 @@ button, input, textarea, select {
 }
 
 /* ===================== LABS ===================== */
+.labs-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--vj-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+}
+
+.labs-row select {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--vj-border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--vj-text);
+  min-width: 0;
+}
+
+.labs-row-detail {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.labs-time-input {
+  width: 92px;
+  flex-shrink: 0;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--vj-border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--vj-text);
+}
+
+.labs-value-input {
+  flex: 1;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--vj-border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--vj-text);
+  min-width: 0;
+}
+
+.labs-remove-btn {
+  flex-shrink: 0;
+  background: var(--vj-danger-bg);
+  color: var(--vj-danger);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: var(--radius-sm);
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+}
+
 /* ===================== NOTE PREVIEW ===================== */
 .note-preview-panel h2 {
   color: var(--vj-gold);

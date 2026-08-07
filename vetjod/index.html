@@ -39,7 +39,7 @@
     </header>
 
     <div class="list-toolbar">
-      <input type="text" id="list-search-input" placeholder="ค้นหา กรง / ชื่อสัตว์...">
+      <input type="text" id="list-search-input" placeholder="ค้นหาชื่อสัตว์...">
       <span class="list-count" id="list-count">0 รายการ</span>
     </div>
 
@@ -78,10 +78,6 @@
     <main class="entry-form">
       <!-- ---- Patient identity ---- -->
       <section class="panel" id="section-patient">
-        <div class="field-row">
-          <label for="p-cage">กรง / ห้อง</label>
-          <input type="text" id="p-cage" placeholder="เช่น IPD-3">
-        </div>
         <div class="field-row">
           <label for="p-name">ชื่อสัตว์</label>
           <input type="text" id="p-name" placeholder="เช่น น้องโบว์">
@@ -239,7 +235,7 @@
           <div class="field-group" data-field="v-feed-state" data-multi="false">
             <label>การกินอาหาร</label>
             <div class="chips">
-              <button type="button" class="chip active" data-value="normal">ป้อน/กินได้</button>
+              <button type="button" class="chip" data-value="normal">ป้อน/กินได้</button>
               <button type="button" class="chip" data-value="not eating">ไม่กิน</button>
               <button type="button" class="chip" data-value="npo">งดน้ำงดอาหาร (NPO)</button>
               <button type="button" class="chip" data-value="held for vomit">ไม่ป้อน (อาเจียน)</button>
@@ -291,6 +287,7 @@
               <button type="button" class="chip" data-value="obtunded">Obtunded</button>
               <button type="button" class="chip" data-value="stuporous">Stuporous</button>
               <button type="button" class="chip" data-value="comatose">Comatose</button>
+              <button type="button" class="chip" data-value="with vocalization">With vocalization</button>
             </div>
           </div>
 
@@ -459,6 +456,11 @@
           </div>
 
           <!-- Eye -->
+          <section class="accordion">
+            <button type="button" class="accordion-header">
+              <span>Eye</span><span class="accordion-caret">⌄</span>
+            </button>
+            <div class="accordion-body">
           <div class="sub-block">
             <p class="sub-block-title">Eye — OD (Right)</p>
             <div class="field-group" data-field="e-eye-od-menace" data-multi="false">
@@ -550,8 +552,37 @@
               </div>
             </div>
           </div>
+            </div>
+          </section>
+
+          <!-- Maxillofacial -->
+          <div class="sub-block">
+            <p class="sub-block-title">Maxillofacial</p>
+            <div class="field-group" data-field="e-occlusion" data-multi="false">
+              <label>Occlusion</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="normal">Normal</button>
+                <button type="button" class="chip" data-value="malocclusion">Malocclusion</button>
+              </div>
+            </div>
+            <div class="field-group" data-field="e-maxillofacial-findings" data-multi="true">
+              <label>ตรวจพบ</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="Dental tartar">Dental tartar</button>
+                <button type="button" class="chip" data-value="Periodontitis">Periodontitis</button>
+                <button type="button" class="chip" data-value="Faucitis">Faucitis</button>
+                <button type="button" class="chip" data-value="Gingivitis">Gingivitis</button>
+                <button type="button" class="chip" data-value="Hypersalivation">Hypersalivation</button>
+              </div>
+            </div>
+          </div>
 
           <!-- Skeleton -->
+          <section class="accordion">
+            <button type="button" class="accordion-header">
+              <span>Skeleton</span><span class="accordion-caret">⌄</span>
+            </button>
+            <div class="accordion-body">
           <div class="sub-block">
             <p class="sub-block-title">Skeleton</p>
             <div class="field-group" data-field="e-lame" data-multi="false">
@@ -594,8 +625,15 @@
               </div>
             </div>
           </div>
+            </div>
+          </section>
 
           <!-- Neuro -->
+          <section class="accordion">
+            <button type="button" class="accordion-header">
+              <span>Neuro</span><span class="accordion-caret">⌄</span>
+            </button>
+            <div class="accordion-body">
           <div class="sub-block">
             <p class="sub-block-title">Neuro — Spinal reflex</p>
 
@@ -774,6 +812,8 @@
               </div>
             </div>
           </div>
+            </div>
+          </section>
 
           <!-- Wound -->
           <div class="sub-block">
@@ -799,6 +839,15 @@
                   <button type="button" class="chip" data-value="purulent">Purulent</button>
                   <button type="button" class="chip" data-value="blood">Blood</button>
                 </div>
+              </div>
+            </div>
+            <div class="field-group" data-field="e-surgical-site" data-multi="true">
+              <label>Surgical site</label>
+              <div class="chips">
+                <button type="button" class="chip" data-value="dry">Dry</button>
+                <button type="button" class="chip" data-value="inflammation">Inflammation</button>
+                <button type="button" class="chip" data-value="bleeding">Bleeding</button>
+                <button type="button" class="chip" data-value="exudate">Exudate</button>
               </div>
             </div>
           </div>
@@ -846,6 +895,17 @@
         </button>
         <div class="accordion-body">
           <div class="field-row">
+            <label for="t-rehydration-start">เวลาเริ่มให้ Rehydration</label>
+            <input type="time" id="t-rehydration-start">
+          </div>
+          <div class="field-row">
+            <label for="t-rehydration-hours">ระยะเวลา Rehydration</label>
+            <div class="number-input-row">
+              <input type="number" id="t-rehydration-hours" step="0.5" min="0" placeholder="เช่น 8">
+              <span class="unit">ชม.</span>
+            </div>
+          </div>
+          <div class="field-row">
             <label for="t-rehydration-rate">Rehydration rate</label>
             <div class="number-input-row">
               <input type="number" id="t-rehydration-rate" step="1" placeholder="เช่น 40">
@@ -855,8 +915,17 @@
           <div class="field-row">
             <label for="t-resuscitation-rate">Fluid resuscitation rate (15 min)</label>
             <div class="number-input-row">
-              <input type="number" id="t-resuscitation-rate" step="1" placeholder="เช่น 100">
-              <span class="unit">mL/15min</span>
+              <input type="number" id="t-resuscitation-rate" step="1" placeholder="เช่น 10">
+              <span class="unit">mL/kg/15min</span>
+            </div>
+          </div>
+          <div class="field-group" data-field="t-resuscitation-bolus" data-multi="false">
+            <label>Bolus ครั้งที่ (1-4/4)</label>
+            <div class="chips chips-scale">
+              <button type="button" class="chip" data-value="1">1</button>
+              <button type="button" class="chip" data-value="2">2</button>
+              <button type="button" class="chip" data-value="3">3</button>
+              <button type="button" class="chip" data-value="4">4</button>
             </div>
           </div>
           <div class="field-group" data-field="t-wound-dressing" data-multi="false">
@@ -868,9 +937,12 @@
             <div class="chips" id="t-checklist-chips"></div>
           </div>
 
+          <section class="accordion">
+            <button type="button" class="accordion-header">
+              <span>หัตถการพิเศษ</span><span class="accordion-caret">⌄</span>
+            </button>
+            <div class="accordion-body">
           <div class="sub-block">
-            <p class="sub-block-title">หัตถการพิเศษ</p>
-
             <div class="field-group" data-field="t-icd" data-multi="false">
               <label>ICD suction</label>
               <div class="chips">
@@ -984,6 +1056,8 @@
               <textarea id="t-other-procedure" rows="2" placeholder="พิมพ์หัตถการอื่นๆ..."></textarea>
             </div>
           </div>
+            </div>
+          </section>
         </div>
       </section>
 

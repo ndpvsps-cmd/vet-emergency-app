@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentSingleTabManager,
-  collection, addDoc, deleteDoc, doc, query, where, orderBy,
+  collection, addDoc, deleteDoc, doc, query, where,
   onSnapshot, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -194,32 +194,56 @@ function renderCompactToggleGroup(bodyId, chipsId, listId, items, { idPrefix, in
   });
 }
 
-function renderLabs() {
-  renderCompactToggleGroup("labs-body", "labs-chips", "labs-detail-list", LABS_ITEMS, {
-    idPrefix: "l", inputSuffix: "detail", inputType: "text", placeholder: "รายละเอียด/ผล (ถ้ามี)"
+// Labs are repeatable rows (not a single toggle per item) so the same test — e.g. blood
+// glucose — can be logged multiple times at different points in the shift.
+function renderLabsContainer() {
+  $("labs-body").innerHTML = `
+    <div id="labs-list" class="fluids-list"></div>
+    <button type="button" class="add-row-btn" id="labs-add-btn">+ เพิ่มผล Lab</button>
+  `;
+  $("labs-add-btn").addEventListener("click", addLabsRow);
+}
+
+function addLabsRow() {
+  const list = $("labs-list");
+  const row = document.createElement("div");
+  row.className = "labs-row";
+  const options = LABS_ITEMS.map((item) => `<option value="${item.id}">${item.label}</option>`).join("");
+  const nowTime = new Date().toTimeString().slice(0, 5);
+  row.innerHTML = `
+    <select class="labs-type-select"><option value="">เลือกรายการ</option>${options}</select>
+    <div class="labs-row-detail">
+      <input type="time" class="labs-time-input" value="${nowTime}">
+      <input type="text" class="labs-value-input" placeholder="ค่า/ผล">
+      <button type="button" class="labs-remove-btn" aria-label="ลบ">✕</button>
+    </div>
+  `;
+  row.querySelector(".labs-remove-btn").addEventListener("click", () => { row.remove(); onFormChange(); });
+  row.querySelectorAll("select, input").forEach((el) => {
+    el.addEventListener("input", onFormChange);
+    el.addEventListener("change", onFormChange);
   });
+  list.appendChild(row);
 }
 
 function collectLabs() {
-  const labs = {};
-  LABS_ITEMS.forEach((item) => {
-    const chip = document.querySelector(`#labs-chips .chip[data-item-id="${item.id}"]`);
-    labs[item.id + "Included"] = !!(chip && chip.classList.contains("active"));
-    const input = $(`l-${item.id}-detail`);
-    labs[item.id + "Detail"] = input && input.value.trim() ? input.value.trim() : null;
-  });
-  return labs;
+  return [...document.querySelectorAll("#labs-list .labs-row")].map((row) => {
+    const type = row.querySelector(".labs-type-select").value;
+    const time = row.querySelector(".labs-time-input").value;
+    const value = row.querySelector(".labs-value-input").value.trim();
+    return { type, time, value };
+  }).filter((l) => l.type);
 }
 
 function buildLabsLine(labs) {
-  const parts = [];
-  LABS_ITEMS.forEach((item) => {
-    if (labs[item.id + "Included"]) {
-      const detail = labs[item.id + "Detail"];
-      parts.push(detail ? `${item.label} (${detail})` : item.label);
-    }
+  return labs.map((l) => {
+    const item = LABS_ITEMS.find((i) => i.id === l.type);
+    const label = item ? item.label : l.type;
+    const bits = [];
+    if (l.time) bits.push(l.time);
+    if (l.value) bits.push(l.value);
+    return bits.length ? `${label} (${bits.join(", ")})` : label;
   });
-  return parts;
 }
 
 // ===================== fluids (repeatable rows) =====================
@@ -275,7 +299,6 @@ function collectForm() {
   const uop = computeUop(urineAmount, weightKg, uopHours);
 
   return {
-    cage: val("p-cage"),
     name: val("p-name"),
     species: getFieldValue("p-species") || "dog",
     weightKg,
@@ -365,17 +388,23 @@ function collectForm() {
       seizureType: getFieldValue("e-seizure-type"),
       seizureTime: val("e-seizure-time"),
       seizureDuration: num("e-seizure-duration"),
+      occlusion: getFieldValue("e-occlusion"),
+      maxillofacialFindings: getFieldValue("e-maxillofacial-findings"),
       woundLocation: val("e-wound-location"),
       woundChar: getFieldValue("e-wound-char"),
       woundDischarge: getFieldValue("e-wound-discharge"),
+      surgicalSite: getFieldValue("e-surgical-site"),
       mgcs: num("e-mgcs"),
       painScore: getFieldValue("e-pain-score"),
       other: val("e-other")
     },
     labs: collectLabs(),
     tx: {
+      rehydrationStart: val("t-rehydration-start"),
+      rehydrationHours: num("t-rehydration-hours"),
       rehydrationRate: num("t-rehydration-rate"),
       resuscitationRate: num("t-resuscitation-rate"),
+      resuscitationBolus: getFieldValue("t-resuscitation-bolus"),
       woundDressing: getFieldValue("t-wound-dressing"),
       checklist: getFieldValue("t-checklist"),
       icd: getFieldValue("t-icd"),
@@ -495,6 +524,13 @@ function fmtEye(eye) {
   return bits.length ? bits.join(", ") : null;
 }
 
+function buildMaxillofacialParts(e) {
+  const parts = [];
+  if (e.occlusion) parts.push(e.occlusion === "normal" ? "Occlusion normal" : "Malocclusion");
+  if (fmtList(e.maxillofacialFindings)) parts.push(fmtList(e.maxillofacialFindings));
+  return parts;
+}
+
 function buildMskParts(e) {
   const parts = [];
   if (e.lame === "yes") parts.push(`Lame${fmtList(e.lameLimb) ? " " + fmtList(e.lameLimb) : ""}`);
@@ -538,7 +574,7 @@ function buildNeuroParts(e) {
 }
 
 function buildWoundParts(e) {
-  if (!fmtList(e.woundChar) && !e.woundLocation) return [];
+  if (!fmtList(e.woundChar) && !e.woundLocation && !fmtList(e.surgicalSite)) return [];
   const bits = [];
   if (e.woundLocation) bits.push(e.woundLocation);
   if (fmtList(e.woundChar)) {
@@ -546,13 +582,25 @@ function buildWoundParts(e) {
     if (fmtList(e.woundDischarge)) w += ` (${fmtList(e.woundDischarge)})`;
     bits.push(w);
   }
+  if (fmtList(e.surgicalSite)) bits.push(`Surgical site: ${fmtList(e.surgicalSite)}`);
   return bits.length ? [bits.join(" - ")] : [];
 }
 
 function buildTxParts(tx) {
   const parts = [];
-  if (tx.rehydrationRate != null) parts.push(`Rehydration ${tx.rehydrationRate} mL/h`);
-  if (tx.resuscitationRate != null) parts.push(`Fluid resuscitation ${tx.resuscitationRate} mL/15min`);
+  if (tx.rehydrationRate != null) {
+    let s = `Rehydration ${tx.rehydrationRate} mL/h`;
+    const bits = [];
+    if (tx.rehydrationHours != null) bits.push(`${tx.rehydrationHours} h`);
+    if (tx.rehydrationStart) bits.push(`from ${tx.rehydrationStart}`);
+    if (bits.length) s += ` (${bits.join(", ")})`;
+    parts.push(s);
+  }
+  if (tx.resuscitationRate != null) {
+    let s = `Fluid resuscitation ${tx.resuscitationRate} mL/kg/15min`;
+    if (tx.resuscitationBolus) s += ` (bolus ${tx.resuscitationBolus}/4)`;
+    parts.push(s);
+  }
   if (tx.woundDressing) parts.push(`Wound dressing: ${tx.woundDressing}`);
   if (fmtList(tx.checklist)) parts.push(fmtList(tx.checklist));
 
@@ -617,7 +665,6 @@ function buildSupplyParts(supply) {
 function buildNoteText(record) {
   const lines = [];
   const headerBits = [];
-  if (record.cage) headerBits.push(record.cage);
   headerBits.push(record.name || "(ไม่ระบุชื่อ)");
   headerBits.push(speciesLabel(record.species));
   lines.push(`[${record.createdAtLocal || nowTimeLabel()}] ${headerBits.join(" - ")}`);
@@ -636,6 +683,9 @@ function buildNoteText(record) {
     if (eyeOs) bits.push(`OS ${eyeOs}`);
     lines.push("Eye: " + bits.join("; "));
   }
+
+  const maxillofacialParts = buildMaxillofacialParts(record.exam);
+  if (maxillofacialParts.length) lines.push("Maxillofacial: " + maxillofacialParts.join(", "));
 
   const mskParts = buildMskParts(record.exam);
   if (mskParts.length) lines.push("MSK: " + mskParts.join(", "));
@@ -700,7 +750,7 @@ function resetForm() {
     .forEach((i) => { i.value = ""; });
   document.querySelectorAll("#screen-entry .chip-other-input").forEach((i) => { i.hidden = true; });
   $("v-fluids-list").innerHTML = "";
-  $("labs-detail-list").innerHTML = "";
+  $("labs-list").innerHTML = "";
   $("supply-detail-list").innerHTML = "";
   $("v-urine-uop-display").textContent = "";
 
@@ -710,7 +760,6 @@ function resetForm() {
   activateDefault("v-vomit-type", "none");
   activateDefault("v-urine-presence", "none");
   activateDefault("v-urine-uop-hours", "4");
-  activateDefault("v-feed-state", "normal");
   activateDefault("v-feed-unit", "mL");
   activateDefault("e-hr-rhythm", "regular");
   activateDefault("e-lame", "none");
@@ -735,7 +784,7 @@ function renderList() {
   const search = $("list-search-input").value.trim().toLowerCase();
   const filtered = todayRecords.filter((r) => {
     if (!search) return true;
-    return (r.cage || "").toLowerCase().includes(search) || (r.name || "").toLowerCase().includes(search);
+    return (r.name || "").toLowerCase().includes(search);
   });
   $("list-count").textContent = `${filtered.length} รายการ`;
   listEl.querySelectorAll(".record-card").forEach((c) => c.remove());
@@ -747,7 +796,6 @@ function renderList() {
     card.innerHTML = `
       <div class="record-card-top">
         <div>
-          <span class="record-card-cage">${r.cage ? escapeHtml(r.cage) + " · " : ""}</span>
           <span class="record-card-id">${escapeHtml(r.name || "(ไม่ระบุชื่อ)")}</span>
         </div>
         <span class="record-card-time">${escapeHtml(r.createdAtLocal || "")}</span>
@@ -791,8 +839,10 @@ function confirmAction(title, message, onConfirm) {
   cancelBtn.addEventListener("click", onCancel);
 }
 
-function showSaveSuccess(record) {
-  $("save-success-message").textContent = `บันทึกข้อมูลของ "${record.name || record.cage || "สัตว์ตัวนี้"}" เรียบร้อยแล้ว`;
+function showSaveSuccess(record, title, leadText, tailText) {
+  const who = record.name || "สัตว์ตัวนี้";
+  document.querySelector("#save-success-modal h2").textContent = title;
+  $("save-success-message").textContent = `${leadText} "${who}" ${tailText}`;
   $("save-success-modal").hidden = false;
 }
 
@@ -800,14 +850,17 @@ function showSaveSuccess(record) {
 function subscribeToday() {
   $("today-date-label").textContent = todayLabel();
   const key = todayKey();
+  // Equality-only query (no orderBy) so this never needs a Firestore composite index to
+  // be created manually in the console — sort newest-first client-side instead, using the
+  // human-readable time we already store (safe here since todayRecords is always one date).
   const q = query(
     collection(db, "vetjod_records"),
-    where("dateKey", "==", key),
-    orderBy("createdAt", "desc")
+    where("dateKey", "==", key)
   );
   if (unsubscribeToday) unsubscribeToday();
   unsubscribeToday = onSnapshot(q, (snap) => {
     todayRecords = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    todayRecords.sort((a, b) => (b.createdAtLocal || "").localeCompare(a.createdAtLocal || ""));
     renderList();
     showSyncBanner(null);
   }, (err) => {
@@ -904,7 +957,7 @@ onAuthStateChanged(auth, (user) => {
 
 // ===================== init =====================
 function init() {
-  renderLabs();
+  renderLabsContainer();
   renderSupply();
   $("v-feed-diet-chips").innerHTML = chipsHtml(DIET_TYPES) + '<button type="button" class="chip" data-value="__other__">อื่นๆ</button>';
   $("e-lame-limb-chips").innerHTML = chipsHtml(LIMBS);
@@ -974,24 +1027,24 @@ function init() {
 
   $("entry-save-btn").addEventListener("click", async () => {
     const record = collectForm();
-    if (!record.name && !record.cage) {
-      showToast("กรุณากรอกกรงหรือชื่อสัตว์อย่างน้อยหนึ่งอย่าง");
+    if (!record.name) {
+      showToast("กรุณากรอกชื่อสัตว์");
       return;
     }
     record.createdAtLocal = nowTimeLabel();
     record.noteText = buildNoteText(record);
     const saveBtn = $("entry-save-btn");
     saveBtn.disabled = true;
-    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 12000));
+    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 20000));
     try {
       await Promise.race([saveRecord(record), timeout]);
-      showSaveSuccess(record);
+      showSaveSuccess(record, "✓ บันทึกสำเร็จ", "บันทึกข้อมูลของ", "เรียบร้อยแล้ว");
     } catch (err) {
       console.error("VETJOD save error", err);
       if (err.message === "timeout") {
-        showToast("การเชื่อมต่อช้า — ระบบจะบันทึกต่อเบื้องหลัง ตรวจสอบรายการในลิสต์อีกครั้ง");
+        showSaveSuccess(record, "⏳ เชื่อมต่อช้า", "ข้อมูลของ", "ถูกบันทึกลงเครื่องแล้ว และจะขึ้น sync ขึ้นระบบกลางอัตโนมัติทันทีที่เชื่อมต่อได้ — ตรวจสอบรายการได้ที่หน้าแรก");
       } else {
-        showToast("บันทึกไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ");
+        showToast("บันทึกไม่สำเร็จ — ตรวจสอบการเชื่อมต่อแล้วลองใหม่");
       }
     } finally {
       saveBtn.disabled = false;
