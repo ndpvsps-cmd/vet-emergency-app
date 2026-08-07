@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentSingleTabManager,
-  collection, addDoc, deleteDoc, doc, query, where,
+  collection, addDoc, updateDoc, deleteDoc, doc, query, where,
   onSnapshot, serverTimestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -19,6 +19,8 @@ const db = initializeFirestore(fbApp, {
 
 let todayRecords = [];
 let unsubscribeToday = null;
+let editingRecordId = null;
+let editingRecordCreatedAtLocal = null;
 
 // ===================== small helpers =====================
 function $(id) { return document.getElementById(id); }
@@ -172,6 +174,11 @@ function chipsHtml(options) {
 // Compact chip-grid + on-demand detail input, shared by Labs and Supply: chips wrap
 // freely (space-efficient) and a detail/quantity row only appears for chips the user
 // has actually toggled on, instead of reserving a full row per item up front.
+// syncRows closures are registered here so code outside this function (e.g. populating
+// the form when editing a saved record) can refresh the detail rows after programmatically
+// activating chips, without duplicating the row-rebuild logic.
+const compactToggleSync = {};
+
 function renderCompactToggleGroup(bodyId, chipsId, listId, items, { idPrefix, inputSuffix, inputType, placeholder }) {
   const body = $(bodyId);
   body.innerHTML = `
@@ -195,6 +202,7 @@ function renderCompactToggleGroup(bodyId, chipsId, listId, items, { idPrefix, in
     }).join("");
     list.querySelectorAll("input").forEach((input) => input.addEventListener("input", onFormChange));
   }
+  compactToggleSync[chipsId] = syncRows;
 
   document.querySelectorAll(`#${chipsId} .chip`).forEach((chip) => {
     chip.addEventListener("click", () => {
@@ -339,6 +347,7 @@ function collectForm() {
       urinePresence: getFieldValue("v-urine-presence"),
       urineColor: getFieldValue("v-urine-color"),
       urineAmount,
+      uopHours: getFieldValue("v-urine-uop-hours") || "4",
       uop,
       uopClass: uop != null ? classifyUop(uop) : null,
       spo2: num("v-spo2"),
@@ -856,6 +865,237 @@ function resetForm() {
   updateNotePreview();
 }
 
+// ===================== form populate (editing a saved record) =====================
+// Mirrors collectForm() field-for-field, in reverse: given a stored record, drive the
+// same chip/input elements collectForm() reads from, so editing reuses every existing
+// input handler, reveal-block, and calculation instead of a parallel rendering path.
+function setChipFieldValue(fieldId, value) {
+  const group = document.querySelector(`[data-field="${fieldId}"]`);
+  if (!group) return;
+  const chipsContainer = group.querySelector(".chips") || group;
+  const values = Array.isArray(value) ? value.filter(Boolean) : (value != null && value !== "" ? [value] : []);
+  const otherChip = group.querySelector('.chip[data-value="__other__"]');
+  const otherInput = group.querySelector(".chip-other-input");
+  chipsContainer.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+  let usedOther = false;
+  values.forEach((v) => {
+    const chip = [...chipsContainer.querySelectorAll(".chip")].find((c) => c.dataset.value === String(v));
+    if (chip) {
+      chip.classList.add("active");
+    } else if (otherChip) {
+      otherChip.classList.add("active");
+      if (otherInput) otherInput.value = v;
+      usedOther = true;
+    }
+  });
+  if (otherInput) otherInput.hidden = !usedOther;
+}
+
+function setInputValue(id, value) {
+  const el = $(id);
+  if (el) el.value = value != null ? value : "";
+}
+
+function populateFluids(fluids) {
+  document.querySelectorAll("#fluids-chips .chip").forEach((c) => c.classList.remove("active"));
+  (fluids || []).forEach((f) => {
+    const predefined = [...document.querySelectorAll("#fluids-chips .chip")].find((c) => c.dataset.itemId === f.type);
+    const target = predefined || document.querySelector('#fluids-chips .chip[data-item-id="__other__"]');
+    if (target) target.classList.add("active");
+  });
+  syncFluidsRows();
+  (fluids || []).forEach((f) => {
+    const predefined = [...document.querySelectorAll("#fluids-chips .chip")].find((c) => c.dataset.itemId === f.type);
+    const rowId = predefined ? f.type : "__other__";
+    const row = document.querySelector(`#fluids-detail-list .detail-row[data-item-id="${CSS.escape(rowId)}"]`);
+    if (!row) return;
+    const rateInput = row.querySelector(".fluid-rate-input");
+    if (rateInput && f.rate != null) rateInput.value = f.rate;
+    const otherInput = row.querySelector(".fluid-other-name");
+    if (otherInput && !predefined) otherInput.value = f.type;
+  });
+}
+
+function populateLabs(labs) {
+  $("labs-list").innerHTML = "";
+  (labs || []).forEach((l) => {
+    addLabsRow();
+    const row = $("labs-list").lastElementChild;
+    row.querySelector(".labs-type-select").value = l.type;
+    row.querySelector(".labs-time-input").value = l.time || "";
+    row.querySelector(".labs-value-input").value = l.value || "";
+  });
+}
+
+function populateSupply(supply) {
+  supply = supply || {};
+  document.querySelectorAll("#supply-chips .chip").forEach((c) => c.classList.remove("active"));
+  SUPPLY_ITEMS.forEach((item) => {
+    if (supply[item.id + "Included"]) {
+      const chip = document.querySelector(`#supply-chips .chip[data-item-id="${item.id}"]`);
+      if (chip) chip.classList.add("active");
+    }
+  });
+  if (compactToggleSync["supply-chips"]) compactToggleSync["supply-chips"]();
+  SUPPLY_ITEMS.forEach((item) => {
+    if (supply[item.id + "Included"] && supply[item.id + "Qty"] != null) {
+      const input = $(`s-${item.id}-qty`);
+      if (input) input.value = supply[item.id + "Qty"];
+    }
+  });
+}
+
+function populateForm(record) {
+  const v = record.vitals || {};
+  const e = record.exam || {};
+  const od = e.eyeOd || {};
+  const os = e.eyeOs || {};
+  const tx = record.tx || {};
+
+  setInputValue("p-name", record.name);
+  setChipFieldValue("p-species", record.species);
+  setInputValue("p-weight", record.weightKg);
+
+  setInputValue("v-temp", v.temp);
+  setChipFieldValue("v-temp-unit", v.tempUnit || "F");
+  setChipFieldValue("v-feces-presence", v.fecesPresence);
+  setChipFieldValue("v-feces-score", v.fecesScore);
+  setChipFieldValue("v-feces-color", v.fecesColor);
+  setChipFieldValue("v-vomit-type", v.vomitType);
+  setChipFieldValue("v-vomit-character", v.vomitCharacter);
+  setChipFieldValue("v-urine-presence", v.urinePresence);
+  setChipFieldValue("v-urine-color", v.urineColor);
+  setInputValue("v-urine-amount", v.urineAmount);
+  setChipFieldValue("v-urine-uop-hours", v.uopHours || "4");
+  setInputValue("v-spo2", v.spo2);
+  populateFluids(v.fluids);
+  setInputValue("v-bp", v.bp);
+  setChipFieldValue("v-feed-state", v.feedState);
+  setChipFieldValue("v-feed-diet", v.feedDiet);
+  setInputValue("v-feed-amount", v.feedAmount);
+  setChipFieldValue("v-feed-unit", v.feedUnit || "mL");
+  setChipFieldValue("v-feed-score", v.feedScore);
+
+  setChipFieldValue("e-mentation", e.mentation);
+  setChipFieldValue("e-behavior", e.behavior);
+  setChipFieldValue("e-mm-color", e.mmColor);
+  setChipFieldValue("e-mm-texture", e.mmTexture);
+  setChipFieldValue("e-crt", e.crt);
+  setChipFieldValue("e-hydration", e.hydration);
+  setChipFieldValue("e-heart-sound", e.heartSound);
+  setChipFieldValue("e-murmur-grade", e.murmurGrade);
+  setInputValue("e-hr", e.hr);
+  setChipFieldValue("e-hr-rhythm", e.hrRhythm || "regular");
+  setInputValue("e-rr", e.rr);
+  setChipFieldValue("e-pulse", e.pulse);
+  setChipFieldValue("e-lung-sound", e.lungSound);
+  setChipFieldValue("e-lung-location", e.lungLocation);
+  setChipFieldValue("e-breath-pattern", e.breathPattern);
+  setChipFieldValue("e-breath-sound", e.breathSound);
+  setChipFieldValue("e-cough", e.cough);
+  setChipFieldValue("e-cough-type", e.coughType);
+  setChipFieldValue("e-abd", e.abdominal);
+
+  setChipFieldValue("e-eye-od-menace", od.menace);
+  setChipFieldValue("e-eye-od-plr", od.plr);
+  setChipFieldValue("e-eye-od-pupil", od.pupil);
+  setChipFieldValue("e-eye-od-findings", od.findings);
+  setChipFieldValue("e-eye-od-fls", od.fls);
+  setInputValue("e-eye-od-stt", od.stt);
+  setChipFieldValue("e-eye-os-menace", os.menace);
+  setChipFieldValue("e-eye-os-plr", os.plr);
+  setChipFieldValue("e-eye-os-pupil", os.pupil);
+  setChipFieldValue("e-eye-os-findings", os.findings);
+  setChipFieldValue("e-eye-os-fls", os.fls);
+  setInputValue("e-eye-os-stt", os.stt);
+
+  setChipFieldValue("e-lame", e.lame);
+  setChipFieldValue("e-lame-limb", e.lameLimb);
+  setChipFieldValue("e-crepitus", e.crepitus);
+  setChipFieldValue("e-crepitus-limb", e.crepitusLimb);
+  setChipFieldValue("e-splint", e.splint);
+  setChipFieldValue("e-splint-status", e.splintStatus);
+
+  setChipFieldValue("e-proprioception", e.proprioception);
+  setChipFieldValue("e-proprioception-limb", e.proprioceptionLimb);
+  setChipFieldValue("e-patella", e.patella);
+  setChipFieldValue("e-patella-limb", e.patellaLimb);
+  setChipFieldValue("e-flexor", e.flexor);
+  setChipFieldValue("e-flexor-limb", e.flexorLimb);
+  setChipFieldValue("e-tail-tone", e.tailTone);
+  setChipFieldValue("e-perineal", e.perineal);
+  setChipFieldValue("e-bladder", e.bladder);
+  setInputValue("e-panniculus-stop", e.panniculusStop);
+  setChipFieldValue("e-superficial-pain", e.superficialPain);
+  setChipFieldValue("e-superficial-pain-limb", e.superficialPainLimb);
+  setChipFieldValue("e-deep-pain", e.deepPain);
+  setChipFieldValue("e-deep-pain-limb", e.deepPainLimb);
+
+  setChipFieldValue("e-head-turn", e.headTurn);
+  setChipFieldValue("e-head-tilt", e.headTilt);
+  setChipFieldValue("e-circling", e.circling);
+  setChipFieldValue("e-ataxia", e.ataxia);
+  setChipFieldValue("e-nystagmus", e.nystagmus);
+  setChipFieldValue("e-seizure", e.seizure);
+  setChipFieldValue("e-seizure-type", e.seizureType);
+  setInputValue("e-seizure-time", e.seizureTime);
+  setInputValue("e-seizure-duration", e.seizureDuration);
+
+  setChipFieldValue("e-occlusion", e.occlusion);
+  setChipFieldValue("e-maxillofacial-findings", e.maxillofacialFindings);
+  setChipFieldValue("e-integument", e.integument);
+  setInputValue("e-alopecia-site", e.alopeciaSite);
+  setChipFieldValue("e-otitis-side", e.otitisSide);
+
+  setInputValue("e-wound-location", e.woundLocation);
+  setChipFieldValue("e-wound-char", e.woundChar);
+  setChipFieldValue("e-wound-discharge", e.woundDischarge);
+  setChipFieldValue("e-surgical-site", e.surgicalSite);
+
+  setInputValue("e-mgcs", e.mgcs);
+  setChipFieldValue("e-pain-score", e.painScore);
+  setInputValue("e-other", e.other);
+
+  populateLabs(record.labs);
+
+  setInputValue("t-rehydration-start", tx.rehydrationStart);
+  setInputValue("t-dehydration-percent", tx.dehydrationPercent);
+  setChipFieldValue("t-rehydration-hours", tx.rehydrationHours || "8");
+  setInputValue("t-rehydration-rate", tx.rehydrationRate);
+  setInputValue("t-resuscitation-rate", tx.resuscitationRate);
+  setChipFieldValue("t-resuscitation-bolus", tx.resuscitationBolus);
+  setChipFieldValue("t-wound-dressing", tx.woundDressing);
+  setChipFieldValue("t-checklist", tx.checklist);
+  setChipFieldValue("t-icd", tx.icd);
+  setChipFieldValue("t-icd-side", tx.icdSide);
+  setChipFieldValue("t-icd-fluid", tx.icdFluid);
+  setInputValue("t-icd-volume", tx.icdVolume);
+  setChipFieldValue("t-thoraco", tx.thoraco);
+  setChipFieldValue("t-thoraco-side", tx.thoracoSide);
+  setChipFieldValue("t-thoraco-fluid", tx.thoracoFluid);
+  setInputValue("t-thoraco-volume", tx.thoracoVolume);
+  setChipFieldValue("t-abdomino", tx.abdomino);
+  setChipFieldValue("t-abdomino-fluid", tx.abdominoFluid);
+  setInputValue("t-abdomino-volume", tx.abdominoVolume);
+  setChipFieldValue("t-cysto", tx.cysto);
+  setInputValue("t-cysto-volume", tx.cystoVolume);
+  setChipFieldValue("t-ga", tx.ga);
+  setInputValue("t-ga-drug", tx.gaDrug);
+  setInputValue("t-other-procedure", tx.otherProcedure);
+
+  populateSupply(record.supply);
+  setChipFieldValue("s-diet-out", record.dietOut);
+
+  // show every section so the vet can see (and adjust) everything already recorded,
+  // rather than having to hunt through collapsed sub-accordions one by one
+  document.querySelectorAll(".accordion").forEach((a) => a.classList.add("open"));
+  lastAutoRehydrationRate = null;
+  updateReveals();
+  updateUopDisplay();
+  updateRehydrationCalc();
+  updateNotePreview();
+}
+
 // ===================== record card list =====================
 function renderList() {
   const listEl = $("card-list");
@@ -881,13 +1121,15 @@ function renderList() {
       </div>
       <div class="record-card-note">${escapeHtml(r.noteText || "")}</div>
       <div class="record-card-actions">
+        <button type="button" class="secondary-btn card-edit-btn">แก้ไข</button>
         <button type="button" class="danger-btn card-delete-btn">ลบรายการนี้</button>
       </div>
     `;
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".card-delete-btn")) return;
+      if (e.target.closest(".card-delete-btn") || e.target.closest(".card-edit-btn")) return;
       card.classList.toggle("expanded");
     });
+    card.querySelector(".card-edit-btn").addEventListener("click", () => goToEditEntry(r));
     card.querySelector(".card-delete-btn").addEventListener("click", () => {
       confirmAction(
         "ลบบันทึกนี้?",
@@ -954,6 +1196,10 @@ async function saveRecord(record) {
   await addDoc(collection(db, "vetjod_records"), record);
 }
 
+async function updateRecord(id, record) {
+  await updateDoc(doc(db, "vetjod_records", id), record);
+}
+
 async function deleteRecord(id) {
   try {
     await deleteDoc(doc(db, "vetjod_records", id));
@@ -993,8 +1239,21 @@ function goToList() {
 }
 
 function goToNewEntry() {
+  editingRecordId = null;
+  editingRecordCreatedAtLocal = null;
   resetForm();
   $("entry-title").textContent = "บันทึกใหม่";
+  $("screen-list").hidden = true;
+  $("screen-entry").hidden = false;
+  window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+}
+
+function goToEditEntry(record) {
+  editingRecordId = record.id;
+  editingRecordCreatedAtLocal = record.createdAtLocal || null;
+  resetForm();
+  populateForm(record);
+  $("entry-title").textContent = "แก้ไขบันทึก";
   $("screen-list").hidden = true;
   $("screen-entry").hidden = false;
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
@@ -1110,13 +1369,18 @@ function init() {
       showToast("กรุณากรอกชื่อสัตว์");
       return;
     }
-    record.createdAtLocal = nowTimeLabel();
+    const isEditing = !!editingRecordId;
+    record.createdAtLocal = isEditing ? (editingRecordCreatedAtLocal || nowTimeLabel()) : nowTimeLabel();
     record.noteText = buildNoteText(record);
     const saveBtn = $("entry-save-btn");
     saveBtn.disabled = true;
     const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 20000));
     try {
-      await Promise.race([saveRecord(record), timeout]);
+      if (isEditing) {
+        await Promise.race([updateRecord(editingRecordId, record), timeout]);
+      } else {
+        await Promise.race([saveRecord(record), timeout]);
+      }
       showSaveSuccess(record, "✓ บันทึกสำเร็จ", "บันทึกข้อมูลของ", "เรียบร้อยแล้ว");
     } catch (err) {
       console.error("VETJOD save error", err);
