@@ -66,13 +66,16 @@ function classifyUop(uop) {
 
 // Same deficit/maintenance formula as the main app's rehydration-calc.js, but with a
 // maintenance rate fixed at weightKg * 2 mL/kg/h (not the selectable 2/2.5/3 there).
-function computeRehydration(weightKg, dehydrationPercent, hours) {
+function computeRehydration(weightKg, dehydrationPercent, hours, ongoingLoss) {
   if (!weightKg || dehydrationPercent == null || isNaN(dehydrationPercent) || !hours) return null;
   const deficitMl = (dehydrationPercent / 100) * weightKg * 1000;
   const maintenanceMlPerHour = weightKg * 2;
-  const phase1Rate = deficitMl / hours + maintenanceMlPerHour;
-  const phase2Rate = maintenanceMlPerHour;
-  return { deficitMl, maintenanceMlPerHour, phase1Rate, phase2Rate };
+  const ongoing = ongoingLoss || 0;
+  // ongoing loss (eg from vomiting/diarrhea/drainage) keeps draining fluid whether or not
+  // the dehydration deficit has been corrected yet, so it's added to both phases
+  const phase1Rate = deficitMl / hours + maintenanceMlPerHour + ongoing;
+  const phase2Rate = maintenanceMlPerHour + ongoing;
+  return { deficitMl, maintenanceMlPerHour, ongoing, phase1Rate, phase2Rate };
 }
 
 function todayKey() {
@@ -223,6 +226,19 @@ function renderLabsContainer() {
   $("labs-add-btn").addEventListener("click", addLabsRow);
 }
 
+// Only Glucose gets a time stamp per entry (it's the one commonly checked several times
+// a shift) — other lab types just get a single value, no time clutter.
+function updateLabsRowTimeVisibility(row) {
+  const isGlucose = row.querySelector(".labs-type-select").value === "glucose";
+  const timeInput = row.querySelector(".labs-time-input");
+  timeInput.hidden = !isGlucose;
+  if (!isGlucose) {
+    timeInput.value = "";
+  } else if (!timeInput.value) {
+    timeInput.value = new Date().toTimeString().slice(0, 5);
+  }
+}
+
 function addLabsRow() {
   const list = $("labs-list");
   const row = document.createElement("div");
@@ -232,11 +248,12 @@ function addLabsRow() {
   row.innerHTML = `
     <select class="labs-type-select"><option value="">เลือกรายการ</option>${options}</select>
     <div class="labs-row-detail">
-      <input type="time" class="labs-time-input" value="${nowTime}">
+      <input type="time" class="labs-time-input" value="${nowTime}" hidden>
       <input type="text" class="labs-value-input" placeholder="ค่า/ผล">
       <button type="button" class="labs-remove-btn" aria-label="ลบ">✕</button>
     </div>
   `;
+  row.querySelector(".labs-type-select").addEventListener("change", () => updateLabsRowTimeVisibility(row));
   row.querySelector(".labs-remove-btn").addEventListener("click", () => { row.remove(); onFormChange(); });
   row.querySelectorAll("select, input").forEach((el) => {
     el.addEventListener("input", onFormChange);
@@ -330,7 +347,8 @@ function collectForm() {
   const uop = computeUop(urineAmount, weightKg, uopHours);
   const dehydrationPercent = num("t-dehydration-percent");
   const rehydrationHoursVal = getFieldValue("t-rehydration-hours");
-  const rehydrationCalc = computeRehydration(weightKg, dehydrationPercent, parseFloat(rehydrationHoursVal || ""));
+  const ongoingLoss = num("t-ongoing-loss");
+  const rehydrationCalc = computeRehydration(weightKg, dehydrationPercent, parseFloat(rehydrationHoursVal || ""), ongoingLoss);
 
   return {
     name: val("p-name"),
@@ -442,6 +460,7 @@ function collectForm() {
       rehydrationStart: val("t-rehydration-start"),
       dehydrationPercent,
       rehydrationHours: rehydrationHoursVal,
+      ongoingLoss,
       rehydrationRate: num("t-rehydration-rate"),
       maintenanceRate: rehydrationCalc ? round(rehydrationCalc.phase2Rate, 1) : null,
       resuscitationRate: num("t-resuscitation-rate"),
@@ -649,6 +668,7 @@ function buildTxParts(tx) {
     if (tx.dehydrationPercent != null) bits.push(`${tx.dehydrationPercent}% dehydration`);
     if (tx.rehydrationHours) bits.push(`${tx.rehydrationHours} h`);
     if (tx.rehydrationStart) bits.push(`from ${tx.rehydrationStart}`);
+    if (tx.ongoingLoss) bits.push(`ongoing loss ${tx.ongoingLoss} mL/h`);
     if (bits.length) s += ` (${bits.join(", ")})`;
     parts.push(s);
     if (tx.maintenanceRate != null) parts.push(`Maintenance after rehydration ${tx.maintenanceRate} mL/h`);
@@ -801,12 +821,14 @@ function updateRehydrationCalc() {
   const weightKg = num("p-weight");
   const percent = num("t-dehydration-percent");
   const hours = parseFloat(getFieldValue("t-rehydration-hours") || "");
-  const calc = computeRehydration(weightKg, percent, hours);
+  const ongoingLoss = num("t-ongoing-loss");
+  const calc = computeRehydration(weightKg, percent, hours, ongoingLoss);
   if (!calc) {
     el.textContent = !weightKg ? "กรอกน้ำหนักตัวในหน้าแรก เพื่อคำนวณ" : (percent == null ? "กรอก % ขาดน้ำ เพื่อคำนวณ" : "");
     return;
   }
-  el.textContent = `Deficit ${round(calc.deficitMl, 1)} mL → ช่วงแก้ไข (${hours} ชม.) ${round(calc.phase1Rate, 1)} mL/h → หลังจากนั้น (Maintenance) ${round(calc.phase2Rate, 1)} mL/h`;
+  const ongoingNote = calc.ongoing ? ` (รวม ongoing loss ${calc.ongoing} mL/h)` : "";
+  el.textContent = `Deficit ${round(calc.deficitMl, 1)} mL → ช่วงแก้ไข (${hours} ชม.) ${round(calc.phase1Rate, 1)} mL/h → หลังจากนั้น (Maintenance) ${round(calc.phase2Rate, 1)} mL/h${ongoingNote}`;
   const rateInput = $("t-rehydration-rate");
   const computed = round(calc.phase1Rate, 1);
   const currentVal = rateInput.value === "" ? null : parseFloat(rateInput.value);
@@ -923,6 +945,7 @@ function populateLabs(labs) {
     addLabsRow();
     const row = $("labs-list").lastElementChild;
     row.querySelector(".labs-type-select").value = l.type;
+    updateLabsRowTimeVisibility(row);
     row.querySelector(".labs-time-input").value = l.time || "";
     row.querySelector(".labs-value-input").value = l.value || "";
   });
@@ -1061,6 +1084,7 @@ function populateForm(record) {
 
   setInputValue("t-rehydration-start", tx.rehydrationStart);
   setInputValue("t-dehydration-percent", tx.dehydrationPercent);
+  setInputValue("t-ongoing-loss", tx.ongoingLoss);
   setChipFieldValue("t-rehydration-hours", tx.rehydrationHours || "8");
   setInputValue("t-rehydration-rate", tx.rehydrationRate);
   setInputValue("t-resuscitation-rate", tx.resuscitationRate);
