@@ -78,6 +78,27 @@ function computeRehydration(weightKg, dehydrationPercent, hours, ongoingLoss) {
   return { deficitMl, maintenanceMlPerHour, ongoing, phase1Rate, phase2Rate };
 }
 
+// Fluid in (current IV rate) vs fluid out (insensible + sensible/UOP loss). "Balanced" is
+// a judgment call, not an exact match — treat anything within 20% of fluid-out as roughly
+// equal, per the same insensible-loss constant (0.7 mL/kg/h) the main app's maintenance
+// calculator uses.
+const INSENSIBLE_ML_PER_KG_H = 0.7;
+const FLUID_BALANCE_TOLERANCE_PERCENT = 20;
+function computeFluidBalance(weightKg, fluidInMlPerHour, uop) {
+  if (!weightKg || fluidInMlPerHour == null || uop == null) return null;
+  const insensible = weightKg * INSENSIBLE_ML_PER_KG_H;
+  const sensible = weightKg * uop;
+  const fluidOutMlPerHour = insensible + sensible;
+  const diff = fluidInMlPerHour - fluidOutMlPerHour;
+  const diffPercent = fluidOutMlPerHour ? (diff / fluidOutMlPerHour) * 100 : null;
+  let status;
+  if (diffPercent == null) status = "-";
+  else if (Math.abs(diffPercent) <= FLUID_BALANCE_TOLERANCE_PERCENT) status = "Balanced (In ≈ Out)";
+  else if (diff > 0) status = "Positive balance (In > Out)";
+  else status = "Negative balance (In < Out)";
+  return { insensible, sensible, fluidOutMlPerHour, diff, status };
+}
+
 function todayKey() {
   return new Date().toLocaleDateString("en-CA");
 }
@@ -345,6 +366,9 @@ function collectForm() {
   const urineAmount = num("v-urine-amount");
   const uopHours = parseFloat(getFieldValue("v-urine-uop-hours") || "4");
   const uop = computeUop(urineAmount, weightKg, uopHours);
+  const fluidsList = collectFluids();
+  const fluidInRate = fluidsList.reduce((sum, f) => sum + (f.rate || 0), 0) || null;
+  const fluidBalance = computeFluidBalance(weightKg, fluidInRate, uop);
   const dehydrationPercent = num("t-dehydration-percent");
   const rehydrationHoursVal = getFieldValue("t-rehydration-hours");
   const ongoingLoss = num("t-ongoing-loss");
@@ -369,7 +393,9 @@ function collectForm() {
       uop,
       uopClass: uop != null ? classifyUop(uop) : null,
       spo2: num("v-spo2"),
-      fluids: collectFluids(),
+      fluids: fluidsList,
+      fluidInRate,
+      fluidBalance,
       bp: val("v-bp"),
       feedState: getFieldValue("v-feed-state"),
       feedDiet: getFieldValue("v-feed-diet"),
@@ -521,6 +547,10 @@ function buildVitalsParts(v) {
 
   if (v.fluids && v.fluids.length) {
     parts.push(v.fluids.map((f) => `${f.type || "?"}${f.rate != null ? " @ " + f.rate + " mL/h" : ""}`).join(", "));
+  }
+
+  if (v.fluidBalance) {
+    parts.push(`Fluid In ${round(v.fluidInRate, 1)} vs Out ${round(v.fluidBalance.fluidOutMlPerHour, 1)} mL/h (${v.fluidBalance.status})`);
   }
 
   if (v.bp) parts.push(`BP ${v.bp}`);
@@ -804,6 +834,7 @@ function buildNoteText(record) {
 function onFormChange() {
   updateReveals();
   updateUopDisplay();
+  updateFluidBalanceDisplay();
   updateRehydrationCalc();
   updateNotePreview();
 }
@@ -819,6 +850,21 @@ function updateUopDisplay() {
     return;
   }
   el.textContent = `UOP = ${round(uop, 3)} mL/kg/h (${classifyUop(uop)})`;
+}
+
+function updateFluidBalanceDisplay() {
+  const el = $("v-fluid-balance-display");
+  const weightKg = num("p-weight");
+  const volumeMl = num("v-urine-amount");
+  const hours = parseFloat(getFieldValue("v-urine-uop-hours") || "4");
+  const uop = computeUop(volumeMl, weightKg, hours);
+  const fluidInRate = collectFluids().reduce((sum, f) => sum + (f.rate || 0), 0) || null;
+  const balance = computeFluidBalance(weightKg, fluidInRate, uop);
+  if (!balance) {
+    el.textContent = "";
+    return;
+  }
+  el.textContent = `Fluid In ${round(fluidInRate, 1)} vs Out ${round(balance.fluidOutMlPerHour, 1)} mL/h (${balance.status})`;
 }
 
 // Tracks the last value we auto-filled so a manual edit to the rate field (which also
@@ -870,6 +916,7 @@ function resetForm() {
   $("labs-list").innerHTML = "";
   $("supply-detail-list").innerHTML = "";
   $("v-urine-uop-display").textContent = "";
+  $("v-fluid-balance-display").textContent = "";
   $("t-rehydration-calc-display").textContent = "";
   lastAutoRehydrationRate = null;
 
@@ -1128,6 +1175,7 @@ function populateForm(record) {
   lastAutoRehydrationRate = null;
   updateReveals();
   updateUopDisplay();
+  updateFluidBalanceDisplay();
   updateRehydrationCalc();
   updateNotePreview();
 }
