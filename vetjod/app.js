@@ -1429,7 +1429,7 @@ function init() {
   $("t-thoraco-left-fluid-chips").innerHTML = chipsHtml(THORACO_FLUID_TYPES);
   $("t-thoraco-right-fluid-chips").innerHTML = chipsHtml(THORACO_FLUID_TYPES);
   $("t-abdomino-fluid-chips").innerHTML = chipsHtml(CAVITY_FLUID_TYPES);
-  $("s-diet-out-chips").innerHTML = chipsHtml(DIET_TYPES);
+  $("s-diet-out-chips").innerHTML = chipsHtml(DIET_TYPES) + '<button type="button" class="chip" data-value="__other__">อื่นๆ</button>';
 
   document.addEventListener("click", chipClickHandler);
 

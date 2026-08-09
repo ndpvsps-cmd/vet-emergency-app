@@ -2,7 +2,10 @@
 // Kept separate from app.js so the clinic can edit these lists without touching app logic,
 // mirroring the ../data/*.js convention used by the calculator app.
 
-const FLUID_TYPES = ["0.9% NSS", "ARI", "AR-5", "Fentanyl", "MLK", "D5W", "3% NSS", "D5 1/2 S"];
+const FLUID_TYPES = [
+  "0.9% NSS", "ARI", "AR-5", "Fentanyl", "MLK", "D5W", "3% NSS", "D5 1/2 S",
+  "KCL-CRI", "KCL+2.5%Dextrose", "Transamin-CRI", "LRI", "FK-CRI", "FLK"
+];
 
 const DIET_TYPES = [
   "Smart Heart", "Me-O", "Recovery", "A/D", "Intestinal Low Fat",
