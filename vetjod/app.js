@@ -865,6 +865,34 @@ function updateUopDisplay() {
   el.textContent = `UOP = ${round(uop, 3)} mL/kg/h (${classifyUop(uop)})`;
 }
 
+// Value sliders (weight, temp) are a second input bound to the same underlying number
+// field — either one can drive the value, so both directions need to stay in sync.
+function syncInputFromSlider(sliderId, inputId) {
+  const slider = $(sliderId);
+  const input = $(inputId);
+  input.value = round(parseFloat(slider.value), 1);
+}
+
+function syncSliderFromInput(sliderId, inputId) {
+  const slider = $(sliderId);
+  const input = $(inputId);
+  const val = parseFloat(input.value);
+  if (isNaN(val)) return;
+  const clamped = Math.min(Math.max(val, parseFloat(slider.min)), parseFloat(slider.max));
+  slider.value = clamped;
+}
+
+function updateTempSliderRange(unit) {
+  const slider = $("v-temp-slider");
+  if (unit === "F") {
+    slider.min = 90;
+    slider.max = 107;
+  } else {
+    slider.min = 32;
+    slider.max = 42;
+  }
+}
+
 function updateFluidBalanceDisplay() {
   const el = $("v-fluid-balance-display");
   const weightKg = num("p-weight");
@@ -939,6 +967,9 @@ function resetForm() {
 
   activateDefault("p-species", "dog");
   activateDefault("v-temp-unit", "F");
+  updateTempSliderRange("F");
+  $("p-weight-slider").value = 0;
+  $("v-temp-slider").value = 101.5;
   activateDefault("v-feces-presence", "none");
   activateDefault("v-vomit-type", "none");
   activateDefault("v-urine-presence", "none");
@@ -1052,9 +1083,12 @@ function populateForm(record) {
   setInputValue("p-name", record.name);
   setChipFieldValue("p-species", record.species);
   setInputValue("p-weight", record.weightKg);
+  syncSliderFromInput("p-weight-slider", "p-weight");
 
   setInputValue("v-temp", v.temp);
   setChipFieldValue("v-temp-unit", v.tempUnit || "F");
+  updateTempSliderRange(v.tempUnit || "F");
+  syncSliderFromInput("v-temp-slider", "v-temp");
   setChipFieldValue("v-feces-presence", v.fecesPresence);
   setChipFieldValue("v-feces-score", v.fecesScore);
   setChipFieldValue("v-feces-color", v.fecesColor);
@@ -1440,13 +1474,26 @@ function init() {
       const oldUnit = currentActive ? currentActive.dataset.value : null;
       const newUnit = chip.dataset.value;
       if (oldUnit === newUnit) return;
+      updateTempSliderRange(newUnit);
       const tempInput = $("v-temp");
       if (tempInput.value === "") return;
       const n = parseFloat(tempInput.value);
       if (isNaN(n)) return;
       tempInput.value = round(newUnit === "F" ? (n * 9 / 5 + 32) : ((n - 32) * 5 / 9), 1);
+      syncSliderFromInput("v-temp-slider", "v-temp");
     });
   });
+
+  $("p-weight-slider").addEventListener("input", () => {
+    syncInputFromSlider("p-weight-slider", "p-weight");
+    onFormChange();
+  });
+  $("p-weight").addEventListener("input", () => syncSliderFromInput("p-weight-slider", "p-weight"));
+  $("v-temp-slider").addEventListener("input", () => {
+    syncInputFromSlider("v-temp-slider", "v-temp");
+    onFormChange();
+  });
+  $("v-temp").addEventListener("input", () => syncSliderFromInput("v-temp-slider", "v-temp"));
 
   document.querySelectorAll("#screen-entry input, #screen-entry textarea").forEach((el) => {
     el.addEventListener("input", onFormChange);
