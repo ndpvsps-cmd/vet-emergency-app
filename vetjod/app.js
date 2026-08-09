@@ -92,11 +92,20 @@ function computeFluidBalance(weightKg, fluidInMlPerHour, uop) {
   const diff = fluidInMlPerHour - fluidOutMlPerHour;
   const diffPercent = fluidOutMlPerHour ? (diff / fluidOutMlPerHour) * 100 : null;
   let status;
-  if (diffPercent == null) status = "-";
-  else if (Math.abs(diffPercent) <= FLUID_BALANCE_TOLERANCE_PERCENT) status = "Balanced (In ≈ Out)";
-  else if (diff > 0) status = "Positive balance (In > Out)";
-  else status = "Negative balance (In < Out)";
-  return { insensible, sensible, fluidOutMlPerHour, diff, status };
+  let balanced = false;
+  if (diffPercent == null) {
+    status = "-";
+  } else if (Math.abs(diffPercent) <= FLUID_BALANCE_TOLERANCE_PERCENT) {
+    status = "Balanced (In ≈ Out)";
+    balanced = true;
+  } else if (diff > 0) {
+    status = "Positive balance (In > Out)";
+  } else {
+    status = "Negative balance (In < Out)";
+  }
+  // suggested total rate to bring In back in line with Out — a starting point for the vet
+  // to judge, not a replacement for clinical decision-making
+  return { insensible, sensible, fluidOutMlPerHour, diff, status, balanced, suggestedRate: fluidOutMlPerHour };
 }
 
 function todayKey() {
@@ -550,7 +559,9 @@ function buildVitalsParts(v) {
   }
 
   if (v.fluidBalance) {
-    parts.push(`Fluid In ${round(v.fluidInRate, 1)} vs Out ${round(v.fluidBalance.fluidOutMlPerHour, 1)} mL/h (${v.fluidBalance.status})`);
+    let s = `Fluid In ${round(v.fluidInRate, 1)} vs Out ${round(v.fluidBalance.fluidOutMlPerHour, 1)} mL/h (${v.fluidBalance.status})`;
+    if (!v.fluidBalance.balanced) s += ` — suggest adjusting total rate to ~${round(v.fluidBalance.suggestedRate, 1)} mL/h`;
+    parts.push(s);
   }
 
   if (v.bp) parts.push(`BP ${v.bp}`);
@@ -864,7 +875,11 @@ function updateFluidBalanceDisplay() {
     el.textContent = "";
     return;
   }
-  el.textContent = `Fluid In ${round(fluidInRate, 1)} vs Out ${round(balance.fluidOutMlPerHour, 1)} mL/h (${balance.status})`;
+  let text = `Fluid In ${round(fluidInRate, 1)} vs Out ${round(balance.fluidOutMlPerHour, 1)} mL/h (${balance.status})`;
+  if (!balance.balanced) {
+    text += ` — แนะนำปรับอัตรารวมเป็นประมาณ ${round(balance.suggestedRate, 1)} mL/h`;
+  }
+  el.textContent = text;
 }
 
 // Tracks the last value we auto-filled so a manual edit to the rate field (which also
