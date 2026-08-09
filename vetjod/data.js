@@ -53,6 +53,10 @@ const CAVITY_FLUID_TYPES = [
   "Bloody exudate", "Bile exudate", "Chylous"
 ];
 
+// Thoracocentesis can also aspirate air (eg pneumothorax) — Abdominocentesis doesn't, so
+// this stays a separate list rather than adding "Air" to CAVITY_FLUID_TYPES itself.
+const THORACO_FLUID_TYPES = [...CAVITY_FLUID_TYPES, "Air"];
+
 const ICD_FLUID_TYPES = ["Serosanguinous fluid", "Purulent fluid", "Chylous fluid", "Bloody fluid", "Air"];
 
 const SUPPLY_ITEMS = [

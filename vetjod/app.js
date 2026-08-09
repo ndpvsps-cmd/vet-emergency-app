@@ -1360,8 +1360,8 @@ function init() {
   $("t-checklist-chips").innerHTML = chipsHtml(TX_CHECKLIST);
   $("t-icd-left-fluid-chips").innerHTML = chipsHtml(ICD_FLUID_TYPES);
   $("t-icd-right-fluid-chips").innerHTML = chipsHtml(ICD_FLUID_TYPES);
-  $("t-thoraco-left-fluid-chips").innerHTML = chipsHtml(CAVITY_FLUID_TYPES);
-  $("t-thoraco-right-fluid-chips").innerHTML = chipsHtml(CAVITY_FLUID_TYPES);
+  $("t-thoraco-left-fluid-chips").innerHTML = chipsHtml(THORACO_FLUID_TYPES);
+  $("t-thoraco-right-fluid-chips").innerHTML = chipsHtml(THORACO_FLUID_TYPES);
   $("t-abdomino-fluid-chips").innerHTML = chipsHtml(CAVITY_FLUID_TYPES);
   $("s-diet-out-chips").innerHTML = chipsHtml(DIET_TYPES);
 
