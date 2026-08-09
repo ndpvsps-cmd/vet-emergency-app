@@ -502,6 +502,7 @@ function collectForm() {
       resuscitationBolus: getFieldValue("t-resuscitation-bolus"),
       woundDressing: getFieldValue("t-wound-dressing"),
       checklist: getFieldValue("t-checklist"),
+      caseStatus: getFieldValue("t-case-status"),
       icd: getFieldValue("t-icd"),
       icdLeftFluid: getFieldValue("t-icd-left-fluid"),
       icdLeftVolume: num("t-icd-left-volume"),
@@ -730,6 +731,7 @@ function buildTxParts(tx) {
   }
   if (tx.woundDressing) parts.push(`Wound dressing: ${tx.woundDressing}`);
   if (fmtList(tx.checklist)) parts.push(fmtList(tx.checklist));
+  if (fmtList(tx.caseStatus)) parts.push(fmtList(tx.caseStatus));
 
   if (tx.icd === "yes") {
     const sides = [
@@ -1162,6 +1164,7 @@ function populateForm(record) {
   setChipFieldValue("t-resuscitation-bolus", tx.resuscitationBolus);
   setChipFieldValue("t-wound-dressing", tx.woundDressing);
   setChipFieldValue("t-checklist", tx.checklist);
+  setChipFieldValue("t-case-status", tx.caseStatus);
   setChipFieldValue("t-icd", tx.icd);
   setChipFieldValue("t-icd-left-fluid", tx.icdLeftFluid);
   setInputValue("t-icd-left-volume", tx.icdLeftVolume);
