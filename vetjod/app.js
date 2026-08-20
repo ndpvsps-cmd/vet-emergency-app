@@ -500,6 +500,8 @@ function collectForm() {
       maintenanceRate: rehydrationCalc ? round(rehydrationCalc.phase2Rate, 1) : null,
       resuscitationRate: num("t-resuscitation-rate"),
       resuscitationBolus: getFieldValue("t-resuscitation-bolus"),
+      o2: getFieldValue("t-o2"),
+      o2Detail: val("t-o2-detail"),
       woundDressing: getFieldValue("t-wound-dressing"),
       checklist: getFieldValue("t-checklist"),
       caseStatus: getFieldValue("t-case-status"),
@@ -729,6 +731,7 @@ function buildTxParts(tx) {
     if (tx.resuscitationBolus) s += ` (bolus ${tx.resuscitationBolus}/4)`;
     parts.push(s);
   }
+  if (tx.o2 === "yes") parts.push(`O2${tx.o2Detail ? " (" + tx.o2Detail + ")" : ""}`);
   if (tx.woundDressing) parts.push(`Wound dressing: ${tx.woundDressing}`);
   if (fmtList(tx.checklist)) parts.push(fmtList(tx.checklist));
   if (fmtList(tx.caseStatus)) parts.push(fmtList(tx.caseStatus));
@@ -986,6 +989,7 @@ function resetForm() {
   activateDefault("t-abdomino", "none");
   activateDefault("t-cysto", "none");
   activateDefault("t-ga", "none");
+  activateDefault("t-o2", "none");
 
   document.querySelectorAll(".accordion").forEach((a, idx) => a.classList.toggle("open", idx === 0));
   updateReveals();
@@ -1196,6 +1200,8 @@ function populateForm(record) {
   setInputValue("t-rehydration-rate", tx.rehydrationRate);
   setInputValue("t-resuscitation-rate", tx.resuscitationRate);
   setChipFieldValue("t-resuscitation-bolus", tx.resuscitationBolus);
+  setChipFieldValue("t-o2", tx.o2);
+  setInputValue("t-o2-detail", tx.o2Detail);
   setChipFieldValue("t-wound-dressing", tx.woundDressing);
   setChipFieldValue("t-checklist", tx.checklist);
   setChipFieldValue("t-case-status", tx.caseStatus);
