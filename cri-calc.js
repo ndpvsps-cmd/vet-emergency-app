@@ -13,6 +13,9 @@
 
   const concRow = document.getElementById("cri-conc-row");
   const concSelect = document.getElementById("cri-conc-select");
+  const concCustomRow = document.getElementById("cri-conc-custom-row");
+  const concCustomLabel = document.querySelector("#cri-conc-custom-row label");
+  const concCustomInput = document.getElementById("cri-conc-custom-input");
 
   const bagSelect = document.getElementById("cri-bag-select");
   const rateInput = document.getElementById("cri-rate-input");
@@ -106,6 +109,8 @@
   function selectDrug(drug) {
     state.selectedDrug = drug;
     doseInput.value = "";
+    concCustomInput.value = "";
+    concCustomRow.hidden = true;
 
     concRow.hidden = false;
     concSelect.innerHTML = "";
@@ -116,6 +121,12 @@
       opt.textContent = `${c} ${concMassUnit}/mL`;
       concSelect.appendChild(opt);
     });
+    const customOpt = document.createElement("option");
+    customOpt.value = "custom";
+    customOpt.textContent = "อื่นๆ (กรอกเอง)";
+    concSelect.appendChild(customOpt);
+
+    concCustomLabel.textContent = `ความเข้มข้นยา (${concMassUnit}/mL) — กรอกเอง`;
     state.selectedConcentration = drug.concentrations[0] || null;
 
     doseRow.hidden = false;
@@ -146,7 +157,18 @@
   }
 
   concSelect.addEventListener("change", () => {
-    state.selectedConcentration = parseFloat(concSelect.value);
+    if (concSelect.value === "custom") {
+      concCustomRow.hidden = false;
+      state.selectedConcentration = parseFloat(concCustomInput.value) || null;
+    } else {
+      concCustomRow.hidden = true;
+      state.selectedConcentration = parseFloat(concSelect.value);
+    }
+    refresh();
+  });
+
+  concCustomInput.addEventListener("input", () => {
+    state.selectedConcentration = parseFloat(concCustomInput.value) || null;
     refresh();
   });
 
