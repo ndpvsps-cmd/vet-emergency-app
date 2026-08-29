@@ -553,6 +553,7 @@ function collectForm() {
       woundChar: getFieldValue("e-wound-char"),
       woundDischarge: getFieldValue("e-wound-discharge"),
       surgicalSite: getFieldValue("e-surgical-site"),
+      otherFindings: getFieldValue("e-other-findings"),
       mgcs: num("e-mgcs"),
       painScore: getFieldValue("e-pain-score"),
       other: val("e-other")
@@ -682,6 +683,7 @@ function buildPeParts(e) {
   if (e.cough === "positive") parts.push(`Induced cough +${e.coughType ? " (" + e.coughType + ")" : ""}`);
   if (e.cough === "negative") parts.push("Induced cough -");
   if (fmtList(e.abdominal)) parts.push(`Abd: ${fmtList(e.abdominal)}`);
+  if (fmtList(e.otherFindings)) parts.push(`Other: ${fmtList(e.otherFindings)}`);
   if (e.mgcs != null) parts.push(`MGCS ${e.mgcs}/18`);
   if (e.painScore) parts.push(`Pain score ${e.painScore}/4`);
 
@@ -1330,6 +1332,7 @@ function populateForm(record) {
   setChipFieldValue("e-wound-char", e.woundChar);
   setChipFieldValue("e-wound-discharge", e.woundDischarge);
   setChipFieldValue("e-surgical-site", e.surgicalSite);
+  setChipFieldValue("e-other-findings", e.otherFindings);
 
   setInputValue("e-mgcs", e.mgcs);
   setChipFieldValue("e-pain-score", e.painScore);
