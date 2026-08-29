@@ -679,6 +679,19 @@ button, input, textarea, select {
   color: var(--vj-muted);
 }
 
+/* small dot next to a collapsed sub-section's title when it already has data in it,
+   so filling something in and folding it back up doesn't hide that fact */
+.accordion.has-data > .accordion-header > span:first-child::after {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--vj-accent);
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
 /* ===================== CHIPS ===================== */
 .field-group {
   margin-bottom: 2px;
@@ -913,6 +926,23 @@ button, input, textarea, select {
   font-size: 0.87rem;
   color: var(--vj-text);
   line-height: 1.65;
+}
+
+.note-header-line {
+  font-weight: 700;
+  color: var(--vj-gold);
+  font-size: 1.05em;
+}
+
+.note-label {
+  color: var(--vj-accent);
+  font-weight: 700;
+}
+
+.note-item {
+  display: inline-block;
+  padding-left: 6px;
+  color: var(--vj-muted);
 }
 
 .entry-actions {

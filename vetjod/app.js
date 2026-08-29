@@ -21,6 +21,7 @@ let todayRecords = [];
 let unsubscribeToday = null;
 let editingRecordId = null;
 let editingRecordCreatedAtLocal = null;
+let editingSnapshot = null;
 
 // ===================== small helpers =====================
 function $(id) { return document.getElementById(id); }
@@ -29,6 +30,21 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   }[c]));
+}
+
+// Renders the plain-text note (unchanged — still exactly what gets saved/exported/copied)
+// as HTML for on-screen display only, so each section's label (Vitals:, PE:, Tx:, ...)
+// stands out from its values, and the [time] name - species line reads as the card title.
+function noteTextToHtml(noteText) {
+  return (noteText || "").split("\n").map((line, idx) => {
+    if (idx === 0) return `<span class="note-header-line">${escapeHtml(line)}</span>`;
+    if (line.startsWith("- ")) return `<span class="note-item">${escapeHtml(line)}</span>`;
+    // label-only ("Tx:") or "label: content" — content half is optional so a bare
+    // section header (followed by its own "- item" lines) still gets bolded
+    const m = line.match(/^([^:]{1,24}):(\s(.*))?$/s);
+    if (m) return `<span class="note-label">${escapeHtml(m[1])}:</span>${m[3] ? " " + escapeHtml(m[3]) : ""}`;
+    return escapeHtml(line);
+  }).join("<br>");
 }
 
 function val(id) {
@@ -135,6 +151,53 @@ function showToast(msg) {
   toastTimer = setTimeout(() => { el.hidden = true; }, 2500);
 }
 
+// ===================== draft autosave (new entries only) =====================
+// Protects against losing a half-filled form to an accidental close, a dropped
+// connection, or getting called away mid-exam — never used while editing an existing
+// record, since that data is already safely in Firestore regardless.
+const DRAFT_STORAGE_KEY = "vetjod_draft_v1";
+
+function saveDraft(record) {
+  try {
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(record));
+  } catch (e) { /* storage unavailable/full — losing the autosave safety net silently beats crashing */ }
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearDraft() {
+  try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch (e) { /* nothing to do */ }
+}
+
+// A name alone counts, but so does having filled in real clinical data without a name
+// yet — checked via whether the generated note has more than just its header line.
+function hasMeaningfulContent(record) {
+  if (record.name && record.name.trim()) return true;
+  return buildNoteText(record).split("\n").length > 1;
+}
+
+function autosaveDraftIfNeeded() {
+  if (editingRecordId) return;
+  const record = collectForm();
+  if (hasMeaningfulContent(record)) saveDraft(record);
+}
+
+// ===================== collapsed-section "has data" badges =====================
+function updateAccordionBadges() {
+  document.querySelectorAll("#screen-entry .accordion-body .accordion").forEach((acc) => {
+    const hasData = !!acc.querySelector(".chip.active")
+      || [...acc.querySelectorAll("input, textarea")].some((el) => el.value !== "");
+    acc.classList.toggle("has-data", hasData);
+  });
+}
+
 function showSyncBanner(msg) {
   const el = $("sync-banner");
   if (msg) { el.textContent = msg; el.hidden = false; } else { el.hidden = true; }
@@ -234,6 +297,9 @@ function renderCompactToggleGroup(bodyId, chipsId, listId, items, { idPrefix, in
       return `<div class="detail-row" data-item-id="${id}"><span>${item.label}</span><input type="${inputType}" ${numAttrs} id="${idPrefix}-${id}-${inputSuffix}" placeholder="${placeholder}" value="${val}"></div>`;
     }).join("");
     list.querySelectorAll("input").forEach((input) => input.addEventListener("input", onFormChange));
+    if (inputType === "number") {
+      list.querySelectorAll("input").forEach((input) => attachValueSlider(input, 1, 20));
+    }
   }
   compactToggleSync[chipsId] = syncRows;
 
@@ -354,6 +420,7 @@ function syncFluidsRows() {
     </div>`;
   }).join("");
   list.querySelectorAll("input").forEach((input) => input.addEventListener("input", onFormChange));
+  list.querySelectorAll(".fluid-rate-input").forEach((input) => attachValueSlider(input, 0, 200));
 }
 
 function collectFluids() {
@@ -504,7 +571,7 @@ function collectForm() {
       o2Detail: val("t-o2-detail"),
       woundDressing: getFieldValue("t-wound-dressing"),
       checklist: getFieldValue("t-checklist"),
-      caseStatus: getFieldValue("t-case-status"),
+      other: val("t-other"),
       icd: getFieldValue("t-icd"),
       icdLeftFluid: getFieldValue("t-icd-left-fluid"),
       icdLeftVolume: num("t-icd-left-volume"),
@@ -524,6 +591,7 @@ function collectForm() {
       gaDrug: val("t-ga-drug"),
       otherProcedure: val("t-other-procedure")
     },
+    caseStatus: getFieldValue("t-case-status"),
     supply: collectSupply(),
     dietOut: getFieldValue("s-diet-out")
   };
@@ -734,7 +802,7 @@ function buildTxParts(tx) {
   if (tx.o2 === "yes") parts.push(`O2${tx.o2Detail ? " (" + tx.o2Detail + ")" : ""}`);
   if (tx.woundDressing) parts.push(`Wound dressing: ${tx.woundDressing}`);
   if (fmtList(tx.checklist)) parts.push(fmtList(tx.checklist));
-  if (fmtList(tx.caseStatus)) parts.push(fmtList(tx.caseStatus));
+  if (tx.other) parts.push(tx.other);
 
   if (tx.icd === "yes") {
     const sides = [
@@ -802,7 +870,7 @@ function buildNoteText(record) {
   lines.push(`[${record.createdAtLocal || nowTimeLabel()}] ${headerBits.join(" - ")}`);
 
   const vitalsParts = buildVitalsParts(record.vitals);
-  if (vitalsParts.length) lines.push(vitalsParts.join(" | "));
+  if (vitalsParts.length) lines.push("Vitals: " + vitalsParts.join(" | "));
 
   const peParts = buildPeParts(record.exam);
   if (peParts.length) lines.push("PE: " + peParts.join(", "));
@@ -834,10 +902,18 @@ function buildNoteText(record) {
   if (record.exam.other) lines.push("Other: " + record.exam.other);
 
   const labsParts = buildLabsLine(record.labs);
-  if (labsParts.length) lines.push("Labs: " + labsParts.join(", "));
+  if (labsParts.length) {
+    lines.push("Labs:");
+    labsParts.forEach((p) => lines.push("- " + p));
+  }
 
   const txParts = buildTxParts(record.tx);
-  if (txParts.length) lines.push("Tx: " + txParts.join(", "));
+  if (txParts.length) {
+    lines.push("Tx:");
+    txParts.forEach((p) => lines.push("- " + p));
+  }
+
+  if (fmtList(record.caseStatus)) lines.push("Note: " + fmtList(record.caseStatus));
 
   const supplyParts = buildSupplyParts(record.supply);
   if (supplyParts.length) lines.push("เบิกเวชภัณฑ์: " + supplyParts.join(", "));
@@ -852,7 +928,9 @@ function onFormChange() {
   updateUopDisplay();
   updateFluidBalanceDisplay();
   updateRehydrationCalc();
+  updateAccordionBadges();
   updateNotePreview();
+  autosaveDraftIfNeeded();
 }
 
 function updateUopDisplay() {
@@ -895,6 +973,69 @@ function updateTempSliderRange(unit) {
     slider.max = 42;
   }
 }
+
+// Generic version of the weight/temp slider pairing, for every other plain integer
+// numeric field. Works by element reference (not id) so it also covers inputs inside
+// repeatable rows (fluids, supply) that get recreated on every add/remove. Each attached
+// slider registers a "resync from its input" function so populateForm()/resetForm() can
+// bring every slider in the form back in line with its field in one call, even ones set
+// programmatically (which don't fire an "input" event on their own).
+const sliderSyncFns = [];
+function attachValueSlider(numberInput, min, max) {
+  if (!numberInput || numberInput.dataset.sliderAttached) return;
+  numberInput.dataset.sliderAttached = "1";
+  const slider = document.createElement("input");
+  slider.type = "range";
+  slider.className = "value-slider";
+  slider.min = min;
+  slider.max = max;
+  slider.step = 1;
+  slider.value = numberInput.value !== "" ? numberInput.value : min;
+
+  const syncFromInput = () => {
+    const val = parseFloat(numberInput.value);
+    if (!isNaN(val)) slider.value = Math.min(Math.max(val, min), max);
+  };
+  slider.addEventListener("input", () => {
+    numberInput.value = Math.round(parseFloat(slider.value));
+    numberInput.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  numberInput.addEventListener("input", syncFromInput);
+  sliderSyncFns.push(syncFromInput);
+
+  const container = numberInput.closest(".number-input-row") || numberInput.closest(".detail-row")
+    || numberInput.closest(".field-row") || numberInput.parentElement;
+  container.insertAdjacentElement("afterend", slider);
+}
+
+function syncAllValueSliders() {
+  sliderSyncFns.forEach((fn) => fn());
+}
+
+// Static numeric fields that get a slider added once at init(); ranges are a clinically
+// reasonable span for each, not hard limits — typing a value outside the slider's range
+// still works, the slider just won't reflect it exactly.
+const STATIC_SLIDER_FIELDS = [
+  ["v-urine-amount", 0, 300],
+  ["v-spo2", 0, 100],
+  ["v-feed-amount", 0, 500],
+  ["e-hr", 40, 300],
+  ["e-rr", 0, 100],
+  ["e-eye-od-stt", 0, 30],
+  ["e-eye-os-stt", 0, 30],
+  ["e-mgcs", 1, 18],
+  ["e-seizure-duration", 0, 60],
+  ["t-dehydration-percent", 0, 15],
+  ["t-ongoing-loss", 0, 100],
+  ["t-rehydration-rate", 0, 200],
+  ["t-resuscitation-rate", 0, 30],
+  ["t-icd-left-volume", 0, 500],
+  ["t-icd-right-volume", 0, 500],
+  ["t-thoraco-left-volume", 0, 500],
+  ["t-thoraco-right-volume", 0, 500],
+  ["t-abdomino-volume", 0, 1000],
+  ["t-cysto-volume", 0, 50]
+];
 
 function updateFluidBalanceDisplay() {
   const el = $("v-fluid-balance-display");
@@ -944,7 +1085,7 @@ function updateRehydrationCalc() {
 function updateNotePreview() {
   const record = collectForm();
   record.createdAtLocal = nowTimeLabel();
-  $("note-preview").textContent = buildNoteText(record);
+  $("note-preview").innerHTML = noteTextToHtml(buildNoteText(record));
 }
 
 // ===================== form reset =====================
@@ -967,6 +1108,8 @@ function resetForm() {
   $("v-fluid-balance-display").textContent = "";
   $("t-rehydration-calc-display").textContent = "";
   lastAutoRehydrationRate = null;
+
+  document.querySelectorAll("#screen-entry .value-slider").forEach((s) => { s.value = s.min; });
 
   activateDefault("p-species", "dog");
   activateDefault("v-temp-unit", "F");
@@ -993,6 +1136,7 @@ function resetForm() {
 
   document.querySelectorAll(".accordion").forEach((a, idx) => a.classList.toggle("open", idx === 0));
   updateReveals();
+  updateAccordionBadges();
   updateNotePreview();
 }
 
@@ -1204,7 +1348,8 @@ function populateForm(record) {
   setInputValue("t-o2-detail", tx.o2Detail);
   setChipFieldValue("t-wound-dressing", tx.woundDressing);
   setChipFieldValue("t-checklist", tx.checklist);
-  setChipFieldValue("t-case-status", tx.caseStatus);
+  setChipFieldValue("t-case-status", record.caseStatus);
+  setInputValue("t-other", tx.other);
   setChipFieldValue("t-icd", tx.icd);
   setChipFieldValue("t-icd-left-fluid", tx.icdLeftFluid);
   setInputValue("t-icd-left-volume", tx.icdLeftVolume);
@@ -1235,6 +1380,8 @@ function populateForm(record) {
   updateUopDisplay();
   updateFluidBalanceDisplay();
   updateRehydrationCalc();
+  syncAllValueSliders();
+  updateAccordionBadges();
   updateNotePreview();
 }
 
@@ -1261,17 +1408,19 @@ function renderList() {
         </div>
         <span class="record-card-time">${escapeHtml(r.createdAtLocal || "")}</span>
       </div>
-      <div class="record-card-note">${escapeHtml(r.noteText || "")}</div>
+      <div class="record-card-note">${noteTextToHtml(r.noteText)}</div>
       <div class="record-card-actions">
+        <button type="button" class="secondary-btn card-duplicate-btn">ทำซ้ำ</button>
         <button type="button" class="secondary-btn card-edit-btn">แก้ไข</button>
         <button type="button" class="danger-btn card-delete-btn">ลบรายการนี้</button>
       </div>
     `;
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".card-delete-btn") || e.target.closest(".card-edit-btn")) return;
+      if (e.target.closest(".card-delete-btn") || e.target.closest(".card-edit-btn") || e.target.closest(".card-duplicate-btn")) return;
       card.classList.toggle("expanded");
     });
     card.querySelector(".card-edit-btn").addEventListener("click", () => goToEditEntry(r));
+    card.querySelector(".card-duplicate-btn").addEventListener("click", () => goToDuplicateEntry(r));
     card.querySelector(".card-delete-btn").addEventListener("click", () => {
       confirmAction(
         "ลบบันทึกนี้?",
@@ -1284,22 +1433,27 @@ function renderList() {
 }
 
 // ===================== confirm modal =====================
-function confirmAction(title, message, onConfirm) {
+function confirmAction(title, message, onConfirm, opts) {
+  opts = opts || {};
   const modal = $("confirm-modal");
   $("confirm-title").textContent = title;
   $("confirm-message").textContent = message;
-  modal.hidden = false;
   const okBtn = $("confirm-ok-btn");
   const cancelBtn = $("confirm-cancel-btn");
+  okBtn.textContent = opts.confirmLabel || "ยืนยัน";
+  cancelBtn.textContent = opts.cancelLabel || "ยกเลิก";
+  modal.hidden = false;
   function cleanup() {
     modal.hidden = true;
     okBtn.removeEventListener("click", onOk);
-    cancelBtn.removeEventListener("click", onCancel);
+    cancelBtn.removeEventListener("click", onCancelClick);
+    okBtn.textContent = "ยืนยัน";
+    cancelBtn.textContent = "ยกเลิก";
   }
   function onOk() { cleanup(); onConfirm(); }
-  function onCancel() { cleanup(); }
+  function onCancelClick() { cleanup(); if (opts.onCancel) opts.onCancel(); }
   okBtn.addEventListener("click", onOk);
-  cancelBtn.addEventListener("click", onCancel);
+  cancelBtn.addEventListener("click", onCancelClick);
 }
 
 function showSaveSuccess(record, title, leadText, tailText) {
@@ -1391,14 +1545,43 @@ function goToList() {
   closeJumpNav();
 }
 
-function goToNewEntry() {
-  editingRecordId = null;
-  editingRecordCreatedAtLocal = null;
-  resetForm();
-  $("entry-title").textContent = "บันทึกใหม่";
+function showEntryScreen(title) {
+  $("entry-title").textContent = title;
   $("screen-list").hidden = true;
   $("screen-entry").hidden = false;
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+}
+
+function openFreshNewEntry() {
+  editingRecordId = null;
+  editingRecordCreatedAtLocal = null;
+  editingSnapshot = null;
+  resetForm();
+  showEntryScreen("บันทึกใหม่");
+}
+
+// FAB entry point: offers to restore an autosaved draft first, if one exists — protects
+// against losing a half-filled long form to an accidental close, a dropped connection, or
+// getting called away mid-exam.
+function goToNewEntry() {
+  const draft = loadDraft();
+  if (draft && hasMeaningfulContent(draft)) {
+    confirmAction(
+      "พบร่างที่ยังไม่ได้บันทึก",
+      `มีข้อมูลของ "${draft.name || "สัตว์ตัวหนึ่ง"}" กรอกค้างไว้จากครั้งก่อน ต้องการกู้คืนหรือเริ่มบันทึกใหม่?`,
+      () => {
+        editingRecordId = null;
+        editingRecordCreatedAtLocal = null;
+        editingSnapshot = null;
+        resetForm();
+        populateForm(draft);
+        showEntryScreen("บันทึกใหม่ (กู้คืนร่าง)");
+      },
+      { confirmLabel: "กู้คืนร่าง", cancelLabel: "เริ่มใหม่", onCancel: () => { clearDraft(); openFreshNewEntry(); } }
+    );
+    return;
+  }
+  openFreshNewEntry();
 }
 
 function goToEditEntry(record) {
@@ -1406,10 +1589,45 @@ function goToEditEntry(record) {
   editingRecordCreatedAtLocal = record.createdAtLocal || null;
   resetForm();
   populateForm(record);
-  $("entry-title").textContent = "แก้ไขบันทึก";
-  $("screen-list").hidden = true;
-  $("screen-entry").hidden = false;
-  window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+  editingSnapshot = JSON.stringify(collectForm());
+  showEntryScreen("แก้ไขบันทึก");
+}
+
+// Same as edit, but never touches the original doc — for a repeat check on the same
+// animal, start from its last recorded values and only change what's different this time.
+function goToDuplicateEntry(record) {
+  editingRecordId = null;
+  editingRecordCreatedAtLocal = null;
+  editingSnapshot = null;
+  resetForm();
+  populateForm(record);
+  showEntryScreen("บันทึกใหม่ (ทำซ้ำจากรายการก่อน)");
+}
+
+function handleExitEntry() {
+  if (editingRecordId) {
+    if (JSON.stringify(collectForm()) !== editingSnapshot) {
+      confirmAction(
+        "ออกจากการแก้ไขโดยไม่บันทึก?",
+        "การเปลี่ยนแปลงที่แก้ไขไว้จะไม่ถูกบันทึก ข้อมูลเดิมจะคงอยู่ตามเดิม",
+        goToList,
+        { confirmLabel: "ออกโดยไม่บันทึก", cancelLabel: "กรอกต่อ" }
+      );
+      return;
+    }
+    goToList();
+    return;
+  }
+  if (hasMeaningfulContent(collectForm())) {
+    confirmAction(
+      "ออกจากหน้านี้โดยไม่บันทึก?",
+      "ข้อมูลที่กรอกไว้จะถูกเก็บเป็นร่างในเครื่องนี้ชั่วคราว แตะ “+” ครั้งถัดไปจะถามว่าจะกู้คืนไหม",
+      goToList,
+      { confirmLabel: "ออกจากหน้านี้", cancelLabel: "กรอกต่อ" }
+    );
+    return;
+  }
+  goToList();
 }
 
 function unlockAndEnter() {
@@ -1505,6 +1723,8 @@ function init() {
     el.addEventListener("input", onFormChange);
   });
 
+  STATIC_SLIDER_FIELDS.forEach(([id, min, max]) => attachValueSlider($(id), min, max));
+
   document.querySelectorAll(".accordion-header").forEach((header) => {
     header.addEventListener("click", () => header.closest(".accordion").classList.toggle("open"));
   });
@@ -1548,8 +1768,8 @@ function init() {
   $("gate-passcode-input").addEventListener("keydown", (e) => { if (e.key === "Enter") attemptUnlock(); });
 
   $("new-entry-fab").addEventListener("click", goToNewEntry);
-  $("entry-back-btn").addEventListener("click", goToList);
-  $("entry-cancel-btn").addEventListener("click", goToList);
+  $("entry-back-btn").addEventListener("click", handleExitEntry);
+  $("entry-cancel-btn").addEventListener("click", handleExitEntry);
   $("save-success-ok-btn").addEventListener("click", () => {
     $("save-success-modal").hidden = true;
     goToList();
@@ -1573,6 +1793,7 @@ function init() {
       } else {
         await Promise.race([saveRecord(record), timeout]);
       }
+      clearDraft();
       showSaveSuccess(record, "✓ บันทึกสำเร็จ", "บันทึกข้อมูลของ", "เรียบร้อยแล้ว");
     } catch (err) {
       console.error("VETJOD save error", err);

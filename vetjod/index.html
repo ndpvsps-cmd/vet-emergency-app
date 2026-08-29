@@ -73,6 +73,7 @@
       <button type="button" class="jump-nav-btn" data-jump-to="section-exam">Physical exam</button>
       <button type="button" class="jump-nav-btn" data-jump-to="section-labs">Labs</button>
       <button type="button" class="jump-nav-btn" data-jump-to="section-tx">Tx</button>
+      <button type="button" class="jump-nav-btn" data-jump-to="section-note">Note</button>
       <button type="button" class="jump-nav-btn" data-jump-to="section-supply">เบิกของ</button>
       <button type="button" class="jump-nav-btn" data-jump-to="section-summary">สรุป</button>
     </nav>
@@ -1033,14 +1034,9 @@
             <div class="chips" id="t-checklist-chips"></div>
           </div>
 
-          <div class="field-group" data-field="t-case-status" data-multi="true">
-            <label>สถานะ/การส่งต่อ</label>
-            <div class="chips">
-              <button type="button" class="chip" data-value="โทรแจ้งอาการแล้ว">โทรแจ้งอาการแล้ว</button>
-              <button type="button" class="chip" data-value="ส่งตัวไปผ่าตัด">ส่งตัวไปผ่าตัด</button>
-              <button type="button" class="chip" data-value="ส่งตัวไปทำหัตถการ">ส่งตัวไปทำหัตถการ</button>
-              <button type="button" class="chip" data-value="ส่ง OPD ศัลยกรรม">ส่ง OPD ศัลยกรรม</button>
-            </div>
+          <div class="field-row">
+            <label for="t-other">อื่นๆ (free text)</label>
+            <textarea id="t-other" rows="2" placeholder="พิมพ์ Tx เพิ่มเติม..."></textarea>
           </div>
 
           <section class="accordion">
@@ -1184,6 +1180,29 @@
           </div>
             </div>
           </section>
+        </div>
+      </section>
+
+      <!-- ---- NOTE ---- -->
+      <section class="accordion" id="section-note">
+        <button type="button" class="accordion-header">
+          <span>Note</span><span class="accordion-caret">⌄</span>
+        </button>
+        <div class="accordion-body">
+          <div class="field-group" data-field="t-case-status" data-multi="true">
+            <label>สถานะ/การส่งต่อ</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="โทรแจ้งอาการแล้ว">โทรแจ้งอาการแล้ว</button>
+              <button type="button" class="chip" data-value="โทรแจ้งอาการไม่รับสาย">โทรแจ้งอาการไม่รับสาย</button>
+              <button type="button" class="chip" data-value="โทรแจ้งอาการแล้วอาการไม่ดี">โทรแจ้งอาการแล้วอาการไม่ดี</button>
+              <button type="button" class="chip" data-value="โทรแจ้งอาการแล้วจะเข้ามาเยี่ยม">โทรแจ้งอาการแล้วจะเข้ามาเยี่ยม</button>
+              <button type="button" class="chip" data-value="ส่งตัวไปผ่าตัด">ส่งตัวไปผ่าตัด</button>
+              <button type="button" class="chip" data-value="ส่งตัวไปทำหัตถการ">ส่งตัวไปทำหัตถการ</button>
+              <button type="button" class="chip" data-value="ส่ง OPD ศัลยกรรม">ส่ง OPD ศัลยกรรม</button>
+              <button type="button" class="chip" data-value="ยืนยันรับกลับเย็นนี้">ยืนยันรับกลับเย็นนี้</button>
+              <button type="button" class="chip" data-value="ยืนยันรับกลับพรุ่งนี้">ยืนยันรับกลับพรุ่งนี้</button>
+            </div>
+          </div>
         </div>
       </section>
 
