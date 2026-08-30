@@ -212,6 +212,50 @@
       </section>
     </div>
 
+    <div class="page" id="page-anaphylaxis" hidden>
+      <div class="patient-chip" id="patient-chip-anaphylaxis"></div>
+
+      <section class="panel" id="anaphylaxis-panel">
+        <h2>Acute Allergy and Anaphylaxis — ประเมินและแนวทางการรักษา</h2>
+        <p class="hint-text">อ้างอิงตาม RECOVER 2026 First Aid Guidelines: Acute Allergy and Anaphylaxis (Table 1, Table 2, และ Acute Hypersensitivity Reaction Algorithm)</p>
+
+        <div class="field-row">
+          <label>อาการเกิดแบบเฉียบพลันมาก (peracute — ภายในไม่กี่นาทีถึงชั่วโมง) ร่วมกับมีการสัมผัสสารก่อภูมิแพ้ที่เป็นไปได้หรือทราบแน่ชัด?</label>
+          <div class="species-toggle" role="group" aria-label="เลือก peracute onset + possible allergen exposure">
+            <button type="button" class="toggle-btn" data-anaphylaxis-onset="yes">ใช่</button>
+            <button type="button" class="toggle-btn" data-anaphylaxis-onset="no">ไม่ใช่</button>
+          </div>
+        </div>
+
+        <div id="anaphylaxis-signs-fields" hidden>
+          <label class="checkbox-row" style="margin: 10px 0;">
+            <input type="checkbox" id="anaphylaxis-cutaneous-checkbox"> มีอาการทางผิวหนัง/เยื่อเมือก (Urticaria/wheals/angioedema, Flushing, หรือ Pruritus)
+          </label>
+
+          <div class="field-row">
+            <label for="anaphylaxis-gi-select">อาการระบบทางเดินอาหาร</label>
+            <select id="anaphylaxis-gi-select">
+              <option value="none">ไม่มี</option>
+              <option value="mild">อาเจียนหรือท้องเสียเล็กน้อย ครั้งเดียว (self-limiting, isolated episode)</option>
+              <option value="persistent">อาเจียน ท้องเสีย หรือปวดท้อง ต่อเนื่อง (persistent)</option>
+            </select>
+          </div>
+
+          <div id="anaphylaxis-resp-fields"></div>
+          <div id="anaphylaxis-cv-fields"></div>
+
+          <label class="checkbox-row" style="margin: 10px 0;">
+            <input type="checkbox" id="anaphylaxis-collapse-checkbox"> ล้ม (Collapse) หรือความดันโลหิตต่ำ (Hypotension)
+          </label>
+
+          <p class="hint-text" style="margin-top: 14px;">อาการสนับสนุนการวินิจฉัยเพิ่มเติม (ใช้ในกรณีที่คะแนน ≥ 1 แต่ไม่มีอาการทางผิวหนัง)</p>
+          <div id="anaphylaxis-supporting-fields"></div>
+        </div>
+
+        <div id="anaphylaxis-result" class="result-box" hidden></div>
+      </section>
+    </div>
+
     <div class="page" id="page-menu" hidden>
       <section class="panel" id="menu-panel">
         <h2>เมนูทั้งหมด</h2>
@@ -234,6 +278,7 @@
             <button type="button" class="menu-card" data-page="se"><span class="menu-card-icon">⚡</span><span class="menu-card-label">SE ชัก</span></button>
             <button type="button" class="menu-card" data-page="rehydration"><span class="menu-card-icon">💦</span><span class="menu-card-label">สารน้ำ Rehydration</span></button>
             <button type="button" class="menu-card" data-page="bicarb"><span class="menu-card-icon">🧫</span><span class="menu-card-label">Sodium Bicarbonate</span></button>
+            <button type="button" class="menu-card" data-page="anaphylaxis"><span class="menu-card-icon">🐝</span><span class="menu-card-label">Allergy / Anaphylaxis</span></button>
           </div>
         </div>
 
@@ -872,6 +917,7 @@
   <script src="data/att-score.js"></script>
   <script src="data/anemia-score.js"></script>
   <script src="data/sodium-bicarbonate.js"></script>
+  <script src="data/anaphylaxis.js"></script>
   <script src="app.js"></script>
   <script src="nutrition.js"></script>
   <script src="potassium-calc.js"></script>
@@ -883,6 +929,7 @@
   <script src="att-score-calc.js"></script>
   <script src="anemia-calc.js"></script>
   <script src="sodium-bicarb-calc.js"></script>
+  <script src="anaphylaxis-calc.js"></script>
   <script src="rehydration-calc.js"></script>
   <script src="mascot.js"></script>
   <script src="sparkle-fx.js"></script>

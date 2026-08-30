@@ -7,7 +7,8 @@
 
   const state = {
     mode: "full",
-    selections: {}
+    selections: {},
+    editingKey: null
   };
 
   function round(num, decimals) {
@@ -24,33 +25,68 @@
     return state.mode === "full" ? APPLE_FULL_PARAMS : APPLE_FAST_PARAMS;
   }
 
+  function nextUnansweredKey() {
+    const params = currentParams();
+    const p = params.find((param) => state.selections[param.key] === undefined);
+    return p ? p.key : null;
+  }
+
+  // One parameter shown at a time as tappable option cards (labelled with each option's
+  // point value); answered parameters collapse into a compact summary row.
   function renderFields() {
     const params = currentParams();
-    state.selections = {};
-    fieldsEl.innerHTML = params.map((p) => {
-      const options = p.options.map((o, i) =>
-        `<option value="${i}">${o.label} (${o.points})</option>`
-      ).join("");
-      return `
-        <div class="field-row">
-          <label for="apple-field-${p.key}">${p.label}</label>
-          <select id="apple-field-${p.key}" data-key="${p.key}">
-            <option value="">— เลือก —</option>
-            ${options}
-          </select>
-        </div>
-      `;
+    const activeKey = state.editingKey || nextUnansweredKey();
+
+    fieldsEl.innerHTML = params.map((param, idx) => {
+      const selectedIdx = state.selections[param.key];
+
+      if (param.key === activeKey) {
+        const optionsHtml = param.options.map((o, i) => {
+          const isActive = selectedIdx === i;
+          return `
+            <button type="button" class="step-option-btn ${isActive ? "active" : ""}" data-key="${param.key}" data-index="${i}">
+              <span class="step-option-score">${o.points}</span>${o.label}
+            </button>
+          `;
+        }).join("");
+        return `
+          <div class="step-header">
+            <h3>${param.label}</h3>
+            <span class="step-counter">พารามิเตอร์ ${idx + 1}/${params.length}</span>
+          </div>
+          ${optionsHtml}
+        `;
+      }
+
+      if (selectedIdx !== undefined) {
+        const opt = param.options[selectedIdx];
+        return `
+          <button type="button" class="step-summary-row" data-edit-key="${param.key}">
+            <span>
+              <span class="step-summary-label">${param.label}</span>
+              <span class="step-summary-value">${opt.points} — ${opt.label}</span>
+            </span>
+            <span class="step-summary-edit">แก้ไข</span>
+          </button>
+        `;
+      }
+
+      return "";
     }).join("");
 
-    fieldsEl.querySelectorAll("select").forEach((sel) => {
-      sel.addEventListener("change", () => {
-        const key = sel.dataset.key;
-        if (sel.value === "") {
-          delete state.selections[key];
-        } else {
-          state.selections[key] = parseInt(sel.value, 10);
-        }
+    fieldsEl.querySelectorAll(".step-option-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.selections[btn.dataset.key] = parseInt(btn.dataset.index, 10);
+        state.editingKey = null;
+        renderFields();
         refresh();
+      });
+    });
+
+    fieldsEl.querySelectorAll("[data-edit-key]").forEach((row) => {
+      row.addEventListener("click", () => {
+        state.editingKey = row.dataset.editKey;
+        renderFields();
       });
     });
 
@@ -62,6 +98,8 @@
       modeButtons.forEach((b) => b.classList.remove("active"));
       btn.classList.add("active");
       state.mode = btn.dataset.appleMode;
+      state.selections = {};
+      state.editingKey = null;
       renderFields();
     });
   });

@@ -4,37 +4,75 @@
   const fieldsEl = document.getElementById("mgcs-fields");
   const resultEl = document.getElementById("mgcs-result");
 
-  const state = { selections: {} };
+  const state = { selections: {}, editingKey: null };
 
   function findBand(score) {
     return MGCS_PROGNOSIS_BANDS.find((b) => score >= b.low && score <= b.high) || null;
   }
 
+  // The next category with no answer yet — drives the step-by-step flow forward.
+  function nextUnansweredKey() {
+    const cat = MGCS_CATEGORIES.find((c) => state.selections[c.key] === undefined);
+    return cat ? cat.key : null;
+  }
+
+  // Renders each category as either: a compact answered summary row (tap to re-open and
+  // change it), or — for the single category currently being answered — its full list of
+  // tappable option cards. Categories not yet reached simply don't render yet, so the form
+  // reveals itself one step at a time instead of showing three long dropdowns at once.
   function renderFields() {
-    fieldsEl.innerHTML = MGCS_CATEGORIES.map((cat) => {
-      const options = cat.options.map((o) =>
-        `<option value="${o.score}">${o.score} — ${o.label}</option>`
-      ).join("");
-      return `
-        <div class="field-row">
-          <label for="mgcs-field-${cat.key}">${cat.label}</label>
-          <select id="mgcs-field-${cat.key}" data-key="${cat.key}">
-            <option value="">— เลือก —</option>
-            ${options}
-          </select>
-        </div>
-      `;
+    const activeKey = state.editingKey || nextUnansweredKey();
+
+    fieldsEl.innerHTML = MGCS_CATEGORIES.map((cat, idx) => {
+      const selected = state.selections[cat.key];
+
+      if (cat.key === activeKey) {
+        const optionsHtml = cat.options.map((o) => {
+          const isActive = selected === o.score;
+          return `
+            <button type="button" class="step-option-btn ${isActive ? "active" : ""}" data-key="${cat.key}" data-score="${o.score}">
+              <span class="step-option-score">${o.score}</span>${o.label}
+            </button>
+          `;
+        }).join("");
+        return `
+          <div class="step-header">
+            <h3>${idx + 1}. ${cat.label}</h3>
+            <span class="step-counter">หมวดที่ ${idx + 1}/${MGCS_CATEGORIES.length}</span>
+          </div>
+          ${optionsHtml}
+        `;
+      }
+
+      if (selected !== undefined) {
+        const opt = cat.options.find((o) => o.score === selected);
+        return `
+          <button type="button" class="step-summary-row" data-edit-key="${cat.key}">
+            <span>
+              <span class="step-summary-label">${idx + 1}. ${cat.label}</span>
+              <span class="step-summary-value">${selected} — ${opt.label}</span>
+            </span>
+            <span class="step-summary-edit">แก้ไข</span>
+          </button>
+        `;
+      }
+
+      return "";
     }).join("");
 
-    fieldsEl.querySelectorAll("select").forEach((sel) => {
-      sel.addEventListener("change", () => {
-        const key = sel.dataset.key;
-        if (sel.value === "") {
-          delete state.selections[key];
-        } else {
-          state.selections[key] = parseInt(sel.value, 10);
-        }
+    fieldsEl.querySelectorAll(".step-option-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.selections[btn.dataset.key] = parseInt(btn.dataset.score, 10);
+        state.editingKey = null;
+        renderFields();
         refresh();
+      });
+    });
+
+    fieldsEl.querySelectorAll("[data-edit-key]").forEach((row) => {
+      row.addEventListener("click", () => {
+        state.editingKey = row.dataset.editKey;
+        renderFields();
       });
     });
   }

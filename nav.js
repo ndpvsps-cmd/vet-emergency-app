@@ -15,7 +15,8 @@
     att: document.getElementById("page-att"),
     rehydration: document.getElementById("page-rehydration"),
     anemia: document.getElementById("page-anemia"),
-    bicarb: document.getElementById("page-bicarb")
+    bicarb: document.getElementById("page-bicarb"),
+    anaphylaxis: document.getElementById("page-anaphylaxis")
   };
   // Pages reachable directly from the bottom nav. Any other page (opened via the
   // menu grid) keeps the "เมนูทั้งหมด" tab highlighted instead of leaving nothing active.
@@ -35,7 +36,8 @@
     document.getElementById("patient-chip-att"),
     document.getElementById("patient-chip-rehydration"),
     document.getElementById("patient-chip-anemia"),
-    document.getElementById("patient-chip-bicarb")
+    document.getElementById("patient-chip-bicarb"),
+    document.getElementById("patient-chip-anaphylaxis")
   ];
 
   const weightKgInput = document.getElementById("weight-kg");

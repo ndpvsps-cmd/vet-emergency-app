@@ -4,37 +4,72 @@
   const fieldsEl = document.getElementById("att-fields");
   const resultEl = document.getElementById("att-result");
 
-  const state = { selections: {} };
+  const state = { selections: {}, editingKey: null };
 
   function findBand(score) {
     return ATT_PROGNOSIS_BANDS.find((b) => score >= b.low && score <= b.high) || null;
   }
 
+  function nextUnansweredKey() {
+    const cat = ATT_CATEGORIES.find((c) => state.selections[c.key] === undefined);
+    return cat ? cat.key : null;
+  }
+
+  // One category shown at a time as tappable option cards; answered categories collapse
+  // into a compact summary row (tap "แก้ไข" to reopen and change it).
   function renderFields() {
-    fieldsEl.innerHTML = ATT_CATEGORIES.map((cat) => {
-      const options = cat.options.map((o) =>
-        `<option value="${o.score}">${o.score} — ${o.label}</option>`
-      ).join("");
-      return `
-        <div class="field-row">
-          <label for="att-field-${cat.key}">${cat.label}</label>
-          <select id="att-field-${cat.key}" data-key="${cat.key}">
-            <option value="">— เลือก —</option>
-            ${options}
-          </select>
-        </div>
-      `;
+    const activeKey = state.editingKey || nextUnansweredKey();
+
+    fieldsEl.innerHTML = ATT_CATEGORIES.map((cat, idx) => {
+      const selected = state.selections[cat.key];
+
+      if (cat.key === activeKey) {
+        const optionsHtml = cat.options.map((o) => {
+          const isActive = selected === o.score;
+          return `
+            <button type="button" class="step-option-btn ${isActive ? "active" : ""}" data-key="${cat.key}" data-score="${o.score}">
+              <span class="step-option-score">${o.score}</span>${o.label}
+            </button>
+          `;
+        }).join("");
+        return `
+          <div class="step-header">
+            <h3>${cat.label}</h3>
+            <span class="step-counter">ระบบที่ ${idx + 1}/${ATT_CATEGORIES.length}</span>
+          </div>
+          ${optionsHtml}
+        `;
+      }
+
+      if (selected !== undefined) {
+        const opt = cat.options.find((o) => o.score === selected);
+        return `
+          <button type="button" class="step-summary-row" data-edit-key="${cat.key}">
+            <span>
+              <span class="step-summary-label">${cat.label}</span>
+              <span class="step-summary-value">${selected} — ${opt.label}</span>
+            </span>
+            <span class="step-summary-edit">แก้ไข</span>
+          </button>
+        `;
+      }
+
+      return "";
     }).join("");
 
-    fieldsEl.querySelectorAll("select").forEach((sel) => {
-      sel.addEventListener("change", () => {
-        const key = sel.dataset.key;
-        if (sel.value === "") {
-          delete state.selections[key];
-        } else {
-          state.selections[key] = parseInt(sel.value, 10);
-        }
+    fieldsEl.querySelectorAll(".step-option-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.selections[btn.dataset.key] = parseInt(btn.dataset.score, 10);
+        state.editingKey = null;
+        renderFields();
         refresh();
+      });
+    });
+
+    fieldsEl.querySelectorAll("[data-edit-key]").forEach((row) => {
+      row.addEventListener("click", () => {
+        state.editingKey = row.dataset.editKey;
+        renderFields();
       });
     });
   }

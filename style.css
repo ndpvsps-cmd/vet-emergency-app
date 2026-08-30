@@ -506,6 +506,101 @@ input[type="range"] {
   border: 1px solid rgba(138, 99, 20, 0.25);
 }
 
+/* Step-by-step single-choice picker (MGCS and similar multi-category scored forms) */
+.step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0 10px;
+}
+
+.step-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.step-counter {
+  font-size: 0.82rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.step-option-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-panel-alt);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.step-option-score {
+  display: inline-block;
+  min-width: 22px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin-right: 8px;
+}
+
+.step-option-btn.active {
+  border-color: var(--color-primary);
+  background: var(--gradient-gold);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  font-weight: 600;
+}
+
+.step-option-btn.active .step-option-score {
+  color: #ffffff;
+}
+
+.step-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-panel);
+  color: var(--color-text);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.step-summary-label {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--color-muted);
+}
+
+.step-summary-value {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.step-summary-edit {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--color-primary-bright);
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
 .drug-list {
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -962,7 +1057,7 @@ a.menu-card {
 
 @media print {
   .disclaimer, header, #input-panel, #calculator-panel, .print-btn, footer,
-  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se, #page-apple, #page-mgcs, #page-att, #page-rehydration, #page-anemia, #page-bicarb, #page-menu {
+  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se, #page-apple, #page-mgcs, #page-att, #page-rehydration, #page-anemia, #page-bicarb, #page-anaphylaxis, #page-menu {
     display: none !important;
   }
   #page-drugs {
