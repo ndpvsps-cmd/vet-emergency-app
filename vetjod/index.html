@@ -5,6 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>VETJOD</title>
 <meta name="theme-color" content="#0f172a">
+<script>
+// Applied before CSS loads so a saved light-mode preference doesn't flash dark first.
+(function () {
+  try {
+    if (localStorage.getItem("vetjod_theme") === "light") {
+      document.documentElement.dataset.theme = "light";
+    }
+  } catch (e) { /* localStorage unavailable — default dark theme applies */ }
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
@@ -33,6 +43,7 @@
         <span class="brand-date" id="today-date-label"></span>
       </div>
       <div class="app-header-actions">
+        <button type="button" class="icon-btn" id="theme-toggle-btn" title="สลับโหมดสี" aria-label="สลับโหมดสี">🌙</button>
         <button type="button" class="icon-btn" id="export-btn" title="ส่งออกข้อมูลวันนี้" aria-label="ส่งออกข้อมูลวันนี้">⇪</button>
         <button type="button" class="icon-btn icon-btn-danger" id="new-day-btn" title="เริ่มบันทึกวันใหม่" aria-label="เริ่มบันทึกวันใหม่">🗑</button>
       </div>
@@ -42,6 +53,8 @@
       <input type="text" id="list-search-input" placeholder="ค้นหาชื่อสัตว์...">
       <span class="list-count" id="list-count">0 รายการ</span>
     </div>
+
+    <div class="vet-filter-bar" id="vet-filter-bar" hidden></div>
 
     <div class="sync-banner" id="sync-banner" hidden></div>
 
@@ -84,6 +97,14 @@
         <div class="field-row">
           <label for="p-name">ชื่อสัตว์</label>
           <input type="text" id="p-name" placeholder="เช่น น้องโบว์">
+          <div class="quick-chips" id="p-name-recent"></div>
+        </div>
+        <div class="field-row">
+          <label for="p-vet">ผู้ดูแล/หมอเจ้าของไข้</label>
+          <select id="p-vet">
+            <option value="">— ไม่ระบุ —</option>
+          </select>
+          <div class="quick-chips" id="p-vet-recent"></div>
         </div>
         <div class="field-row">
           <label>ชนิดสัตว์</label>
@@ -293,6 +314,7 @@
               <button type="button" class="chip" data-value="obtunded">Obtunded</button>
               <button type="button" class="chip" data-value="stuporous">Stuporous</button>
               <button type="button" class="chip" data-value="comatose">Comatose</button>
+              <button type="button" class="chip" data-value="disoriented">Disoriented</button>
               <button type="button" class="chip" data-value="with vocalization">With vocalization</button>
             </div>
           </div>
@@ -405,6 +427,7 @@
               <button type="button" class="chip" data-value="decrease">Decrease</button>
               <button type="button" class="chip" data-value="increase">Increase</button>
               <button type="button" class="chip" data-value="crackle">Crackle</button>
+              <button type="button" class="chip" data-value="purring">Purring</button>
             </div>
           </div>
           <div class="reveal-block" data-show-field="e-lung-sound" data-show-values="decrease,increase,crackle" hidden>
@@ -991,11 +1014,17 @@
             <label for="t-rehydration-start">เวลาเริ่มให้ Rehydration</label>
             <input type="time" id="t-rehydration-start">
           </div>
-          <div class="field-row">
-            <label for="t-dehydration-percent">ภาวะขาดน้ำ (% Dehydration)</label>
-            <div class="number-input-row">
-              <input type="number" id="t-dehydration-percent" step="1" min="0" max="15" placeholder="เช่น 8">
-              <span class="unit">%</span>
+          <div class="field-group" data-field="t-dehydration-percent" data-multi="false">
+            <label>ภาวะขาดน้ำ (% Dehydration)</label>
+            <div class="chips">
+              <button type="button" class="chip" data-value="0">Normal</button>
+              <button type="button" class="chip" data-value="5">5%</button>
+              <button type="button" class="chip" data-value="6">6%</button>
+              <button type="button" class="chip" data-value="7">7%</button>
+              <button type="button" class="chip" data-value="8">8%</button>
+              <button type="button" class="chip" data-value="9">9%</button>
+              <button type="button" class="chip" data-value="10">10%</button>
+              <button type="button" class="chip" data-value="12">12%</button>
             </div>
           </div>
           <div class="field-row">
@@ -1229,6 +1258,11 @@
               <button type="button" class="chip" data-value="ยืนยันรับกลับเย็นนี้">ยืนยันรับกลับเย็นนี้</button>
               <button type="button" class="chip" data-value="ยืนยันรับกลับพรุ่งนี้">ยืนยันรับกลับพรุ่งนี้</button>
             </div>
+          </div>
+
+          <div class="field-row">
+            <label for="t-note-other">อื่นๆ (free text)</label>
+            <textarea id="t-note-other" rows="2" placeholder="พิมพ์ note เพิ่มเติม..."></textarea>
           </div>
         </div>
       </section>

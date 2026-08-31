@@ -20,7 +20,7 @@ const WOUND_DRESSING_PROTOCOLS = [
 
 const TX_CHECKLIST = [
   "New IV cath", "Wash", "Urine cauterization", "Splint",
-  "Stitch off", "Ear cleaning", "Wash mouth", "Eye drop"
+  "Stitch off", "Ear cleaning", "Wash mouth", "Eye drop", "Void urine"
 ];
 
 const LABS_ITEMS = [
@@ -61,6 +61,18 @@ const CAVITY_FLUID_TYPES = [
 const THORACO_FLUID_TYPES = [...CAVITY_FLUID_TYPES, "Air"];
 
 const ICD_FLUID_TYPES = ["Serosanguinous fluid", "Purulent fluid", "Chylous fluid", "Bloody fluid", "Air"];
+
+// Attending-vet list — used to populate the "ผู้ดูแล/หมอเจ้าของไข้" dropdown and the
+// "filter by vet" bar on the today's-records list. Edit this list directly to add/remove names.
+const VET_NAMES = [
+  "NDP", "PS", "CN", "AoFFY", "JJ", "JL", "MAY", "NM", "NRT", "NRL",
+  "SH", "KY", "SP", "SDT", "NP", "PK", "NB", "SW", "TOMO", "SS",
+  "หมอมาร์ค", "FON", "AJ.Supranee", "AJ.DK", "AJ.NAMPAH", "AJ.TS", "Pimsiri",
+  "หมอนก", "TWS (หมอกระต่าย)", "PW (หมอเดียร์)", "AJ.Kajib", "NOK (Dent)",
+  "ICE", "PRAEWA", "NICE(DENT)", "หมอปอย", "หมอกี", "ศัลยกกรม", "รังสี",
+  "POON", "PANANG (INT)", "หมอพีช", "BAN (INT)", "AUM (INT)", "NL",
+  "KAO (INT)", "NICE (INT)", "PUPEI (INT)", "POPEYE (INT)", "CY (INT)", "POOM (DENT)"
+];
 
 const SUPPLY_ITEMS = [
   { id: "ivcath", label: "IV Cath" },

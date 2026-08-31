@@ -18,6 +18,7 @@ const db = initializeFirestore(fbApp, {
 });
 
 let todayRecords = [];
+let activeVetFilter = "";
 let unsubscribeToday = null;
 let editingRecordId = null;
 let editingRecordCreatedAtLocal = null;
@@ -37,7 +38,8 @@ function escapeHtml(str) {
 // stands out from its values, and the [time] name - species line reads as the card title.
 function noteTextToHtml(noteText) {
   return (noteText || "").split("\n").map((line, idx) => {
-    if (idx === 0) return `<span class="note-header-line">${escapeHtml(line)}</span>`;
+    if (idx === 0) return `<span class="note-admit-line">${escapeHtml(line)}</span>`;
+    if (idx === 1) return `<span class="note-header-line">${escapeHtml(line)}</span>`;
     if (line.startsWith("- ")) return `<span class="note-item">${escapeHtml(line)}</span>`;
     // label-only ("Tx:") or "label: content" — content half is optional so a bare
     // section header (followed by its own "- item" lines) still gets bolded
@@ -176,11 +178,84 @@ function clearDraft() {
   try { localStorage.removeItem(DRAFT_STORAGE_KEY); } catch (e) { /* nothing to do */ }
 }
 
+// ===================== recent-vet / recent-name quick shortcuts =====================
+// Per-device convenience only (localStorage, not synced) — lets whoever is holding this
+// phone tap their own name / a repeat patient's name instead of hunting through the list.
+const RECENT_VETS_KEY = "vetjod_recent_vets";
+const RECENT_NAMES_KEY = "vetjod_recent_names";
+
+function loadRecentList(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function pushRecent(key, value, max) {
+  if (!value) return;
+  const list = [value, ...loadRecentList(key).filter((v) => v !== value)].slice(0, max);
+  try { localStorage.setItem(key, JSON.stringify(list)); } catch (e) { /* nothing to do */ }
+}
+
+// Recent animals carry species + weight along with the name, so tapping a repeat
+// patient's name shortcut also fills in those two — not just the name itself.
+function pushRecentAnimal(record) {
+  if (!record.name) return;
+  const list = [
+    { name: record.name, species: record.species, weightKg: record.weightKg },
+    ...loadRecentList(RECENT_NAMES_KEY).filter((a) => a && a.name !== record.name)
+  ].slice(0, 10);
+  try { localStorage.setItem(RECENT_NAMES_KEY, JSON.stringify(list)); } catch (e) { /* nothing to do */ }
+}
+
+function recordRecentUsage(record) {
+  pushRecent(RECENT_VETS_KEY, record.vet, 4);
+  pushRecentAnimal(record);
+}
+
+function renderRecentShortcuts() {
+  const vetBar = $("p-vet-recent");
+  vetBar.innerHTML = loadRecentList(RECENT_VETS_KEY).map((v) =>
+    `<button type="button" class="chip chip-sm" data-recent-vet="${escapeHtml(v)}">${escapeHtml(v)}</button>`
+  ).join("");
+  vetBar.querySelectorAll("[data-recent-vet]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const sel = $("p-vet");
+      sel.value = btn.dataset.recentVet;
+      sel.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  });
+
+  const nameBar = $("p-name-recent");
+  const recentAnimals = loadRecentList(RECENT_NAMES_KEY);
+  nameBar.innerHTML = recentAnimals.map((a, idx) =>
+    `<button type="button" class="chip chip-sm" data-recent-index="${idx}">${escapeHtml(a.name)}</button>`
+  ).join("");
+  nameBar.querySelectorAll("[data-recent-index]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const animal = recentAnimals[Number(btn.dataset.recentIndex)];
+      if (!animal) return;
+      $("p-name").value = animal.name;
+      if (animal.species) setChipFieldValue("p-species", animal.species);
+      if (animal.weightKg != null) {
+        $("p-weight").value = animal.weightKg;
+        syncSliderFromInput("p-weight-slider", "p-weight");
+      }
+      onFormChange();
+    });
+  });
+}
+
 // A name alone counts, but so does having filled in real clinical data without a name
 // yet — checked via whether the generated note has more than just its header line.
 function hasMeaningfulContent(record) {
   if (record.name && record.name.trim()) return true;
-  return buildNoteText(record).split("\n").length > 1;
+  // buildNoteText always emits an "ADMIT (...)" line plus the [time] name - species
+  // header, even for a blank form — so "more than that" means 2 lines, not 1.
+  return buildNoteText(record).split("\n").length > 2;
 }
 
 function autosaveDraftIfNeeded() {
@@ -445,13 +520,15 @@ function collectForm() {
   const fluidsList = collectFluids();
   const fluidInRate = fluidsList.reduce((sum, f) => sum + (f.rate || 0), 0) || null;
   const fluidBalance = computeFluidBalance(weightKg, fluidInRate, uop);
-  const dehydrationPercent = num("t-dehydration-percent");
+  const dehydrationPercentVal = getFieldValue("t-dehydration-percent");
+  const dehydrationPercent = dehydrationPercentVal != null ? parseFloat(dehydrationPercentVal) : null;
   const rehydrationHoursVal = getFieldValue("t-rehydration-hours");
   const ongoingLoss = num("t-ongoing-loss");
   const rehydrationCalc = computeRehydration(weightKg, dehydrationPercent, parseFloat(rehydrationHoursVal || ""), ongoingLoss);
 
   return {
     name: val("p-name"),
+    vet: val("p-vet"),
     species: getFieldValue("p-species") || "dog",
     weightKg,
     vitals: {
@@ -593,6 +670,7 @@ function collectForm() {
       otherProcedure: val("t-other-procedure")
     },
     caseStatus: getFieldValue("t-case-status"),
+    caseStatusOther: val("t-note-other"),
     supply: collectSupply(),
     dietOut: getFieldValue("s-diet-out")
   };
@@ -788,7 +866,7 @@ function buildTxParts(tx) {
   if (tx.rehydrationRate != null) {
     let s = `Rehydration ${tx.rehydrationRate} mL/h`;
     const bits = [];
-    if (tx.dehydrationPercent != null) bits.push(`${tx.dehydrationPercent}% dehydration`);
+    if (tx.dehydrationPercent != null) bits.push(tx.dehydrationPercent === 0 ? "normal hydration" : `${tx.dehydrationPercent}% dehydration`);
     if (tx.rehydrationHours) bits.push(`${tx.rehydrationHours} h`);
     if (tx.rehydrationStart) bits.push(`from ${tx.rehydrationStart}`);
     if (tx.ongoingLoss) bits.push(`ongoing loss ${tx.ongoingLoss} mL/h`);
@@ -866,6 +944,8 @@ function buildSupplyParts(supply) {
 
 function buildNoteText(record) {
   const lines = [];
+  lines.push(`ADMIT (${todayLabel()}, ${record.vet || "ไม่ระบุ"})`);
+
   const headerBits = [];
   headerBits.push(record.name || "(ไม่ระบุชื่อ)");
   headerBits.push(speciesLabel(record.species));
@@ -915,7 +995,13 @@ function buildNoteText(record) {
     txParts.forEach((p) => lines.push("- " + p));
   }
 
-  if (fmtList(record.caseStatus)) lines.push("Note: " + fmtList(record.caseStatus));
+  const noteParts = [];
+  if (Array.isArray(record.caseStatus)) noteParts.push(...record.caseStatus);
+  if (record.caseStatusOther) noteParts.push(record.caseStatusOther);
+  if (noteParts.length) {
+    lines.push("Note:");
+    noteParts.forEach((p) => lines.push("- " + p));
+  }
 
   const supplyParts = buildSupplyParts(record.supply);
   if (supplyParts.length) lines.push("เบิกเวชภัณฑ์: " + supplyParts.join(", "));
@@ -1027,7 +1113,6 @@ const STATIC_SLIDER_FIELDS = [
   ["e-eye-os-stt", 0, 30],
   ["e-mgcs", 1, 18],
   ["e-seizure-duration", 0, 60],
-  ["t-dehydration-percent", 0, 15],
   ["t-ongoing-loss", 0, 100],
   ["t-rehydration-rate", 0, 200],
   ["t-resuscitation-rate", 0, 30],
@@ -1065,7 +1150,8 @@ let lastAutoRehydrationRate = null;
 function updateRehydrationCalc() {
   const el = $("t-rehydration-calc-display");
   const weightKg = num("p-weight");
-  const percent = num("t-dehydration-percent");
+  const percentVal = getFieldValue("t-dehydration-percent");
+  const percent = percentVal != null ? parseFloat(percentVal) : null;
   const hours = parseFloat(getFieldValue("t-rehydration-hours") || "");
   const ongoingLoss = num("t-ongoing-loss");
   const calc = computeRehydration(weightKg, percent, hours, ongoingLoss);
@@ -1103,6 +1189,7 @@ function resetForm() {
   document.querySelectorAll("#screen-entry input[type=text], #screen-entry input[type=number], #screen-entry input[type=time], #screen-entry textarea")
     .forEach((i) => { i.value = ""; });
   document.querySelectorAll("#screen-entry .chip-other-input").forEach((i) => { i.hidden = true; });
+  $("p-vet").value = "";
   $("fluids-detail-list").innerHTML = "";
   $("labs-list").innerHTML = "";
   $("supply-detail-list").innerHTML = "";
@@ -1231,6 +1318,7 @@ function populateForm(record) {
   const tx = record.tx || {};
 
   setInputValue("p-name", record.name);
+  setInputValue("p-vet", record.vet);
   setChipFieldValue("p-species", record.species);
   setInputValue("p-weight", record.weightKg);
   syncSliderFromInput("p-weight-slider", "p-weight");
@@ -1341,7 +1429,7 @@ function populateForm(record) {
   populateLabs(record.labs);
 
   setInputValue("t-rehydration-start", tx.rehydrationStart);
-  setInputValue("t-dehydration-percent", tx.dehydrationPercent);
+  setChipFieldValue("t-dehydration-percent", tx.dehydrationPercent != null ? String(tx.dehydrationPercent) : null);
   setInputValue("t-ongoing-loss", tx.ongoingLoss);
   setChipFieldValue("t-rehydration-hours", tx.rehydrationHours || "8");
   setInputValue("t-rehydration-rate", tx.rehydrationRate);
@@ -1352,6 +1440,7 @@ function populateForm(record) {
   setChipFieldValue("t-wound-dressing", tx.woundDressing);
   setChipFieldValue("t-checklist", tx.checklist);
   setChipFieldValue("t-case-status", record.caseStatus);
+  setInputValue("t-note-other", record.caseStatusOther);
   setInputValue("t-other", tx.other);
   setChipFieldValue("t-icd", tx.icd);
   setChipFieldValue("t-icd-left-fluid", tx.icdLeftFluid);
@@ -1389,11 +1478,35 @@ function populateForm(record) {
 }
 
 // ===================== record card list =====================
+function renderVetFilterBar() {
+  const bar = $("vet-filter-bar");
+  const vetsPresent = VET_NAMES.filter((v) => todayRecords.some((r) => r.vet === v));
+  if (!vetsPresent.length) {
+    bar.hidden = true;
+    bar.innerHTML = "";
+    if (activeVetFilter) activeVetFilter = "";
+    return;
+  }
+  if (activeVetFilter && !vetsPresent.includes(activeVetFilter)) activeVetFilter = "";
+  bar.hidden = false;
+  bar.innerHTML = [`<button type="button" class="vet-filter-chip${activeVetFilter ? "" : " active"}" data-vet="">ทั้งหมด</button>`]
+    .concat(vetsPresent.map((v) => `<button type="button" class="vet-filter-chip${activeVetFilter === v ? " active" : ""}" data-vet="${escapeHtml(v)}">${escapeHtml(v)}</button>`))
+    .join("");
+  bar.querySelectorAll(".vet-filter-chip").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      activeVetFilter = btn.dataset.vet;
+      renderList();
+    });
+  });
+}
+
 function renderList() {
   const listEl = $("card-list");
   const emptyEl = $("empty-state");
+  renderVetFilterBar();
   const search = $("list-search-input").value.trim().toLowerCase();
   const filtered = todayRecords.filter((r) => {
+    if (activeVetFilter && r.vet !== activeVetFilter) return false;
     if (!search) return true;
     return (r.name || "").toLowerCase().includes(search);
   });
@@ -1407,7 +1520,7 @@ function renderList() {
     card.innerHTML = `
       <div class="record-card-top">
         <div>
-          <span class="record-card-id">${escapeHtml(r.name || "(ไม่ระบุชื่อ)")}</span>
+          <span class="record-card-id">${escapeHtml(r.name || "(ไม่ระบุชื่อ)")}</span>${r.vet ? `<span class="record-card-vet">${escapeHtml(r.vet)}</span>` : ""}
         </div>
         <span class="record-card-time">${escapeHtml(r.createdAtLocal || "")}</span>
       </div>
@@ -1552,6 +1665,7 @@ function showEntryScreen(title) {
   $("entry-title").textContent = title;
   $("screen-list").hidden = true;
   $("screen-entry").hidden = false;
+  renderRecentShortcuts();
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
 }
 
@@ -1668,7 +1782,31 @@ onAuthStateChanged(auth, (user) => {
 });
 
 // ===================== init =====================
+// ===================== light/dark theme toggle =====================
+// The saved preference is applied earlier by an inline script in <head> (before this
+// file even loads) so there's no flash of the wrong theme — this just keeps the toggle
+// button's icon in sync and wires up switching it.
+const THEME_STORAGE_KEY = "vetjod_theme";
+
+function currentTheme() {
+  return document.documentElement.dataset.theme === "light" ? "light" : "dark";
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  try { localStorage.setItem(THEME_STORAGE_KEY, theme); } catch (e) { /* nothing to do */ }
+  const btn = $("theme-toggle-btn");
+  if (btn) btn.textContent = theme === "light" ? "☀️" : "🌙";
+}
+
+function initTheme() {
+  applyTheme(currentTheme());
+  const btn = $("theme-toggle-btn");
+  if (btn) btn.addEventListener("click", () => applyTheme(currentTheme() === "light" ? "dark" : "light"));
+}
+
 function init() {
+  initTheme();
   renderLabsContainer();
   renderSupply();
   renderFluidsContainer();
@@ -1691,6 +1829,7 @@ function init() {
   $("t-thoraco-right-fluid-chips").innerHTML = chipsHtml(THORACO_FLUID_TYPES);
   $("t-abdomino-fluid-chips").innerHTML = chipsHtml(CAVITY_FLUID_TYPES);
   $("s-diet-out-chips").innerHTML = chipsHtml(DIET_TYPES) + '<button type="button" class="chip" data-value="__other__">อื่นๆ</button>';
+  $("p-vet").insertAdjacentHTML("beforeend", VET_NAMES.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join(""));
 
   document.addEventListener("click", chipClickHandler);
 
@@ -1722,7 +1861,7 @@ function init() {
   });
   $("v-temp").addEventListener("input", () => syncSliderFromInput("v-temp-slider", "v-temp"));
 
-  document.querySelectorAll("#screen-entry input, #screen-entry textarea").forEach((el) => {
+  document.querySelectorAll("#screen-entry input, #screen-entry textarea, #screen-entry select").forEach((el) => {
     el.addEventListener("input", onFormChange);
   });
 
@@ -1797,10 +1936,12 @@ function init() {
         await Promise.race([saveRecord(record), timeout]);
       }
       clearDraft();
+      recordRecentUsage(record);
       showSaveSuccess(record, "✓ บันทึกสำเร็จ", "บันทึกข้อมูลของ", "เรียบร้อยแล้ว");
     } catch (err) {
       console.error("VETJOD save error", err);
       if (err.message === "timeout") {
+        recordRecentUsage(record);
         showSaveSuccess(record, "⏳ เชื่อมต่อช้า", "ข้อมูลของ", "ถูกบันทึกลงเครื่องแล้ว และจะขึ้น sync ขึ้นระบบกลางอัตโนมัติทันทีที่เชื่อมต่อได้ — ตรวจสอบรายการได้ที่หน้าแรก");
       } else {
         showToast("บันทึกไม่สำเร็จ — ตรวจสอบการเชื่อมต่อแล้วลองใหม่");
