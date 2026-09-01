@@ -230,6 +230,12 @@ button, input, textarea, select {
   color: var(--vj-danger-text);
 }
 
+.icon-btn-save {
+  background: var(--gradient-brand);
+  border-color: transparent;
+  color: var(--vj-on-accent);
+}
+
 /* ===================== HEADER / LIST ===================== */
 .app-header {
   position: sticky;
@@ -957,6 +963,22 @@ button, input, textarea, select {
   font-size: 0.85rem;
   cursor: pointer;
   width: 100%;
+}
+
+/* Appended to the end of each top-level section — collapses this section and jumps
+   straight to the next one, so filling the form top-to-bottom doesn't require
+   scrolling past everything already answered. */
+.next-section-btn {
+  width: 100%;
+  margin-top: 6px;
+  background: var(--vj-overlay-3);
+  border: 1px solid var(--vj-border-strong);
+  color: var(--vj-accent-text);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 /* ===================== LABS ===================== */

@@ -1805,6 +1805,46 @@ function initTheme() {
   if (btn) btn.addEventListener("click", () => applyTheme(currentTheme() === "light" ? "dark" : "light"));
 }
 
+// ===================== section-to-section "next" flow =====================
+// Same top-to-bottom order as the jump-nav drawer. Appends a "next" button to the end
+// of each section (inside .accordion-body for accordions, or the panel itself for the
+// two plain-panel sections) that collapses this section and opens+scrolls to the next —
+// an alternative to swipe-paging that keeps everything on one page (still scrollable /
+// jumpable normally) while cutting down how far you have to scroll to reach a fresh
+// section, and without a cross-section field like weight ever going out of reach.
+const SECTION_FLOW = [
+  { id: "section-patient", label: "สัตว์" },
+  { id: "section-vitals", label: "Vitals" },
+  { id: "section-exam", label: "Physical exam" },
+  { id: "section-labs", label: "Labs" },
+  { id: "section-tx", label: "Tx" },
+  { id: "section-note", label: "Note" },
+  { id: "section-supply", label: "เบิกของ" },
+  { id: "section-summary", label: "สรุป" }
+];
+
+function initSectionFlow() {
+  SECTION_FLOW.forEach((sec, idx) => {
+    if (idx === SECTION_FLOW.length - 1) return; // last section has no "next"
+    const el = $(sec.id);
+    if (!el) return;
+    const next = SECTION_FLOW[idx + 1];
+    const container = el.querySelector(".accordion-body") || el;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "next-section-btn";
+    btn.textContent = `ถัดไป: ${next.label} ›`;
+    btn.addEventListener("click", () => {
+      el.classList.remove("open");
+      const nextEl = $(next.id);
+      if (!nextEl) return;
+      nextEl.classList.add("open");
+      nextEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    container.appendChild(btn);
+  });
+}
+
 function init() {
   initTheme();
   renderLabsContainer();
@@ -1830,6 +1870,9 @@ function init() {
   $("t-abdomino-fluid-chips").innerHTML = chipsHtml(CAVITY_FLUID_TYPES);
   $("s-diet-out-chips").innerHTML = chipsHtml(DIET_TYPES) + '<button type="button" class="chip" data-value="__other__">อื่นๆ</button>';
   $("p-vet").insertAdjacentHTML("beforeend", VET_NAMES.map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join(""));
+  // Must run after the innerHTML assignments above — section-labs' body is replaced
+  // wholesale by renderLabsContainer(), which would wipe out an earlier-appended button.
+  initSectionFlow();
 
   document.addEventListener("click", chipClickHandler);
 
@@ -1917,7 +1960,7 @@ function init() {
     goToList();
   });
 
-  $("entry-save-btn").addEventListener("click", async () => {
+  async function saveEntry() {
     const record = collectForm();
     if (!record.name) {
       showToast("กรุณากรอกชื่อสัตว์");
@@ -1926,8 +1969,8 @@ function init() {
     const isEditing = !!editingRecordId;
     record.createdAtLocal = isEditing ? (editingRecordCreatedAtLocal || nowTimeLabel()) : nowTimeLabel();
     record.noteText = buildNoteText(record);
-    const saveBtn = $("entry-save-btn");
-    saveBtn.disabled = true;
+    const saveBtns = [$("entry-save-btn"), $("entry-save-btn-top")].filter(Boolean);
+    saveBtns.forEach((b) => { b.disabled = true; });
     const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 20000));
     try {
       if (isEditing) {
@@ -1947,9 +1990,13 @@ function init() {
         showToast("บันทึกไม่สำเร็จ — ตรวจสอบการเชื่อมต่อแล้วลองใหม่");
       }
     } finally {
-      saveBtn.disabled = false;
+      saveBtns.forEach((b) => { b.disabled = false; });
     }
-  });
+  }
+
+  $("entry-save-btn").addEventListener("click", saveEntry);
+  const saveBtnTop = $("entry-save-btn-top");
+  if (saveBtnTop) saveBtnTop.addEventListener("click", saveEntry);
 
   $("list-search-input").addEventListener("input", renderList);
 
