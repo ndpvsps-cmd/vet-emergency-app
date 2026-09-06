@@ -266,6 +266,62 @@
       </section>
     </div>
 
+    <div class="page" id="page-ckd" hidden>
+      <div class="patient-chip" id="patient-chip-ckd"></div>
+
+      <section class="panel" id="ckd-panel">
+        <h2>Feline CKD — ประเมิน IRIS Stage และแนวทางการรักษา</h2>
+        <p class="hint-text">อ้างอิงตาม 2026 iCatCare Consensus Guidelines on the Diagnosis and Management of Chronic Kidney Disease in Cats</p>
+
+        <div class="field-row">
+          <label for="ckd-creatinine-input">Creatinine (mg/dl)</label>
+          <input type="number" id="ckd-creatinine-input" min="0" step="0.1" placeholder="เช่น 2.5">
+        </div>
+
+        <div class="field-row">
+          <label for="ckd-sdma-input">SDMA (µg/dl) — ไม่บังคับ</label>
+          <input type="number" id="ckd-sdma-input" min="0" step="1" placeholder="เช่น 22">
+        </div>
+
+        <div class="field-row">
+          <label for="ckd-upc-input">UPC (Urine Protein:Creatinine ratio) — ไม่บังคับ</label>
+          <input type="number" id="ckd-upc-input" min="0" step="0.01" placeholder="เช่น 0.5">
+        </div>
+
+        <div class="field-row">
+          <label for="ckd-sbp-input">SBP — ความดันโลหิต Systolic (mmHg) — ไม่บังคับ</label>
+          <input type="number" id="ckd-sbp-input" min="0" step="1" placeholder="เช่น 165">
+        </div>
+
+        <div id="ckd-result" class="result-box" hidden></div>
+      </section>
+
+      <section class="panel" id="ckd-reference-panel">
+        <h2>ข้อมูลอ้างอิงการดูแลแมว CKD</h2>
+
+        <h3>ยาแก้คลื่นไส้อาเจียน / กระตุ้นความอยากอาหาร / ลดกรด (Table 4)</h3>
+        <div id="ckd-gi-drugs-table"></div>
+
+        <h3>การเสริมโพแทสเซียม (Hypokalaemia)</h3>
+        <div id="ckd-potassium-info"></div>
+
+        <h3>ภาวะเลือดเป็นกรด (Acidosis)</h3>
+        <div id="ckd-acidosis-info"></div>
+
+        <h3>ภาวะซีดจาก CKD (Anaemia)</h3>
+        <div id="ckd-anaemia-info"></div>
+
+        <h3>ท้องผูก (Constipation)</h3>
+        <div id="ckd-constipation-info"></div>
+
+        <h3>สารน้ำใต้ผิวหนังที่บ้าน (Subcutaneous Fluids)</h3>
+        <div id="ckd-scfluids-info"></div>
+
+        <h3>ประเด็นสำคัญในการดูแลแมว CKD โดยรวม</h3>
+        <ul id="ckd-key-considerations" class="anemia-ddx-list"></ul>
+      </section>
+    </div>
+
     <div class="page" id="page-menu" hidden>
       <section class="panel" id="menu-panel">
         <h2>เมนูทั้งหมด</h2>
@@ -299,6 +355,7 @@
             <button type="button" class="menu-card" data-page="mgcs"><span class="menu-card-icon">🧠</span><span class="menu-card-label">MGCS</span></button>
             <button type="button" class="menu-card" data-page="att"><span class="menu-card-icon">🚑</span><span class="menu-card-label">ATT Score</span></button>
             <button type="button" class="menu-card" data-page="anemia"><span class="menu-card-icon">🩸</span><span class="menu-card-label">Regenerative Anemia</span></button>
+            <button type="button" class="menu-card" data-page="ckd"><span class="menu-card-icon">🐱</span><span class="menu-card-label">Feline CKD</span></button>
           </div>
         </div>
 
@@ -928,6 +985,7 @@
   <script src="data/anemia-score.js"></script>
   <script src="data/sodium-bicarbonate.js"></script>
   <script src="data/anaphylaxis.js"></script>
+  <script src="data/feline-ckd.js"></script>
   <script src="app.js"></script>
   <script src="nutrition.js"></script>
   <script src="potassium-calc.js"></script>
@@ -940,6 +998,7 @@
   <script src="anemia-calc.js"></script>
   <script src="sodium-bicarb-calc.js"></script>
   <script src="anaphylaxis-calc.js"></script>
+  <script src="feline-ckd-calc.js"></script>
   <script src="rehydration-calc.js"></script>
   <script src="mascot.js"></script>
   <script src="sparkle-fx.js"></script>

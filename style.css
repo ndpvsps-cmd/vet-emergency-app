@@ -1074,7 +1074,7 @@ a.menu-card {
 
 @media print {
   .disclaimer, header, #input-panel, #calculator-panel, .print-btn, footer,
-  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se, #page-apple, #page-mgcs, #page-att, #page-rehydration, #page-anemia, #page-bicarb, #page-anaphylaxis, #page-menu {
+  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se, #page-apple, #page-mgcs, #page-att, #page-rehydration, #page-anemia, #page-bicarb, #page-anaphylaxis, #page-ckd, #page-menu {
     display: none !important;
   }
   #page-drugs {
