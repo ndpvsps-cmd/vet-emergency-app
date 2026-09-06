@@ -684,6 +684,11 @@ button, input, textarea, select {
   outline: none;
   -webkit-appearance: none;
   appearance: none;
+  /* Without this, touching down anywhere on the slider to scroll past it snaps the
+     value to that touch point before the browser even knows you meant to scroll —
+     this lets an up/down finger drag pass through as a normal page scroll instead,
+     while a clearly left/right drag still moves the slider like before. */
+  touch-action: pan-y;
 }
 
 .value-slider::-webkit-slider-thumb {
