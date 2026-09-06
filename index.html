@@ -2,8 +2,18 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Vetเพื่อนยาก</title>
+
+<!-- PWA: manifest + theme + icons so the site can be installed and looks like a native app -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0891b2">
+<link rel="icon" href="assets/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vetเพื่อนยาก">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
@@ -934,5 +944,14 @@
   <script src="mascot.js"></script>
   <script src="sparkle-fx.js"></script>
   <script src="nav.js"></script>
+  <script>
+    // Register the service worker so the app shell is cached and keeps working offline —
+    // relevant for an emergency tool that may be needed without a signal.
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>
