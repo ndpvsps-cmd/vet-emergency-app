@@ -193,6 +193,22 @@ main {
   white-space: nowrap;
 }
 
+.page-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--color-primary-dark);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  padding: 4px 2px;
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+
 .bottom-nav {
   position: fixed;
   bottom: 0;
@@ -1084,6 +1100,9 @@ a.menu-card {
   }
   header h1 {
     -webkit-text-fill-color: #000 !important;
+  }
+  .page-back-btn {
+    display: none !important;
   }
 
   body.print-feeding-plan #page-drugs {

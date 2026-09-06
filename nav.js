@@ -42,15 +42,35 @@
 
   const weightKgInput = document.getElementById("weight-kg");
 
-  function goToPage(pageKey) {
+  // Tracks where the user actually came from (not just "the menu") so the back button can
+  // undo navigation the way a browser's back button would, across any sequence of pages.
+  let currentPageKey = null;
+  const navHistory = [];
+  const MAX_HISTORY = 30;
+
+  function showPage(pageKey) {
     Object.keys(pages).forEach((key) => {
       pages[key].hidden = key !== pageKey;
     });
+    currentPageKey = pageKey;
     const highlightKey = PRIMARY_NAV_PAGES.includes(pageKey) ? pageKey : "menu";
     navButtons.forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.page === highlightKey);
     });
     window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
+  }
+
+  function goToPage(pageKey) {
+    if (currentPageKey && currentPageKey !== pageKey) {
+      navHistory.push(currentPageKey);
+      if (navHistory.length > MAX_HISTORY) navHistory.shift();
+    }
+    showPage(pageKey);
+  }
+
+  function goBack() {
+    const target = navHistory.pop();
+    showPage(target || "patient");
   }
 
   navButtons.forEach((btn) => {
@@ -120,6 +140,24 @@
   weightKgInput.addEventListener("input", updatePatientChip);
   document.addEventListener("species-change", updatePatientChip);
 
+  // Every page except the home ("patient") page gets a back button inserted as its very
+  // first element, so confused users always have an obvious way to undo their last tap
+  // instead of having to know to use the "เมนู" chip button or the bottom nav.
+  function buildBackButtons() {
+    Object.keys(pages).forEach((key) => {
+      if (key === "patient") return;
+      const pageEl = pages[key];
+      if (!pageEl) return;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "page-back-btn";
+      btn.textContent = "← ย้อนกลับ";
+      btn.addEventListener("click", goBack);
+      pageEl.insertBefore(btn, pageEl.firstChild);
+    });
+  }
+
+  buildBackButtons();
   buildPatientChips();
   updatePatientChip();
   goToPage("patient");
