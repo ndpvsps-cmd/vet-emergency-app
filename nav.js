@@ -17,7 +17,8 @@
     anemia: document.getElementById("page-anemia"),
     bicarb: document.getElementById("page-bicarb"),
     anaphylaxis: document.getElementById("page-anaphylaxis"),
-    ckd: document.getElementById("page-ckd")
+    ckd: document.getElementById("page-ckd"),
+    dm: document.getElementById("page-dm")
   };
   // Pages reachable directly from the bottom nav. Any other page (opened via the
   // menu grid) keeps the "เมนูทั้งหมด" tab highlighted instead of leaving nothing active.
@@ -39,7 +40,8 @@
     document.getElementById("patient-chip-anemia"),
     document.getElementById("patient-chip-bicarb"),
     document.getElementById("patient-chip-anaphylaxis"),
-    document.getElementById("patient-chip-ckd")
+    document.getElementById("patient-chip-ckd"),
+    document.getElementById("patient-chip-dm")
   ];
 
   const weightKgInput = document.getElementById("weight-kg");

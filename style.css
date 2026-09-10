@@ -1074,7 +1074,7 @@ a.menu-card {
 
 @media print {
   .disclaimer, header, #input-panel, #calculator-panel, .print-btn, footer,
-  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se, #page-apple, #page-mgcs, #page-att, #page-rehydration, #page-anemia, #page-bicarb, #page-anaphylaxis, #page-ckd, #page-menu {
+  .bottom-nav, .patient-chip, #page-patient, #page-nutrition, #page-potassium, #page-sodium, #page-cri, #page-se, #page-apple, #page-mgcs, #page-att, #page-rehydration, #page-anemia, #page-bicarb, #page-anaphylaxis, #page-ckd, #page-dm, #page-menu {
     display: none !important;
   }
   #page-drugs {
@@ -1157,5 +1157,27 @@ a.menu-card {
   body.print-fluid-card .feeding-card {
     margin: 0 auto;
     border: 2px dashed #999 !important;
+  }
+
+  body.print-dm-plan #page-drugs {
+    display: none !important;
+  }
+  body.print-dm-plan #page-dm {
+    display: flex !important;
+  }
+  body.print-dm-plan #dm-panel,
+  body.print-dm-plan #dm-reference-panel {
+    display: none !important;
+  }
+  body.print-dm-plan #dm-plan-card-panel {
+    display: block !important;
+    border: none;
+  }
+  body.print-dm-plan #dm-dka-plan-card {
+    margin: 0 auto;
+    border: 2px dashed #999 !important;
+  }
+  body.print-dm-plan #dm-dka-plan-card table {
+    page-break-inside: avoid;
   }
 }

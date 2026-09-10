@@ -322,6 +322,70 @@
       </section>
     </div>
 
+    <div class="page" id="page-dm" hidden>
+      <div class="patient-chip" id="patient-chip-dm"></div>
+
+      <section class="panel" id="dm-panel">
+        <h2>Feline Diabetes Mellitus (DM)</h2>
+        <p class="hint-text">อ้างอิงตาม 2025 iCatCare Consensus Guidelines on the Diagnosis and Management of Diabetes Mellitus in Cats</p>
+
+        <div class="field-row">
+          <label>เลือกสถานการณ์</label>
+          <div class="species-toggle" role="group" aria-label="เลือกสถานการณ์ DM">
+            <button type="button" class="toggle-btn active" data-dm-mode="healthy">Healthy DM (Happy diabetic)</button>
+            <button type="button" class="toggle-btn" data-dm-mode="dka">DKA / eDKA</button>
+          </div>
+        </div>
+
+        <div id="dm-healthy-fields">
+          <h3>1. SGLT2i — คำนวณขนาดยา</h3>
+          <div id="dm-sglt2i-doses"></div>
+
+          <h3>2. คัดกรองความเหมาะสมก่อนเริ่ม SGLT2i</h3>
+          <p class="hint-text">ติ๊กข้อที่ผู้ป่วย "มี" — หากไม่ติ๊กเลย = ผ่านเกณฑ์ happy diabetic</p>
+          <div id="dm-sglt2i-screen"></div>
+          <div id="dm-sglt2i-screen-result" class="result-note"></div>
+
+          <h3>3. ALIVE Diabetic Clinical Score (DCS)</h3>
+          <p class="hint-text">แตะเลือกทีละหัวข้อ</p>
+          <div id="dm-dcs-fields"></div>
+          <div id="dm-dcs-result" class="result-box" hidden></div>
+        </div>
+
+        <div id="dm-dka-fields" hidden>
+          <h3>1. จำแนก DKA / eDKA (Table 8)</h3>
+          <div class="field-row">
+            <label for="dm-bg-input">Blood glucose (mg/dl)</label>
+            <input type="number" id="dm-bg-input" min="0" step="1" placeholder="เช่น 380">
+          </div>
+          <div class="field-row">
+            <label for="dm-bhb-input">Serum BHB (mmol/l) — ไม่บังคับ</label>
+            <input type="number" id="dm-bhb-input" min="0" step="0.1" placeholder="เช่น 4.0">
+          </div>
+          <div class="field-row">
+            <label for="dm-ph-input">Venous/arterial pH — ไม่บังคับ</label>
+            <input type="number" id="dm-ph-input" min="6" step="0.01" placeholder="เช่น 7.15">
+          </div>
+          <div id="dm-keto-result" class="result-box" hidden></div>
+
+          <h3>2. คำนวณ insulin / สารน้ำ ตามน้ำหนัก</h3>
+          <div id="dm-dka-doses"></div>
+
+          <button type="button" id="dm-print-plan-btn" class="print-btn">🖨️ พิมพ์ตาราง insulin CRI + แผนเบื้องต้น</button>
+        </div>
+      </section>
+
+      <section class="panel" id="dm-plan-card-panel" hidden>
+        <h2>แผนเบื้องต้น DKA (สำหรับพิมพ์)</h2>
+        <div id="dm-dka-plan-card" class="feeding-card"></div>
+      </section>
+
+      <section class="panel" id="dm-reference-panel">
+        <h2>ข้อมูลอ้างอิง</h2>
+        <div id="dm-reference-content"></div>
+      </section>
+    </div>
+
     <div class="page" id="page-menu" hidden>
       <section class="panel" id="menu-panel">
         <h2>เมนูทั้งหมด</h2>
@@ -356,6 +420,7 @@
             <button type="button" class="menu-card" data-page="att"><span class="menu-card-icon">🚑</span><span class="menu-card-label">ATT Score</span></button>
             <button type="button" class="menu-card" data-page="anemia"><span class="menu-card-icon">🩸</span><span class="menu-card-label">Regenerative Anemia</span></button>
             <button type="button" class="menu-card" data-page="ckd"><span class="menu-card-icon">🐱</span><span class="menu-card-label">Feline CKD</span></button>
+            <button type="button" class="menu-card" data-page="dm"><span class="menu-card-icon">🍬</span><span class="menu-card-label">Feline DM / DKA</span></button>
           </div>
         </div>
 
@@ -895,6 +960,7 @@
   <script src="data/sodium-bicarbonate.js"></script>
   <script src="data/anaphylaxis.js"></script>
   <script src="data/feline-ckd.js"></script>
+  <script src="data/feline-dm.js"></script>
   <script src="app.js"></script>
   <script src="nutrition.js"></script>
   <script src="potassium-calc.js"></script>
@@ -908,6 +974,7 @@
   <script src="sodium-bicarb-calc.js"></script>
   <script src="anaphylaxis-calc.js"></script>
   <script src="feline-ckd-calc.js"></script>
+  <script src="feline-dm-calc.js"></script>
   <script src="rehydration-calc.js"></script>
   <script src="mascot.js"></script>
   <script src="sparkle-fx.js"></script>
