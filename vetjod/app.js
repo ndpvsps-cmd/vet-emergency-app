@@ -650,6 +650,16 @@ function collectForm() {
       woundDressing: getFieldValue("t-wound-dressing"),
       checklist: getFieldValue("t-checklist"),
       other: val("t-other"),
+      injectionDrug: getFieldValue("t-injection-drug"),
+      injMarboDose: val("t-inj-marbo-dose"),
+      injPbDose: val("t-inj-pb-dose"),
+      injPbFreq: val("t-inj-pb-freq"),
+      injLecetamDose: val("t-inj-lecetam-dose"),
+      injMorphineDose: val("t-inj-morphine-dose"),
+      injBloodVolume: num("t-inj-blood-volume"),
+      injBloodStart: val("t-inj-blood-start"),
+      injBloodEnd: val("t-inj-blood-end"),
+      injBloodRate: num("t-inj-blood-rate"),
       icd: getFieldValue("t-icd"),
       icdLeftFluid: getFieldValue("t-icd-left-fluid"),
       icdLeftVolume: num("t-icd-left-volume"),
@@ -883,6 +893,32 @@ function buildTxParts(tx) {
   if (tx.woundDressing) parts.push(`Wound dressing: ${tx.woundDressing}`);
   if (fmtList(tx.checklist)) parts.push(fmtList(tx.checklist));
   if (tx.other) parts.push(tx.other);
+
+  if (Array.isArray(tx.injectionDrug)) {
+    tx.injectionDrug.forEach((drug) => {
+      if (drug === "Marbofloxacin") {
+        parts.push(`Marbofloxacin (SC)${tx.injMarboDose ? " dose " + tx.injMarboDose : ""} (am, pm)`);
+      } else if (drug === "Phenobarb") {
+        const bits = [];
+        if (tx.injPbDose) bits.push(tx.injPbDose);
+        if (tx.injPbFreq) bits.push(`q${tx.injPbFreq}h`);
+        parts.push(`Phenobarb${bits.length ? " " + bits.join(" ") : ""} (dilute 1:10, slow IV)`);
+      } else if (drug === "Lecetam") {
+        parts.push(`Lecetam${tx.injLecetamDose ? " " + tx.injLecetamDose : ""} (slow IV)`);
+      } else if (drug === "Morphine") {
+        parts.push(`Morphine${tx.injMorphineDose ? " " + tx.injMorphineDose : ""} SC q8h`);
+      } else if (drug === "Blood transfusion") {
+        const bits = [];
+        if (tx.injBloodVolume != null) bits.push(`${tx.injBloodVolume} mL`);
+        if (tx.injBloodStart) bits.push(`start ${tx.injBloodStart}`);
+        if (tx.injBloodEnd) bits.push(`end ${tx.injBloodEnd}`);
+        if (tx.injBloodRate != null) bits.push(`${tx.injBloodRate} mL/h`);
+        parts.push(`Blood transfusion${bits.length ? " (" + bits.join(", ") + ")" : ""}`);
+      } else {
+        parts.push(drug);
+      }
+    });
+  }
 
   if (tx.icd === "yes") {
     const sides = [
@@ -1442,6 +1478,16 @@ function populateForm(record) {
   setChipFieldValue("t-case-status", record.caseStatus);
   setInputValue("t-note-other", record.caseStatusOther);
   setInputValue("t-other", tx.other);
+  setChipFieldValue("t-injection-drug", tx.injectionDrug);
+  setInputValue("t-inj-marbo-dose", tx.injMarboDose);
+  setInputValue("t-inj-pb-dose", tx.injPbDose);
+  setInputValue("t-inj-pb-freq", tx.injPbFreq);
+  setInputValue("t-inj-lecetam-dose", tx.injLecetamDose);
+  setInputValue("t-inj-morphine-dose", tx.injMorphineDose);
+  setInputValue("t-inj-blood-volume", tx.injBloodVolume);
+  setInputValue("t-inj-blood-start", tx.injBloodStart);
+  setInputValue("t-inj-blood-end", tx.injBloodEnd);
+  setInputValue("t-inj-blood-rate", tx.injBloodRate);
   setChipFieldValue("t-icd", tx.icd);
   setChipFieldValue("t-icd-left-fluid", tx.icdLeftFluid);
   setInputValue("t-icd-left-volume", tx.icdLeftVolume);

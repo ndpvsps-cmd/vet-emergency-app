@@ -1097,6 +1097,92 @@
             <textarea id="t-other" rows="2" placeholder="พิมพ์ Tx เพิ่มเติม..."></textarea>
           </div>
 
+          <!-- Injection Drug -->
+          <section class="accordion">
+            <button type="button" class="accordion-header">
+              <span>Injection Drug</span><span class="accordion-caret">⌄</span>
+            </button>
+            <div class="accordion-body">
+              <div class="field-group" data-field="t-injection-drug" data-multi="true">
+                <label>ยาฉีด</label>
+                <div class="chips chips-vertical">
+                  <button type="button" class="chip" data-value="AMC 25 mg/kg (IV) q8h">AMC dose 25 mg/kg (IV) q8h</button>
+                  <button type="button" class="chip" data-value="Enrofloxacin 10 mg/kg (SC) (am, pm)">Enrofloxacin dose 10 mg/kg (SC) (am, pm)</button>
+                  <button type="button" class="chip" data-value="Marbofloxacin">Marbofloxacin (SC)</button>
+                  <button type="button" class="chip" data-value="Ampicillin 25 mg/kg IV/IM q8h">Ampicillin dose 25 mg/kg IV/IM q8h</button>
+                  <button type="button" class="chip" data-value="Cefazolin 25 mg/kg (IV) q8h">Cefazolin dose 25 mg/kg (IV) q8h</button>
+                  <button type="button" class="chip" data-value="Ondansetron 0.5 mg/kg (IV) q12h">Ondansetron dose 0.5 mg/kg (IV) q12h</button>
+                  <button type="button" class="chip" data-value="Ondansetron 0.5 mg/kg (IV) q8h">Ondansetron dose 0.5 mg/kg (IV) q8h</button>
+                  <button type="button" class="chip" data-value="Omeprazole 1 mg/kg (IV) q12h">Omeprazole dose 1 mg/kg (IV) q12h</button>
+                  <button type="button" class="chip" data-value="Omeprazole 1 mg/kg (IV) q24h">Omeprazole dose 1 mg/kg (IV) q24h</button>
+                  <button type="button" class="chip" data-value="Transamin 15 mg/kg (slow IV) q8h">Transamin dose 15 mg/kg (slow IV) q8h</button>
+                  <button type="button" class="chip" data-value="Phenobarb">Phenobarb (dilute 1:10, slow IV)</button>
+                  <button type="button" class="chip" data-value="Lecetam">Lecetam (slow IV)</button>
+                  <button type="button" class="chip" data-value="Meropenem 25 mg/kg (IV drip 1 h) q8h">Meropenem dose 25 mg/kg (IV drip 1h) q8h</button>
+                  <button type="button" class="chip" data-value="Ceftriaxone 25 mg/kg IV/IM/SC q12h">Ceftriaxone dose 25 mg/kg IV/IM/SC q12h</button>
+                  <button type="button" class="chip" data-value="Hyoscine 0.3 mg/kg IV/IM q8h">Hyoscine dose 0.3 mg/kg IV/IM q8h</button>
+                  <button type="button" class="chip" data-value="Hyoscine 0.3 mg/kg IV/IM q12h">Hyoscine dose 0.3 mg/kg IV/IM q12h</button>
+                  <button type="button" class="chip" data-value="Fentanyl CRI">Fentanyl CRI</button>
+                  <button type="button" class="chip" data-value="FLK CRI">FLK CRI</button>
+                  <button type="button" class="chip" data-value="MLK CRI">MLK CRI</button>
+                  <button type="button" class="chip" data-value="Morphine">Morphine (SC)</button>
+                  <button type="button" class="chip" data-value="Blood transfusion">Blood transfusion</button>
+                </div>
+              </div>
+
+              <div class="reveal-block" data-show-field="t-injection-drug" data-show-values="Marbofloxacin" hidden>
+                <div class="field-row">
+                  <label for="t-inj-marbo-dose">Marbofloxacin dose (mg/kg, am/pm)</label>
+                  <input type="text" id="t-inj-marbo-dose" placeholder="เช่น 2 mg/kg">
+                </div>
+              </div>
+
+              <div class="reveal-block" data-show-field="t-injection-drug" data-show-values="Phenobarb" hidden>
+                <div class="field-row">
+                  <label for="t-inj-pb-dose">Phenobarb dose (mg/kg)</label>
+                  <input type="text" id="t-inj-pb-dose" placeholder="เช่น 3 mg/kg">
+                </div>
+                <div class="field-row">
+                  <label for="t-inj-pb-freq">ความถี่ (q...h)</label>
+                  <input type="text" id="t-inj-pb-freq" placeholder="เช่น 12">
+                </div>
+              </div>
+
+              <div class="reveal-block" data-show-field="t-injection-drug" data-show-values="Lecetam" hidden>
+                <div class="field-row">
+                  <label for="t-inj-lecetam-dose">Lecetam dose (mg/kg)</label>
+                  <input type="text" id="t-inj-lecetam-dose" placeholder="เช่น 50 mg/kg">
+                </div>
+              </div>
+
+              <div class="reveal-block" data-show-field="t-injection-drug" data-show-values="Morphine" hidden>
+                <div class="field-row">
+                  <label for="t-inj-morphine-dose">Morphine dose (mg/kg, SC q8h)</label>
+                  <input type="text" id="t-inj-morphine-dose" placeholder="เช่น 0.2 mg/kg">
+                </div>
+              </div>
+
+              <div class="reveal-block" data-show-field="t-injection-drug" data-show-values="Blood transfusion" hidden>
+                <div class="field-row">
+                  <label for="t-inj-blood-volume">ปริมาณ (mL)</label>
+                  <input type="number" id="t-inj-blood-volume" step="1" min="0" placeholder="เช่น 100">
+                </div>
+                <div class="field-row">
+                  <label for="t-inj-blood-start">เวลาเริ่ม</label>
+                  <input type="time" id="t-inj-blood-start">
+                </div>
+                <div class="field-row">
+                  <label for="t-inj-blood-end">เวลาสิ้นสุด</label>
+                  <input type="time" id="t-inj-blood-end">
+                </div>
+                <div class="field-row">
+                  <label for="t-inj-blood-rate">อัตรา (mL/h)</label>
+                  <input type="number" id="t-inj-blood-rate" step="1" min="0" placeholder="เช่น 20">
+                </div>
+              </div>
+            </div>
+          </section>
+
           <section class="accordion">
             <button type="button" class="accordion-header">
               <span>หัตถการพิเศษ</span><span class="accordion-caret">⌄</span>
