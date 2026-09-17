@@ -490,7 +490,9 @@
           <div class="field-group" data-field="e-abd" data-multi="true">
             <label>Abdominal</label>
             <div class="chips">
+              <button type="button" class="chip" data-value="mild cramp">Mild cramp</button>
               <button type="button" class="chip" data-value="cramp">Cramp</button>
+              <button type="button" class="chip" data-value="non-cramp">Non-cramp</button>
               <button type="button" class="chip" data-value="distension">Distension</button>
               <button type="button" class="chip" data-value="fluctuation">Fluctuation</button>
               <button type="button" class="chip" data-value="hernia">Hernia</button>
@@ -1081,6 +1083,20 @@
             <div class="field-row">
               <label for="t-o2-detail">รายละเอียด (วิธีให้/อัตรา)</label>
               <input type="text" id="t-o2-detail" placeholder="เช่น Nasal cannula 2 L/min">
+            </div>
+          </div>
+
+          <div class="field-group" data-field="t-po-med" data-multi="false">
+            <label>Po med</label>
+            <div class="chips">
+              <button type="button" class="chip active" data-value="none">ไม่มี</button>
+              <button type="button" class="chip" data-value="yes">มี</button>
+            </div>
+          </div>
+          <div class="reveal-block" data-show-field="t-po-med" data-show-values="yes" hidden>
+            <div class="field-row">
+              <label for="t-po-med-detail">รายละเอียด (ยา/ขนาด/ความถี่)</label>
+              <textarea id="t-po-med-detail" rows="2" placeholder="พิมพ์ยากิน/ขนาด/ความถี่..."></textarea>
             </div>
           </div>
           <div class="field-group" data-field="t-wound-dressing" data-multi="false">

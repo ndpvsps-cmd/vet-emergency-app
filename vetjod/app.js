@@ -647,6 +647,8 @@ function collectForm() {
       resuscitationBolus: getFieldValue("t-resuscitation-bolus"),
       o2: getFieldValue("t-o2"),
       o2Detail: val("t-o2-detail"),
+      poMed: getFieldValue("t-po-med"),
+      poMedDetail: val("t-po-med-detail"),
       woundDressing: getFieldValue("t-wound-dressing"),
       checklist: getFieldValue("t-checklist"),
       other: val("t-other"),
@@ -890,6 +892,7 @@ function buildTxParts(tx) {
     parts.push(s);
   }
   if (tx.o2 === "yes") parts.push(`O2${tx.o2Detail ? " (" + tx.o2Detail + ")" : ""}`);
+  if (tx.poMed === "yes") parts.push(`Po med${tx.poMedDetail ? ": " + tx.poMedDetail : ""}`);
   if (tx.woundDressing) parts.push(`Wound dressing: ${tx.woundDressing}`);
   if (fmtList(tx.checklist)) parts.push(fmtList(tx.checklist));
   if (tx.other) parts.push(tx.other);
@@ -1258,6 +1261,7 @@ function resetForm() {
   activateDefault("t-cysto", "none");
   activateDefault("t-ga", "none");
   activateDefault("t-o2", "none");
+  activateDefault("t-po-med", "none");
 
   document.querySelectorAll(".accordion").forEach((a, idx) => a.classList.toggle("open", idx === 0));
   updateReveals();
@@ -1473,6 +1477,8 @@ function populateForm(record) {
   setChipFieldValue("t-resuscitation-bolus", tx.resuscitationBolus);
   setChipFieldValue("t-o2", tx.o2);
   setInputValue("t-o2-detail", tx.o2Detail);
+  setChipFieldValue("t-po-med", tx.poMed);
+  setInputValue("t-po-med-detail", tx.poMedDetail);
   setChipFieldValue("t-wound-dressing", tx.woundDressing);
   setChipFieldValue("t-checklist", tx.checklist);
   setChipFieldValue("t-case-status", record.caseStatus);

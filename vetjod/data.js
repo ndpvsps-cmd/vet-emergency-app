@@ -3,7 +3,7 @@
 // mirroring the ../data/*.js convention used by the calculator app.
 
 const FLUID_TYPES = [
-  "0.9% NSS", "ARI", "AR-5", "Fentanyl", "MLK", "D5W", "3% NSS", "D5 1/2 S",
+  "No IVF", "0.9% NSS", "ARI", "AR-5", "Fentanyl", "MLK", "D5W", "3% NSS", "D5 1/2 S",
   "KCL-CRI", "KCL+2.5%Dextrose", "Transamin-CRI", "LRI", "FK-CRI", "FLK"
 ];
 
@@ -20,7 +20,8 @@ const WOUND_DRESSING_PROTOCOLS = [
 
 const TX_CHECKLIST = [
   "New IV cath", "Wash", "Urine cauterization", "Splint",
-  "Stitch off", "Ear cleaning", "Wash mouth", "Eye drop", "Void urine"
+  "Stitch off", "Ear cleaning", "Wash mouth", "Eye drop", "Void urine",
+  "Nebulization"
 ];
 
 const LABS_ITEMS = [
