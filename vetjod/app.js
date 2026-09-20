@@ -1926,6 +1926,17 @@ function init() {
   // wholesale by renderLabsContainer(), which would wipe out an earlier-appended button.
   initSectionFlow();
 
+  // Keep selected and custom drugs in the existing editable, persisted field.
+  $("t-po-med-picker").addEventListener("change", (event) => {
+    const picker = event.currentTarget;
+    if (!picker.value) return;
+    const detail = $("t-po-med-detail");
+    const previous = detail.value.trimEnd();
+    detail.value = previous ? previous + "\n" + picker.value : picker.value;
+    picker.value = "";
+    onFormChange();
+  });
+
   document.addEventListener("click", chipClickHandler);
 
   document.querySelectorAll('[data-field="v-temp-unit"] .chip').forEach((chip) => {
