@@ -396,6 +396,7 @@
             <button type="button" class="menu-card" data-page="patient"><span class="menu-card-icon">👤</span><span class="menu-card-label">ข้อมูลผู้ป่วย</span></button>
             <button type="button" class="menu-card" data-page="drugs"><span class="menu-card-icon">💉</span><span class="menu-card-label">ยาฉุกเฉิน</span></button>
             <button type="button" class="menu-card" data-page="cri"><span class="menu-card-icon">💧</span><span class="menu-card-label">CRI</span></button>
+            <button type="button" class="menu-card" data-page="ppn"><span class="menu-card-icon">🥣</span><span class="menu-card-label">PPN สารอาหารทางหลอดเลือด</span></button>
             <button type="button" class="menu-card" data-page="nutrition"><span class="menu-card-icon">🍽️</span><span class="menu-card-label">อาหาร</span></button>
           </div>
         </div>
@@ -926,6 +927,35 @@
         <div id="sodium-result" class="result-box" hidden></div>
       </section>
     </div>
+    <div class="page" id="page-ppn" hidden>
+      <div class="patient-chip" id="patient-chip-ppn"></div>
+      <section class="panel">
+        <h2>🥣 Peripheral Parenteral Nutrition (PPN)</h2>
+        <p class="hint">คำนวณสารอาหารทางหลอดเลือดตาม Peripheral Parenteral Nutrition Form สำหรับแผน 24 ชั่วโมง</p>
+        <div class="field-row"><label for="ppn-rer">สูตร RER</label><select id="ppn-rer"><option value="power">70 × น้ำหนัก^0.75</option><option value="linear">30 × น้ำหนัก + 70 (เฉพาะ 2–30 กก.)</option></select></div>
+        <div class="field-row"><label for="ppn-ratio">สัดส่วนพลังงาน Dextrose / Protein / Lipid</label><select id="ppn-ratio"><option value="auto">เลือกตามช่วงน้ำหนักที่ระบุในแบบฟอร์ม</option><option value="small">20 / 20 / 60% — สุนัขและแมว 3–5 กก.</option><option value="medium">25 / 25 / 50% — สุนัขและแมว 6–10 กก.</option><option value="large">33 / 33 / 33% — สุนัข 11–30 กก.</option><option value="giant">50 / 25 / 25% — สุนัขมากกว่า 30 กก.</option></select></div>
+        <div class="field-row"><label for="ppn-dextrose">สารละลาย Dextrose</label><select id="ppn-dextrose"><option value="0.17">D5W — 0.17 kcal/mL</option><option value="saline5">D5½S — 0.17 kcal/mL</option><option value="1.7">Dextrose 50% — 1.7 kcal/mL</option></select></div>
+        <p class="hint">Amino acid 10% = 0.4 kcal/mL · Lipid 20% = 2 kcal/mL ตามแบบฟอร์ม</p>
+        <div id="ppn-result" aria-live="polite"></div>
+        <h3>Osmolarity ของส่วนผสม</h3>
+        <p class="hint">กรอกค่าจากฉลากผลิตภัณฑ์จริง หน่วย <strong>mOsm/L</strong> (ไม่ใช่ mOsm/kg) D5W กับ D5½S ให้พลังงานเท่ากัน แต่ osmolarity ต่างกัน</p>
+        <div class="field-row"><label for="ppn-osm-dextrose">Dextrose ที่เลือก (mOsm/L)</label><input id="ppn-osm-dextrose" type="number" min="0" step="any" inputmode="decimal" placeholder="ค่าจากฉลาก"></div>
+        <div class="field-row"><label for="ppn-osm-amino">Amino acid 10% (mOsm/L)</label><input id="ppn-osm-amino" type="number" min="0" step="any" inputmode="decimal" placeholder="ค่าจากฉลาก"></div>
+        <div class="field-row"><label for="ppn-osm-lipid">Lipid 20% (mOsm/L)</label><input id="ppn-osm-lipid" type="number" min="0" step="any" inputmode="decimal" placeholder="ค่าจากฉลาก"></div>
+        <div class="field-row"><label for="ppn-extra-volume">ปริมาตรตัวเจือจางที่เติมในถุงเดียวกัน (mL)</label><input id="ppn-extra-volume" type="number" min="0" step="any" inputmode="decimal" value="0"></div>
+        <div class="field-row"><label for="ppn-extra-osm">Osmolarity ตัวเจือจาง (mOsm/L)</label><input id="ppn-extra-osm" type="number" min="0" step="any" inputmode="decimal" placeholder="กรอกเมื่อเติมตัวเจือจาง" disabled></div>
+        <p class="hint">คำนวณเฉพาะสารที่ผสมในถุงเดียวกัน ไม่รวมสารน้ำที่ให้แยกสาย หากเติมยา อิเล็กโทรไลต์ หรือสารอื่นนอกเหนือจากรายการนี้ ผลยังไม่ใช่ osmolarity ของสูตรสุดท้าย</p>
+        <div id="ppn-osm-result" aria-live="polite"></div>
+        <p class="result-source">ตัวอย่างการอ่านหน่วย: ฉลาก <a href="https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=61e025f1-a38e-4af2-9e18-13ea12977cf5" target="_blank" rel="noopener">Intralipid 20%</a> ระบุ 260 mOsm/L และ 350 mOsm/kg ซึ่งใช้แทนกันไม่ได้ ไม่ได้นำค่านี้ไปใช้กับ lipid ทุกยี่ห้อโดยอัตโนมัติ</p>
+      </section>
+      <section class="panel"><h2>ก่อนเริ่มและระหว่างให้ PPN</h2>
+        <p>แบบฟอร์มระบุให้พิจารณาเมื่อกินไม่พอนานกว่า 3 วัน สภาพร่างกายไม่ดีหรือน้ำหนักลดเฉียบพลันมากกว่า 5% หลังแก้ภาวะขาดน้ำ หรือไม่สามารถรับอาหารทางทางเดินอาหารได้</p>
+        <p class="warning-text">แก้ภาวะขาดน้ำก่อนเริ่ม และตรวจ osmolarity ของสูตรสุดท้าย: แบบฟอร์มกำหนดไม่เกิน 600 mOsm/L ค่าที่คำนวณเป็นประมาณการจากฉลากและปริมาตรที่กรอก ไม่ได้ยืนยันความเข้ากันได้หรือว่าผสมแล้วให้ทางหลอดเลือดส่วนปลายได้ โดยเฉพาะเมื่อใช้ Dextrose 50% ต้องตรวจการเจือจางและความเข้ากันได้ก่อนใช้</p>
+        <p>รวมปริมาตร PPN เข้ากับสารน้ำ ยา และอาหารทุกทางในแผนสารน้ำรายวัน หากเติมตัวเจือจาง ปริมาตรและอัตราการให้จริงจะเปลี่ยนไป ต้องคำนวณใหม่ ไม่ใช่เติม PPN ทับ maintenance โดยอัตโนมัติ</p>
+        <p>ติดตาม HR/RR การรู้สึกตัว จุดแทงสาย น้ำตาลในเลือด โปรตีน/อัลบูมิน ภาวะ lipemia และอิเล็กโทรไลต์ ปรับความถี่ตามความเสี่ยงของผู้ป่วย ระวังเป็นพิเศษในโรคหัวใจ ไต ตับ และผู้ป่วยเสี่ยง refeeding syndrome</p>
+        <p class="result-source">แหล่งสูตร: Peripheral Parenteral Nutrition Form.docx ที่แนบ — หัวข้อ RER, PER, สัดส่วนสารอาหาร และอัตราการให้ ไม่ระบุผู้แต่ง/ปี<br>การรวมสารน้ำทุกทาง: <a href="https://www.merckvetmanual.com/therapeutics/fluid-therapy/maintenance-fluid-plan-in-animals" target="_blank" rel="noopener">Merck Veterinary Manual — Maintenance Fluid Plan</a></p>
+      </section>
+    </div>
   </main>
 
   <nav class="bottom-nav" id="bottom-nav">
@@ -979,6 +1009,7 @@
   <script src="mascot.js"></script>
   <script src="sparkle-fx.js"></script>
   <script src="nav.js"></script>
+  <script src="ppn-calc.js"></script>
   <script>
     // Register the service worker so the app shell is cached and keeps working offline —
     // relevant for an emergency tool that may be needed without a signal.

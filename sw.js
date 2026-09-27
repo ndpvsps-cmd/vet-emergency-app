@@ -3,7 +3,7 @@
 // request is answered from cache instantly when available, while a network fetch runs in
 // the background to refresh the cache for next time. Bump CACHE_NAME to force every client
 // to drop old cached files on next load.
-const CACHE_NAME = "vet-peuan-yak-v2";
+const CACHE_NAME = "vet-peuan-yak-v3";
 
 const APP_SHELL = [
   "./",
@@ -13,6 +13,7 @@ const APP_SHELL = [
   "./app.js",
   "./nav.js",
   "./nutrition.js",
+  "./ppn-calc.js",
   "./potassium-calc.js",
   "./sodium-calc.js",
   "./cri-calc.js",
