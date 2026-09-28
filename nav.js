@@ -19,7 +19,8 @@
     anaphylaxis: document.getElementById("page-anaphylaxis"),
     ckd: document.getElementById("page-ckd"),
     dm: document.getElementById("page-dm"),
-    ppn: document.getElementById("page-ppn")
+    ppn: document.getElementById("page-ppn"),
+    fip: document.getElementById("page-fip")
   };
   // Pages reachable directly from the bottom nav. Any other page (opened via the
   // menu grid) keeps the "เมนูทั้งหมด" tab highlighted instead of leaving nothing active.
@@ -43,7 +44,8 @@
     document.getElementById("patient-chip-anaphylaxis"),
     document.getElementById("patient-chip-ckd"),
     document.getElementById("patient-chip-dm"),
-    document.getElementById("patient-chip-ppn")
+    document.getElementById("patient-chip-ppn"),
+    document.getElementById("patient-chip-fip")
   ];
 
   const weightKgInput = document.getElementById("weight-kg");

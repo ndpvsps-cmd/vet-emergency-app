@@ -421,6 +421,7 @@
             <button type="button" class="menu-card" data-page="att"><span class="menu-card-icon">🚑</span><span class="menu-card-label">ATT Score</span></button>
             <button type="button" class="menu-card" data-page="anemia"><span class="menu-card-icon">🩸</span><span class="menu-card-label">Regenerative Anemia</span></button>
             <button type="button" class="menu-card" data-page="ckd"><span class="menu-card-icon">🐱</span><span class="menu-card-label">Feline CKD</span></button>
+            <button type="button" class="menu-card" data-page="fip"><span class="menu-card-icon">🐈</span><span class="menu-card-label">Feline FIP</span></button>
             <button type="button" class="menu-card" data-page="dm"><span class="menu-card-icon">🍬</span><span class="menu-card-label">Feline DM / DKA</span></button>
           </div>
         </div>
@@ -956,6 +957,42 @@
         <p class="result-source">แหล่งสูตร: Peripheral Parenteral Nutrition Form.docx ที่แนบ — หัวข้อ RER, PER, สัดส่วนสารอาหาร และอัตราการให้ ไม่ระบุผู้แต่ง/ปี<br>การรวมสารน้ำทุกทาง: <a href="https://www.merckvetmanual.com/therapeutics/fluid-therapy/maintenance-fluid-plan-in-animals" target="_blank" rel="noopener">Merck Veterinary Manual — Maintenance Fluid Plan</a></p>
       </section>
     </div>
+    <div class="page" id="page-fip" hidden>
+      <div class="patient-chip" id="patient-chip-fip"></div>
+      <section class="panel">
+        <h2>🐈 Feline FIP</h2>
+        <p>แนวทางรักษาตาม iCatCare · July 2025 สำหรับแมวที่วินิจฉัยหรือสงสัย FIP สูง ไม่ใช่คะแนนยืนยันการวินิจฉัย</p>
+        <h3>1. เลือกลักษณะโรค</h3>
+        <div class="field-row"><label for="fip-type">อาการที่พบ</label><select id="fip-type"><option value="effusive">มีน้ำ · ไม่มีอาการตา/ระบบประสาท</option><option value="noneffusive">ไม่มีน้ำ · ไม่มีอาการตา/ระบบประสาท</option><option value="ocular">มีอาการทางตา · มีหรือไม่มีน้ำ</option><option value="neuro">มีอาการระบบประสาท · รวมกรณีมีอาการตาร่วม</option></select></div>
+        <p class="hint">หากมีอาการตาหรือระบบประสาท ให้เลือกกลุ่มนั้นแม้จะมีน้ำร่วมด้วย อาการระบบประสาทร่วมกับอาการตาใช้กลุ่มระบบประสาท</p>
+        <h3>2. เลือกยาและคำนวณขนาด</h3>
+        <div class="field-row"><label for="fip-drug">ยาต้านไวรัส</label><select id="fip-drug"><option value="gs">GS-441524 PO — ยาหลัก</option><option value="rem">Remdesivir IV — เมื่อให้ทางปากไม่ได้/ป่วยหนัก</option><option value="mol">Molnupiravir PO — ยาทางเลือก</option><option value="eidd">EIDD-1931 PO — ขนาดสำหรับ relapse</option></select></div>
+        <div class="field-row" id="fip-split-row"><label for="fip-split">แบ่งขนาดรวมต่อวันของ GS</label><select id="fip-split"><option value="24">วันละ 1 ครั้ง (q24h)</option><option value="12">แบ่งครึ่ง วันละ 2 ครั้ง (q12h)</option></select></div>
+        <p id="fip-reference" class="result-source"></p>
+        <div class="field-row"><label for="fip-dose">ขนาดยา mg/kg/ครั้ง</label><input id="fip-dose" type="number" step="any" inputmode="decimal" placeholder="กรอกภายในช่วงที่แนะนำ"></div>
+        <div class="field-row"><label for="fip-form">รูปแบบยาที่ใช้แปลงหน่วย</label><select id="fip-form"><option value="liquid">ยาน้ำ / ยาฉีด</option><option value="tablet">ยาเม็ด</option></select></div>
+        <div class="field-row"><label for="fip-strength" id="fip-strength-label">ความเข้มข้นตามฉลาก (mg/mL)</label><input id="fip-strength" type="number" min="0" step="any" inputmode="decimal" placeholder="ไม่บังคับ · กรอกความแรงจริง"></div>
+        <p id="fip-note" class="warning-text"></p>
+        <div id="fip-result" class="result-box" aria-live="polite"></div>
+        <p class="result-source">ขนาดยาจาก Table 1 หน้า 5 และข้อควรระวังหน้า 3–4 ใช้กับผลิตภัณฑ์ที่ทราบสารออกฤทธิ์และความแรงแน่นอน ไม่เทียบขนาดระหว่างผลิตภัณฑ์ที่ไม่ทราบส่วนประกอบ</p>
+      </section>
+      <section class="panel">
+        <h2>3. ติดตามการตอบสนอง</h2>
+        <ul>
+          <li><strong>ประมาณ 48 ชั่วโมง:</strong> ติดต่อผู้ดูแล ตรวจความสะดวกในการให้ยา การรู้สึกตัว และไข้</li>
+          <li><strong>2–5 วัน:</strong> โดยมากเริ่มเห็นการกินและอาการดีขึ้น หากแย่ลงต้องตรวจทันที ไม่รอถึงวันนัด</li>
+          <li><strong>ทุกสัปดาห์:</strong> ชั่งน้ำหนักอย่างแม่นยำ ปรับ mg ให้ทันน้ำหนักที่เพิ่ม หากน้ำหนักลดจากน้ำในช่องตัวหาย ไม่ลด mg เดิมโดยอัตโนมัติ</li>
+          <li><strong>1–2 สัปดาห์:</strong> ตรวจร่างกาย น้ำหนัก และน้ำในช่องตัว พิจารณา CBC/ชีวเคมี/AGP ตามความผิดปกติเดิม น้ำมักหายภายใน 2 สัปดาห์</li>
+          <li><strong>คอร์ส 84 วัน:</strong> ประเมินอีกที่สัปดาห์ 6 และตรวจว่าผลเป็นปกติที่สัปดาห์ 10 และ 12 ก่อนพิจารณาหยุด</li>
+          <li><strong>หลังหยุด:</strong> เฝ้าดูความอยากอาหาร น้ำหนัก อาการตา/ระบบประสาท และนัดตรวจราว 4 สัปดาห์หลังหยุด หากมีอาการใหม่ให้ตรวจเร็วกว่านั้น</li>
+        </ul>
+        <p class="result-source">อ้างอิงหน้า 6–8</p>
+        <details><summary>ระยะเวลารักษา 42 หรือ 84 วัน?</summary><p>งานส่วนใหญ่ใช้ 84 วัน ส่วนคอร์ส 42 วันมีข้อมูลในแมวชนิดมีน้ำที่ได้ GS ทางปาก ตอบสนองเร็วและได้รับการดูแลใกล้ชิด ต้องปกติทั้งอาการและผลตรวจ (รวม AGP หากทำได้) ต่อเนื่องอย่างน้อย 2 สัปดาห์ เช่น ปกติที่สัปดาห์ 4 และ 6 จึงพิจารณาหยุดที่ 6 สัปดาห์ ไม่ใช้วันครบคอร์สเป็นคำสั่งหยุดยาอัตโนมัติ (หน้า 4, 7)</p></details>
+        <details><summary>ไม่ดีขึ้นหรือกลับเป็นซ้ำ</summary><p>ทบทวนการวินิจฉัย โรคร่วม การกินยา ความแรงผลิตภัณฑ์ และขนาดตามน้ำหนัก รวมถึงอาการตา/ระบบประสาทที่เกิดใหม่ การตอบสนองต่อยาเพียงอย่างเดียวไม่ยืนยัน FIP หากไม่ตอบสนองทั้งที่ได้ขนาดเพียงพอควรตรวจโรคอื่นและปรึกษาผู้เชี่ยวชาญ ไม่เพิ่มขนาดยาอัตโนมัติจากเครื่องมือนี้ (หน้า 7, 9–10)</p></details>
+        <details><summary>การดูแลร่วมและพยากรณ์</summary><p>ประเมินอาหาร สารน้ำ คลื่นไส้ ความปวด ภาวะซีด และโรคร่วม แมวป่วยหนักอาจต้องนอนโรงพยาบาล อาการชักต้องรักษาร่วม; uveitis อาจต้องยาหยอด corticosteroid และตรวจความดันตา โดยทั่วไปไม่ต้องให้ systemic corticosteroid ทุกราย (หน้า 8–10)</p><p>เอกสารรายงานอัตราตอบสนองมากกว่า 85% โดยผลขึ้นกับความรุนแรง การให้ยาและการดูแลร่วม ตัวเลขนี้เป็นข้อมูลระดับกลุ่ม ไม่ใช่โอกาสรอดเฉพาะตัวจากเครื่องคำนวณ (หน้า 10)</p></details>
+        <p class="result-source">สรุปและเรียบเรียงจาก Taylor และคณะ, <a href="https://icatcare.org/resources/icatcare_fip_update_july25.pdf" target="_blank" rel="noopener">An update on the treatment of feline infectious peritonitis (July 2025)</a> · International Cat Care · หน้า 2–10</p>
+      </section>
+    </div>
   </main>
 
   <nav class="bottom-nav" id="bottom-nav">
@@ -991,6 +1028,7 @@
   <script src="data/anaphylaxis.js"></script>
   <script src="data/feline-ckd.js"></script>
   <script src="data/feline-dm.js"></script>
+  <script src="data/feline-fip.js"></script>
   <script src="app.js"></script>
   <script src="nutrition.js"></script>
   <script src="potassium-calc.js"></script>
@@ -1010,6 +1048,7 @@
   <script src="sparkle-fx.js"></script>
   <script src="nav.js"></script>
   <script src="ppn-calc.js"></script>
+  <script src="feline-fip-calc.js"></script>
   <script>
     // Register the service worker so the app shell is cached and keeps working offline —
     // relevant for an emergency tool that may be needed without a signal.
