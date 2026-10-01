@@ -95,7 +95,14 @@
 
     <main class="entry-form">
       <!-- ---- Patient identity ---- -->
-      <section class="panel" id="section-patient"><div class="field-row"><label for="p-record-type">รูปแบบเวชระเบียน</label><select id="p-record-type"><option value="ipd">ผู้ป่วยใน · ADMIT</option><option value="opd">ผู้ป่วยนอก · OPD</option></select></div>
+      <section class="panel" id="section-patient"><div class="field-row">
+          <label id="record-type-label">รูปแบบเวชระเบียน</label>
+          <input type="hidden" id="p-record-type" value="ipd">
+          <div class="record-type-buttons" role="group" aria-labelledby="record-type-label">
+            <button type="button" class="record-type-btn" data-record-type="ipd" aria-pressed="true">ผู้ป่วยใน · ADMIT</button>
+            <button type="button" class="record-type-btn" data-record-type="opd" aria-pressed="false">ผู้ป่วยนอก · OPD</button>
+          </div>
+        </div>
         <div class="field-row">
           <label for="p-name">ชื่อสัตว์</label>
           <input type="text" id="p-name" placeholder="เช่น น้องโบว์">
@@ -977,9 +984,9 @@
           <div class="sub-block">
             <p class="sub-block-title">Scores</p>
             <div class="field-row">
-              <label for="e-mgcs">MGCS</label>
+              <label for="e-mgcs">MGCS รวม (3–18)</label><details class="mgcs-assessment"><summary>ประเมิน MGCS แยก 3 ด้าน</summary><div class="field-group" data-field="e-mgcs-motor" data-multi="false"><label>Motor activity · การเคลื่อนไหว</label><div class="chips chips-vertical"><button type="button" class="chip" data-value="6">6 · เดินและ spinal reflexes ปกติ</button><button type="button" class="chip" data-value="5">5 · Hemiparesis / tetraparesis / decerebrate activity</button><button type="button" class="chip" data-value="4">4 · นอนราบ เหยียดเกร็งเป็นช่วง</button><button type="button" class="chip" data-value="3">3 · นอนราบ เหยียดเกร็งตลอด</button><button type="button" class="chip" data-value="2">2 · นอนราบ เหยียดเกร็งตลอดร่วมกับ opisthotonus</button><button type="button" class="chip" data-value="1">1 · นอนราบ กล้ามเนื้ออ่อนปวกเปียก spinal reflexes ลดลง/หายไป</button></div></div><div class="field-group" data-field="e-mgcs-brainstem" data-multi="false"><label>Brainstem reflexes · รีเฟล็กซ์ก้านสมอง</label><div class="chips chips-vertical"><button type="button" class="chip" data-value="6">6 · PLR และ oculocephalic reflex ปกติ</button><button type="button" class="chip" data-value="5">5 · PLR ช้า; oculocephalic ปกติ/ลดลง</button><button type="button" class="chip" data-value="4">4 · Miosis สองข้างไม่ตอบสนอง; oculocephalic ปกติ/ลดลง</button><button type="button" class="chip" data-value="3">3 · รูม่านตา pinpoint; oculocephalic ลดลง/หายไป</button><button type="button" class="chip" data-value="2">2 · Mydriasis ข้างเดียวไม่ตอบสนอง; oculocephalic ลดลง/หายไป</button><button type="button" class="chip" data-value="1">1 · Mydriasis สองข้างไม่ตอบสนอง; oculocephalic ลดลง/หายไป</button></div></div><div class="field-group" data-field="e-mgcs-consciousness" data-multi="false"><label>Level of consciousness · ระดับความรู้สึกตัว</label><div class="chips chips-vertical"><button type="button" class="chip" data-value="6">6 · ตื่นตัวเป็นช่วงและตอบสนองสิ่งแวดล้อม</button><button type="button" class="chip" data-value="5">5 · ซึม/เพ้อ ตอบสนองได้แต่อาจไม่เหมาะสม</button><button type="button" class="chip" data-value="4">4 · Semicoma ตอบสนองสิ่งเร้าทางการมองเห็น</button><button type="button" class="chip" data-value="3">3 · Semicoma ตอบสนองเสียง</button><button type="button" class="chip" data-value="2">2 · Semicoma ตอบสนองเฉพาะสิ่งเร้าเจ็บซ้ำ</button><button type="button" class="chip" data-value="1">1 · Coma ไม่ตอบสนองต่อสิ่งเร้าเจ็บซ้ำ</button></div></div><a href="https://vetcot.org/wp-content/uploads/2026/02/MGCS-Score.pdf" target="_blank" rel="noopener">เกณฑ์ MGCS · VetCOT</a></details><p id="mgcs-status" aria-live="polite">ยังไม่ได้ประเมิน</p>
               <div class="number-input-row">
-                <input type="number" id="e-mgcs" step="1" min="1" max="18" placeholder="เช่น 15">
+                <input type="number" id="e-mgcs" step="1" min="3" max="18" readonly placeholder="เลือกครบ 3 ด้าน">
                 <span class="unit">/ 18</span>
               </div>
             </div>
@@ -1390,6 +1397,10 @@
       </section>
 
       <!-- ---- NOTE ---- -->
+<section class="accordion" id="section-rx">
+  <button type="button" class="accordion-header"><span>RX · ยากลับบ้าน</span><span class="accordion-caret">⌄</span></button>
+  <div class="accordion-body"><div id="rx-list"></div><button type="button" class="secondary-btn" id="rx-add">+ เพิ่มยา RX</button><datalist id="rx-drug-names"></datalist></div>
+</section>
 <section class="accordion opd-only" id="section-tp" hidden><button type="button" class="accordion-header"><span>TP: · แผนการรักษา</span><span class="accordion-caret">⌄</span></button><div class="accordion-body"><div class="field-row"><label for="o-tp">TP:</label><textarea id="o-tp" rows="3"></textarea></div></div></section>
       <section class="accordion" id="section-note">
         <button type="button" class="accordion-header">

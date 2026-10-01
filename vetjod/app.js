@@ -529,6 +529,9 @@ function refreshDdxChoices() {
   $("o-ddx-picker").innerHTML = '<option value="">เลือก DDX เพื่อเพิ่ม...</option>' + choices.map(s => '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>').join("");
 }
 function updateRecordMode() {
+  document.querySelectorAll("[data-record-type]").forEach(button => {
+    button.setAttribute("aria-pressed", String(button.dataset.recordType === $("p-record-type").value));
+  });
   const opd = $("p-record-type").value === "opd";
   $("screen-entry").classList.toggle("opd-mode",opd);
   document.querySelectorAll(".opd-only").forEach(el => {el.hidden = !opd;});
@@ -542,16 +545,88 @@ function buildOutpatientNote(record) {
   const lines = ['OPD (' + todayLabel() + ', ' + (record.vet || 'ไม่ระบุ') + ')',oldLines[1]];
   const add = (label,value) => {if(value && value.trim()) lines.push(label+':',value.trim());};
   add('CC',o.cc); add('Hx',o.hx);
-  const end = oldLines.findIndex((line,i) => i>1 && /^(Labs:|Tx:|Note:|เบิกเวชภัณฑ์:|แจ้งอาหารหมด:)/.test(line));
+  const end = oldLines.findIndex((line,i) => i>1 && /^(Labs:|Tx:|RX:|Note:|เบิกเวชภัณฑ์:|แจ้งอาหารหมด:)/.test(line));
   add('PE',oldLines.slice(2,end===-1 ? undefined : end).join("\n").replace(/^PE: /m,''));
   add('Investigate',buildLabsLine(record.labs).map(s=>'- '+s).join("\n"));
-  add('DDX',o.ddx); add('TX',buildTxParts(record.tx).map(s=>'- '+s).join("\n")); add('TP',o.tp);
+  add('DDX',o.ddx); add('TX',buildTxParts(record.tx).map(s=>'- '+s).join("\n")); add('RX',buildRxParts(record.rx).map(s=>'- '+s).join("\n")); add('TP',o.tp);
   const notes = [...(record.caseStatus || []),record.caseStatusOther || ''];
   const supply = buildSupplyParts(record.supply);
   if(supply.length) notes.push('เบิกเวชภัณฑ์: '+supply.join(', '));
   if(fmtList(record.dietOut)) notes.push('แจ้งอาหารหมด: '+fmtList(record.dietOut));
   add('NOTE',notes.filter(Boolean).join("\n"));
   return lines.join("\n");
+}
+
+
+// RX quantity calculations never infer dose from the free-text drug strength.
+const RX_FREQUENCIES = {bid:2, sid:1, q12h:2, q8h:3, q48h:0.5};
+let rxRowSequence = 0;
+function calculateRxSupply(rx) {
+  const qty = Number(rx.quantity), perDose = Number(rx.perDose), frequency = RX_FREQUENCIES[rx.frequency];
+  if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(perDose) || perDose <= 0 || !frequency) return null;
+  let available = qty;
+  if (rx.unit === "ขวด") {
+    const capacity = Number(rx.capacity);
+    if (!Number.isFinite(capacity) || capacity <= 0 || !["mL","หยด","g","พ่น"].includes(rx.measure)) return null;
+    available *= capacity;
+  } else if (!["เม็ด","แคปซูล"].includes(rx.unit)) return null;
+  const doses = Math.floor(available / perDose + 1e-9);
+  return { doses, days: doses / frequency };
+}
+function readRxRow(row) {
+  const result = {};
+  row.querySelectorAll('[data-rx]').forEach(el => { result[el.dataset.rx] = el.value.trim(); });
+  result.times = [...row.querySelectorAll('[data-rx-time]:checked')].map(el => el.value);
+  const supply = calculateRxSupply(result);
+  result.days = supply ? supply.days : null;
+  return result;
+}
+function collectRx() {
+  return [...$("rx-list").querySelectorAll('.rx-row')].map(readRxRow).filter(r => Object.entries(r).some(([k,v]) => k !== 'days' && (Array.isArray(v) ? v.length : v)));
+}
+function updateRxRow(row) {
+  const rx = readRxRow(row), bottle = rx.unit === 'ขวด';
+  row.querySelector('[data-rx-bottle]').hidden = !bottle;
+  row.querySelector('[data-rx-dose-label]').textContent = 'ปริมาณต่อครั้ง' + (rx.unit ? ' (' + (bottle ? rx.measure || 'เลือกหน่วยด้านล่าง' : rx.unit) + ')' : '');
+  const supply = calculateRxSupply(rx);
+  row.querySelector('[data-rx-result]').textContent = supply ? 'ใช้ได้ ' + supply.doses + ' ครั้ง ≈ ' + Number(supply.days.toFixed(2)) + ' วัน (ตามจำนวนยาและความถี่)' : 'กรอกจำนวนยา ปริมาณต่อครั้ง และความถี่เพื่อคำนวณวัน' + (bottle ? ' พร้อมขนาดบรรจุและหน่วยเดียวกัน' : '');
+}
+function addRxRow(saved = {}) {
+  const id = 'rx-' + (++rxRowSequence), row = document.createElement('div');
+  row.className = 'rx-row sub-block';
+  const input = (key,label,type='text',extra='') => '<div class="field-row"><label for="'+id+'-'+key+'"'+(key==='perDose'?' data-rx-dose-label':'')+'>'+label+'</label><input id="'+id+'-'+key+'" data-rx="'+key+'" type="'+type+'" '+(type==='number'?'min="0" step="any" inputmode="decimal"':'')+' '+extra+'></div>';
+  const select = (key,label,options) => '<div class="field-row"><label for="'+id+'-'+key+'">'+label+' (เลือกหรือพิมพ์เอง)</label><input type="text" id="'+id+'-'+key+'" data-rx="'+key+'" list="'+id+'-'+key+'-choices" placeholder="เลือกหรือพิมพ์..."><datalist id="'+id+'-'+key+'-choices">'+options.map(s=>'<option value="'+s+'"></option>').join('')+'</datalist></div>';
+  row.innerHTML = input('name','ชื่อยา','text','list="rx-drug-names"') + input('dose','ขนาดยา / ความแรง (ระบุหน่วย)') +
+    '<div class="rx-grid">'+select('route','วิธีใช้',['Po','Apply','Spray','Eye drop','Wash'])+select('meal','ก่อน/หลังอาหาร',['ac','pc'])+'</div>'+
+    '<fieldset class="rx-times"><legend>ช่วงเวลา (เลือกได้หลายช่วง)</legend>'+['am','pm','before bed'].map(t=>'<label><input type="checkbox" data-rx-time value="'+t+'"> '+t+'</label>').join('')+'</fieldset>'+
+    '<div class="rx-grid">'+select('frequency','ความถี่',['bid','sid','q12h','q8h','q48h'])+select('unit','หน่วยยาที่จ่าย',['เม็ด','ขวด','แคปซูล'])+input('quantity','จำนวนที่จ่าย','number')+input('perDose','ปริมาณต่อครั้ง','number')+'</div>'+
+    '<div data-rx-bottle hidden class="rx-grid">'+input('capacity','ปริมาณต่อขวด','number')+select('measure','หน่วยของปริมาณต่อขวดและต่อครั้ง',['mL','หยด','g','พ่น'])+'</div>'+
+    input('timeOther','ช่วงเวลาอื่น ๆ (free text)') + '<div class="field-row"><label for="'+id+'-instructions">คำแนะนำเพิ่มเติม (free text)</label><textarea id="'+id+'-instructions" data-rx="instructions" rows="2"></textarea></div>' +
+    '<p data-rx-result aria-live="polite"></p><button type="button" class="secondary-btn" data-rx-remove>ลบยารายการนี้</button>';
+  row.querySelectorAll('[data-rx]').forEach(el=>{el.value=saved[el.dataset.rx] == null ? '' : String(saved[el.dataset.rx]);});
+  row.querySelectorAll('[data-rx-time]').forEach(el=>{el.checked=Array.isArray(saved.times)&&saved.times.includes(el.value);});
+  row.addEventListener('input',()=>{updateRxRow(row);onFormChange();});
+  row.addEventListener('change',()=>{updateRxRow(row);onFormChange();});
+  row.querySelector('[data-rx-remove]').addEventListener('click',()=>{row.remove();onFormChange();});
+  $("rx-list").appendChild(row);updateRxRow(row);
+}
+function buildRxParts(items) {
+  if (!Array.isArray(items)) return [];
+  return items.map(rx => {
+    const parts = [rx.name || '(ไม่ระบุชื่อยา)'];
+    if (rx.dose) parts[0] += ' ('+rx.dose+')';
+    for (const key of ['route','meal']) if(rx[key])parts.push(rx[key]);
+    if (Array.isArray(rx.times) && rx.times.length) parts.push(rx.times.join('/'));
+    if (rx.timeOther) parts.push(rx.timeOther);
+    if (rx.frequency)parts.push(rx.frequency);
+    if (rx.perDose)parts.push('ครั้งละ '+rx.perDose+' '+(rx.unit==='ขวด' ? rx.measure || '(ไม่ระบุหน่วย)' : rx.unit || '(ไม่ระบุหน่วย)'));
+    if (rx.quantity)parts.push('จำนวน '+rx.quantity+' '+(rx.unit || '(ไม่ระบุหน่วย)'));
+    if (rx.unit==='ขวด' && rx.capacity)parts.push(rx.capacity+' '+(rx.measure || '(ไม่ระบุหน่วย)')+'/ขวด');
+    const supply=calculateRxSupply(rx);
+    if(supply)parts.push('ใช้ได้ '+supply.doses+' ครั้ง ≈ '+Number(supply.days.toFixed(2))+' วัน');
+    if (rx.instructions) parts.push(rx.instructions);
+    return parts.join(', ');
+  });
 }
 
 // ===================== form collection =====================
@@ -570,6 +645,7 @@ function collectForm() {
   const rehydrationCalc = computeRehydration(weightKg, dehydrationPercent, parseFloat(rehydrationHoursVal || ""), ongoingLoss);
 
   return {
+    rx: collectRx(),
     recordType: val("p-record-type") || "ipd",
     outpatient: {cc: val("o-cc"), hx: val("o-hx"), ddx: val("o-ddx"), tp: val("o-tp")},
     name: val("p-name"),
@@ -677,6 +753,7 @@ function collectForm() {
       surgicalSite: getFieldValue("e-surgical-site"),
       otherFindings: getFieldValue("e-other-findings"),
       mgcs: num("e-mgcs"),
+      mgcsComponents: collectMgcsComponents(),
       painScore: getFieldValue("e-pain-score"),
       other: val("e-other")
     },
@@ -819,7 +896,8 @@ function buildPeParts(e) {
   if (e.cough === "negative") parts.push("Induced cough -");
   if (fmtList(e.abdominal)) parts.push(`Abd: ${fmtList(e.abdominal)}`);
   if (fmtList(e.otherFindings)) parts.push(`Other: ${fmtList(e.otherFindings)}`);
-  if (e.mgcs != null) parts.push(`MGCS ${e.mgcs}/18`);
+  if (e.mgcs != null) parts.push(`MGCS ${e.mgcs}/18` + (calculateMgcs(e.mgcsComponents || {}) != null ? ` (Motor ${e.mgcsComponents.motor}/6, Brainstem ${e.mgcsComponents.brainstem}/6, Consciousness ${e.mgcsComponents.consciousness}/6)` : ""));
+  else if (e.mgcsComponents && Object.values(e.mgcsComponents).some(n => n != null)) parts.push("MGCS incomplete (" + ["motor", "brainstem", "consciousness"].filter(k => e.mgcsComponents[k] != null).map(k => k + " " + e.mgcsComponents[k] + "/6").join(", ") + ")");
   if (e.painScore) parts.push(`Pain score ${e.painScore}/4`);
 
   return parts;
@@ -1080,6 +1158,9 @@ function buildNoteText(record) {
     txParts.forEach((p) => lines.push("- " + p));
   }
 
+  const rxParts = buildRxParts(record.rx);
+  if (rxParts.length) { lines.push("RX:"); rxParts.forEach(p => lines.push("- " + p)); }
+
   const noteParts = [];
   if (Array.isArray(record.caseStatus)) noteParts.push(...record.caseStatus);
   if (record.caseStatusOther) noteParts.push(record.caseStatusOther);
@@ -1096,7 +1177,28 @@ function buildNoteText(record) {
   return lines.join("\n");
 }
 
+
+function collectMgcsComponents() {
+  return Object.fromEntries(["motor", "brainstem", "consciousness"].map(key => {
+    const raw = getFieldValue("e-mgcs-" + key);
+    return [key, raw == null ? null : Number(raw)];
+  }));
+}
+function calculateMgcs(parts) {
+  const values = [parts.motor, parts.brainstem, parts.consciousness];
+  return values.every(n => Number.isInteger(n) && n >= 1 && n <= 6) ? values.reduce((a,b)=>a+b,0) : null;
+}
+function updateMgcsDisplay(preserveLegacy = true) {
+  const parts = collectMgcsComponents();
+  const count = Object.values(parts).filter(n => n != null).length;
+  const total = calculateMgcs(parts);
+  const input = $("e-mgcs");
+  if (count || !preserveLegacy) input.value = total == null ? "" : total;
+  $("mgcs-status").textContent = total != null ? "MGCS " + total + "/18" : count ? "ประเมินแล้ว " + count + "/3 ด้าน — ยังไม่รวมคะแนน" : input.value ? "คะแนนรวมเดิม " + input.value + "/18 (ไม่มีคะแนนแยกรายด้าน)" : "ยังไม่ได้ประเมิน";
+}
+
 function onFormChange() {
+  updateMgcsDisplay();
   updateReveals();
   updateUopDisplay();
   updateFluidBalanceDisplay();
@@ -1196,7 +1298,6 @@ const STATIC_SLIDER_FIELDS = [
   ["e-rr", 0, 100],
   ["e-eye-od-stt", 0, 30],
   ["e-eye-os-stt", 0, 30],
-  ["e-mgcs", 1, 18],
   ["e-seizure-duration", 0, 60],
   ["t-ongoing-loss", 0, 100],
   ["t-rehydration-rate", 0, 200],
@@ -1269,6 +1370,7 @@ function activateDefault(fieldId, value) {
 }
 
 function resetForm() {
+  $("rx-list").innerHTML = "";
   $("p-record-type").value = "ipd";
   updateRecordMode();
   closeJumpNav();
@@ -1276,6 +1378,7 @@ function resetForm() {
   document.querySelectorAll("#screen-entry input[type=text], #screen-entry input[type=number], #screen-entry input[type=time], #screen-entry textarea")
     .forEach((i) => { i.value = ""; });
   document.querySelectorAll("#screen-entry .chip-other-input").forEach((i) => { i.hidden = true; });
+  updateMgcsDisplay(false);
   $("p-vet").value = "";
   $("fluids-detail-list").innerHTML = "";
   $("labs-list").innerHTML = "";
@@ -1399,6 +1502,8 @@ function populateSupply(supply) {
 }
 
 function populateForm(record) {
+  $("rx-list").innerHTML = "";
+  if (Array.isArray(record.rx)) record.rx.forEach(addRxRow);
   $("p-record-type").value = record.recordType === "opd" ? "opd" : "ipd";
   for (const key of ["cc","hx","ddx","tp"]) setInputValue("o-"+key,record.outpatient?.[key]);
   updateRecordMode();
@@ -1514,6 +1619,8 @@ function populateForm(record) {
   setChipFieldValue("e-other-findings", e.otherFindings);
 
   setInputValue("e-mgcs", e.mgcs);
+  for (const key of ["motor", "brainstem", "consciousness"]) setChipFieldValue("e-mgcs-"+key, e.mgcsComponents?.[key] == null ? null : String(e.mgcsComponents[key]));
+  updateMgcsDisplay();
   setChipFieldValue("e-pain-score", e.painScore);
   setInputValue("e-other", e.other);
 
@@ -1921,6 +2028,7 @@ const SECTION_FLOW = [
   { id: "section-exam", label: "Physical exam" },
   { id: "section-labs", label: "Labs" },
   { id: "section-tx", label: "Tx" },
+  { id: "section-rx", label: "RX" },
   { id: "section-note", label: "Note" },
   { id: "section-supply", label: "เบิกของ" },
   { id: "section-summary", label: "สรุป" }
@@ -1929,7 +2037,7 @@ const SECTION_FLOW = [
 function initSectionFlow() {
   document.querySelectorAll(".next-section-btn").forEach(el=>el.remove());
   const opd = $("p-record-type").value === "opd";
-  const extra = {"section-patient":[{id:"section-cc",label:"CC"},{id:"section-hx",label:"Hx"}],"section-labs":[{id:"section-ddx",label:"DDX"}],"section-tx":[{id:"section-tp",label:"TP"}]};
+  const extra = {"section-patient":[{id:"section-cc",label:"CC"},{id:"section-hx",label:"Hx"}],"section-labs":[{id:"section-ddx",label:"DDX"}],"section-rx":[{id:"section-tp",label:"TP"}]};
   const flow = SECTION_FLOW.flatMap(s=>[s,...(opd ? extra[s.id] || [] : [])]);
   const label = s=>opd && s.id==='section-labs' ? 'Investigate' : s.label;
   $("jump-nav").innerHTML = flow.map(s=>'<button type="button" class="jump-nav-btn" data-jump-to="'+s.id+'">'+label(s)+'</button>').join('');
@@ -1943,8 +2051,17 @@ function initSectionFlow() {
 }
 
 function init() {
+  $("rx-add").addEventListener("click", () => { addRxRow(); });
+  $("rx-drug-names").innerHTML = [...$("t-po-med-picker").options].filter(o=>o.value).map(o=>'<option value="'+escapeHtml(o.value)+'"></option>').join("");
   initTheme();
-  $("p-record-type").addEventListener("change",()=>{updateRecordMode();onFormChange();});
+  document.querySelectorAll("[data-record-type]").forEach(button => {
+    button.addEventListener("click", () => {
+      if ($("p-record-type").value === button.dataset.recordType) return;
+      $("p-record-type").value = button.dataset.recordType;
+      updateRecordMode();
+      onFormChange();
+    });
+  });
   $("o-ddx-picker").addEventListener("focus",refreshDdxChoices);
   $("o-ddx-picker").addEventListener("change",event=>{
     const choice=event.target.value;if(!choice)return;
@@ -1991,6 +2108,11 @@ function init() {
   });
 
   document.addEventListener("click", chipClickHandler);
+  document.addEventListener("click", event => {
+    if (event.target.closest('[data-field^="e-mgcs-"] .chip')) {
+      updateMgcsDisplay(false); updateNotePreview(); autosaveDraftIfNeeded();
+    }
+  });
 
   document.querySelectorAll('[data-field="v-temp-unit"] .chip').forEach((chip) => {
     chip.addEventListener("click", () => {
