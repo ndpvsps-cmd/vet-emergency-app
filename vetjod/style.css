@@ -1199,3 +1199,10 @@ button, input, textarea, select {
 .toast[hidden] {
   display: none;
 }
+
+/* Outpatient purple identity. */
+.opd-mode { --vj-accent: #c4b5fd; --vj-accent-dark: #7c3aed; --vj-accent-text: #c4b5fd; --vj-blue: #c4b5fd; --gradient-brand: linear-gradient(135deg,#c4b5fd,#a78bfa); }
+:root[data-theme="light"] .opd-mode { --vj-accent-text: #6d28d9; }
+.opd-mode .chip.active, .opd-mode .primary-btn, .opd-mode .next-section-btn { background:#7c3aed;color:#fff;border-color:#8b5cf6; }
+.opd-mode .icon-btn-save { color:var(--vj-accent-text);border-color:#8b5cf6; }
+.opd-only[hidden] { display:none !important; }

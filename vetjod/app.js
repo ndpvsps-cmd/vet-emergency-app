@@ -511,6 +511,49 @@ function collectFluids() {
   }).filter((f) => f.type || f.rate != null);
 }
 
+
+const DDX_HISTORY_KEY = "vetjod_ddx_history_v1";
+function rememberDdx(record) {
+  if (record.recordType !== "opd") return;
+  try {
+    const previous = JSON.parse(localStorage.getItem(DDX_HISTORY_KEY) || "[]");
+    const entries = (record.outpatient?.ddx || "").split("\n").map(s => s.trim()).filter(Boolean);
+    localStorage.setItem(DDX_HISTORY_KEY, JSON.stringify([...new Set([...entries, ...(Array.isArray(previous) ? previous : [])])].slice(0,300)));
+  } catch (_) {}
+}
+function refreshDdxChoices() {
+  let entries = [];
+  try { const saved = JSON.parse(localStorage.getItem(DDX_HISTORY_KEY) || "[]"); if (Array.isArray(saved)) entries = saved; } catch (_) {}
+  for (const record of todayRecords) entries.push(...(record.outpatient?.ddx || "").split("\n"));
+  const choices = [...new Set(entries.filter(s => typeof s === "string").map(s => s.trim()).filter(Boolean))];
+  $("o-ddx-picker").innerHTML = '<option value="">เลือก DDX เพื่อเพิ่ม...</option>' + choices.map(s => '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>').join("");
+}
+function updateRecordMode() {
+  const opd = $("p-record-type").value === "opd";
+  $("screen-entry").classList.toggle("opd-mode",opd);
+  document.querySelectorAll(".opd-only").forEach(el => {el.hidden = !opd;});
+  const labels = {"section-exam": opd ? "PE:" : "Physical exam", "section-labs": opd ? "Investigate:" : "Labs", "section-tx": opd ? "TX:" : "Tx", "section-note": opd ? "NOTE:" : "Note"};
+  Object.entries(labels).forEach(([id,label]) => {$(id).querySelector('.accordion-header > span').textContent = label;});
+  initSectionFlow(); refreshDdxChoices();
+}
+function buildOutpatientNote(record) {
+  const oldLines = buildNoteText({...record,recordType:"ipd"}).split("\n");
+  const o = record.outpatient || {};
+  const lines = ['OPD (' + todayLabel() + ', ' + (record.vet || 'ไม่ระบุ') + ')',oldLines[1]];
+  const add = (label,value) => {if(value && value.trim()) lines.push(label+':',value.trim());};
+  add('CC',o.cc); add('Hx',o.hx);
+  const end = oldLines.findIndex((line,i) => i>1 && /^(Labs:|Tx:|Note:|เบิกเวชภัณฑ์:|แจ้งอาหารหมด:)/.test(line));
+  add('PE',oldLines.slice(2,end===-1 ? undefined : end).join("\n").replace(/^PE: /m,''));
+  add('Investigate',buildLabsLine(record.labs).map(s=>'- '+s).join("\n"));
+  add('DDX',o.ddx); add('TX',buildTxParts(record.tx).map(s=>'- '+s).join("\n")); add('TP',o.tp);
+  const notes = [...(record.caseStatus || []),record.caseStatusOther || ''];
+  const supply = buildSupplyParts(record.supply);
+  if(supply.length) notes.push('เบิกเวชภัณฑ์: '+supply.join(', '));
+  if(fmtList(record.dietOut)) notes.push('แจ้งอาหารหมด: '+fmtList(record.dietOut));
+  add('NOTE',notes.filter(Boolean).join("\n"));
+  return lines.join("\n");
+}
+
 // ===================== form collection =====================
 function collectForm() {
   const weightKg = num("p-weight");
@@ -527,6 +570,8 @@ function collectForm() {
   const rehydrationCalc = computeRehydration(weightKg, dehydrationPercent, parseFloat(rehydrationHoursVal || ""), ongoingLoss);
 
   return {
+    recordType: val("p-record-type") || "ipd",
+    outpatient: {cc: val("o-cc"), hx: val("o-hx"), ddx: val("o-ddx"), tp: val("o-tp")},
     name: val("p-name"),
     vet: val("p-vet"),
     species: getFieldValue("p-species") || "dog",
@@ -982,6 +1027,7 @@ function buildSupplyParts(supply) {
 }
 
 function buildNoteText(record) {
+  if (record.recordType === "opd") return buildOutpatientNote(record);
   const lines = [];
   lines.push(`ADMIT (${todayLabel()}, ${record.vet || "ไม่ระบุ"})`);
 
@@ -1223,6 +1269,8 @@ function activateDefault(fieldId, value) {
 }
 
 function resetForm() {
+  $("p-record-type").value = "ipd";
+  updateRecordMode();
   closeJumpNav();
   document.querySelectorAll("#screen-entry .chip.active").forEach((c) => c.classList.remove("active"));
   document.querySelectorAll("#screen-entry input[type=text], #screen-entry input[type=number], #screen-entry input[type=time], #screen-entry textarea")
@@ -1351,6 +1399,9 @@ function populateSupply(supply) {
 }
 
 function populateForm(record) {
+  $("p-record-type").value = record.recordType === "opd" ? "opd" : "ipd";
+  for (const key of ["cc","hx","ddx","tp"]) setInputValue("o-"+key,record.outpatient?.[key]);
+  updateRecordMode();
   const v = record.vitals || {};
   const e = record.exam || {};
   const od = e.eyeOd || {};
@@ -1568,7 +1619,7 @@ function renderList() {
 
   filtered.forEach((r) => {
     const card = document.createElement("div");
-    card.className = "record-card";
+    card.className = "record-card" + (r.recordType === "opd" ? " opd-mode" : "");
     card.innerHTML = `
       <div class="record-card-top">
         <div>
@@ -1876,29 +1927,31 @@ const SECTION_FLOW = [
 ];
 
 function initSectionFlow() {
-  SECTION_FLOW.forEach((sec, idx) => {
-    if (idx === SECTION_FLOW.length - 1) return; // last section has no "next"
-    const el = $(sec.id);
-    if (!el) return;
-    const next = SECTION_FLOW[idx + 1];
-    const container = el.querySelector(".accordion-body") || el;
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "next-section-btn";
-    btn.textContent = `ถัดไป: ${next.label} ›`;
-    btn.addEventListener("click", () => {
-      el.classList.remove("open");
-      const nextEl = $(next.id);
-      if (!nextEl) return;
-      nextEl.classList.add("open");
-      nextEl.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-    container.appendChild(btn);
+  document.querySelectorAll(".next-section-btn").forEach(el=>el.remove());
+  const opd = $("p-record-type").value === "opd";
+  const extra = {"section-patient":[{id:"section-cc",label:"CC"},{id:"section-hx",label:"Hx"}],"section-labs":[{id:"section-ddx",label:"DDX"}],"section-tx":[{id:"section-tp",label:"TP"}]};
+  const flow = SECTION_FLOW.flatMap(s=>[s,...(opd ? extra[s.id] || [] : [])]);
+  const label = s=>opd && s.id==='section-labs' ? 'Investigate' : s.label;
+  $("jump-nav").innerHTML = flow.map(s=>'<button type="button" class="jump-nav-btn" data-jump-to="'+s.id+'">'+label(s)+'</button>').join('');
+  flow.forEach((sec,idx)=>{
+    if(idx===flow.length-1)return;
+    const el=$(sec.id),next=flow[idx+1],btn=document.createElement('button');
+    btn.type='button';btn.className='next-section-btn';btn.textContent='ถัดไป: '+label(next)+' ›';
+    btn.addEventListener('click',()=>{el.classList.remove('open');$(next.id).classList.add('open');$(next.id).scrollIntoView({behavior:'smooth',block:'start'});});
+    (el.querySelector('.accordion-body') || el).appendChild(btn);
   });
 }
 
 function init() {
   initTheme();
+  $("p-record-type").addEventListener("change",()=>{updateRecordMode();onFormChange();});
+  $("o-ddx-picker").addEventListener("focus",refreshDdxChoices);
+  $("o-ddx-picker").addEventListener("change",event=>{
+    const choice=event.target.value;if(!choice)return;
+    const input=$("o-ddx"), entries=input.value.split("\n").map(s=>s.trim()).filter(Boolean);
+    if(!entries.includes(choice))entries.push(choice);
+    input.value=entries.join("\n");event.target.value="";onFormChange();
+  });
   renderLabsContainer();
   renderSupply();
   renderFluidsContainer();
@@ -1978,15 +2031,10 @@ function init() {
   });
 
 
-  document.querySelectorAll(".jump-nav-btn").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const target = $(btn.dataset.jumpTo);
-      if (!target) return;
-      if (target.classList.contains("accordion")) target.classList.add("open");
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-      document.querySelectorAll(".jump-nav-btn").forEach((b) => b.classList.toggle("active", b === btn));
-      closeJumpNav();
-    });
+  $("jump-nav").addEventListener("click",event=>{
+    const btn=event.target.closest(".jump-nav-btn");if(!btn)return;
+    const target=$(btn.dataset.jumpTo);if(!target)return;
+    target.classList.add("open");target.scrollIntoView({behavior:"smooth",block:"start"});closeJumpNav();
   });
 
   $("jump-nav-handle").addEventListener("click", () => {
@@ -2041,6 +2089,7 @@ function init() {
       } else {
         await Promise.race([saveRecord(record), timeout]);
       }
+      rememberDdx(record);
       clearDraft();
       recordRecentUsage(record);
       showSaveSuccess(record, "✓ บันทึกสำเร็จ", "บันทึกข้อมูลของ", "เรียบร้อยแล้ว");

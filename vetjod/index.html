@@ -95,7 +95,7 @@
 
     <main class="entry-form">
       <!-- ---- Patient identity ---- -->
-      <section class="panel" id="section-patient">
+      <section class="panel" id="section-patient"><div class="field-row"><label for="p-record-type">รูปแบบเวชระเบียน</label><select id="p-record-type"><option value="ipd">ผู้ป่วยใน · ADMIT</option><option value="opd">ผู้ป่วยนอก · OPD</option></select></div>
         <div class="field-row">
           <label for="p-name">ชื่อสัตว์</label>
           <input type="text" id="p-name" placeholder="เช่น น้องโบว์">
@@ -129,6 +129,8 @@
         </div>
       </section>
 
+<section class="accordion opd-only" id="section-cc" hidden><button type="button" class="accordion-header"><span>CC: · อาการสำคัญ</span><span class="accordion-caret">⌄</span></button><div class="accordion-body"><div class="field-row"><label for="o-cc">CC:</label><textarea id="o-cc" rows="3"></textarea></div></div></section>
+<section class="accordion opd-only" id="section-hx" hidden><button type="button" class="accordion-header"><span>Hx: · ประวัติ</span><span class="accordion-caret">⌄</span></button><div class="accordion-body"><div class="field-row"><label for="o-hx">Hx:</label><textarea id="o-hx" rows="3"></textarea></div></div></section>
       <!-- ---- VITALS ---- -->
       <section class="accordion open" id="section-vitals">
         <button type="button" class="accordion-header">
@@ -1009,6 +1011,7 @@
       </section>
 
       <!-- ---- TX ---- -->
+<section class="accordion opd-only" id="section-ddx" hidden><button type="button" class="accordion-header"><span>DDX: · วินิจฉัยแยกโรค</span><span class="accordion-caret">⌄</span></button><div class="accordion-body"><div class="field-row"><label for="o-ddx-picker">เลือก DDX ที่เคยกรอก</label><select id="o-ddx-picker"><option value="">เลือก DDX เพื่อเพิ่ม...</option></select></div><div class="field-row"><label for="o-ddx">DDX (พิมพ์ใหม่ได้ หนึ่งรายการต่อบรรทัด)</label><textarea id="o-ddx" rows="3"></textarea></div></div></section>
       <section class="accordion" id="section-tx">
         <button type="button" class="accordion-header">
           <span>Tx</span><span class="accordion-caret">⌄</span>
@@ -1387,6 +1390,7 @@
       </section>
 
       <!-- ---- NOTE ---- -->
+<section class="accordion opd-only" id="section-tp" hidden><button type="button" class="accordion-header"><span>TP: · แผนการรักษา</span><span class="accordion-caret">⌄</span></button><div class="accordion-body"><div class="field-row"><label for="o-tp">TP:</label><textarea id="o-tp" rows="3"></textarea></div></div></section>
       <section class="accordion" id="section-note">
         <button type="button" class="accordion-header">
           <span>Note</span><span class="accordion-caret">⌄</span>
