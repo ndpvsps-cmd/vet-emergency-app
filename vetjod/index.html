@@ -1399,9 +1399,10 @@
       <!-- ---- NOTE ---- -->
 <section class="accordion" id="section-rx">
   <button type="button" class="accordion-header"><span>RX · ยากลับบ้าน</span><span class="accordion-caret">⌄</span></button>
-  <div class="accordion-body"><div id="rx-list"></div><button type="button" class="secondary-btn" id="rx-add">+ เพิ่มยา RX</button><datalist id="rx-drug-names"></datalist></div>
+  <div class="accordion-body"><div class="field-row"><label for="rx-picker">เลือกชื่อยา</label><select id="rx-picker"><option value="">เลือกยาเพื่อเพิ่ม...</option></select></div><div class="field-row"><label for="rx-custom">ชื่อยาอื่น ๆ</label><input type="text" id="rx-custom" placeholder="พิมพ์ชื่อยาใหม่"><button type="button" class="secondary-btn" id="rx-add">+ เพิ่มชื่อยา</button></div><div id="rx-list"></div></div>
 </section>
 <section class="accordion opd-only" id="section-tp" hidden><button type="button" class="accordion-header"><span>TP: · แผนการรักษา</span><span class="accordion-caret">⌄</span></button><div class="accordion-body"><div class="field-row"><label for="o-tp">TP:</label><textarea id="o-tp" rows="3"></textarea></div></div></section>
+      <section class="accordion opd-only" id="section-prognosis" hidden><button type="button" class="accordion-header"><span>Prognosis</span><span class="accordion-caret">⌄</span></button><div class="accordion-body"><div class="field-group" data-field="o-prognosis" data-multi="false"><div class="chips"><button type="button" class="chip" data-value="Fair">Fair</button><button type="button" class="chip" data-value="Guard">Guard</button><button type="button" class="chip" data-value="Poor">Poor</button><button type="button" class="chip" data-value="Grave">Grave</button></div></div></div></section>
       <section class="accordion" id="section-note">
         <button type="button" class="accordion-header">
           <span>Note</span><span class="accordion-caret">⌄</span>

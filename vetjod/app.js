@@ -548,7 +548,7 @@ function buildOutpatientNote(record) {
   const end = oldLines.findIndex((line,i) => i>1 && /^(Labs:|Tx:|RX:|Note:|เบิกเวชภัณฑ์:|แจ้งอาหารหมด:)/.test(line));
   add('PE',oldLines.slice(2,end===-1 ? undefined : end).join("\n").replace(/^PE: /m,''));
   add('Investigate',buildLabsLine(record.labs).map(s=>'- '+s).join("\n"));
-  add('DDX',o.ddx); add('TX',buildTxParts(record.tx).map(s=>'- '+s).join("\n")); add('RX',buildRxParts(record.rx).map(s=>'- '+s).join("\n")); add('TP',o.tp);
+  add('DDX',o.ddx); add('TX',buildTxParts(record.tx).map(s=>'- '+s).join("\n")); add('RX',buildRxParts(record.rx).map(s=>'- '+s).join("\n")); add('TP',o.tp); add('Prognosis',o.prognosis);
   const notes = [...(record.caseStatus || []),record.caseStatusOther || ''];
   const supply = buildSupplyParts(record.supply);
   if(supply.length) notes.push('เบิกเวชภัณฑ์: '+supply.join(', '));
@@ -573,42 +573,39 @@ function calculateRxSupply(rx) {
   const doses = Math.floor(available / perDose + 1e-9);
   return { doses, days: doses / frequency };
 }
+const RX_HISTORY_KEY = "vetjod_rx_names_v1";
+function rxNames() {
+  let saved=[];
+  try {const value=JSON.parse(localStorage.getItem(RX_HISTORY_KEY)||'[]');if(Array.isArray(value))saved=value;}catch(_){}
+  const names=[...saved,...todayRecords.flatMap(r=>Array.isArray(r.rx)?r.rx.map(x=>x.name):[]),...[...$("t-po-med-picker").options].map(o=>o.value)];
+  const seen=new Set();return names.filter(n=>typeof n==='string').map(n=>n.trim()).filter(n=>{const key=n.toLowerCase();if(!n||seen.has(key))return false;seen.add(key);return true;});
+}
+function rememberRxNames(record) {
+  const names=(record.rx||[]).map(r=>r.name).filter(Boolean);
+  try {localStorage.setItem(RX_HISTORY_KEY,JSON.stringify([...new Set([...names,...rxNames()])].slice(0,300)));}catch(_){}
+}
+function refreshRxChoices() {
+  $("rx-picker").innerHTML='<option value="">เลือกยาเพื่อเพิ่ม...</option>'+rxNames().map(n=>'<option value="'+escapeHtml(n)+'">'+escapeHtml(n)+'</option>').join('');
+}
 function readRxRow(row) {
-  const result = {};
-  row.querySelectorAll('[data-rx]').forEach(el => { result[el.dataset.rx] = el.value.trim(); });
-  result.times = [...row.querySelectorAll('[data-rx-time]:checked')].map(el => el.value);
-  const supply = calculateRxSupply(result);
-  result.days = supply ? supply.days : null;
-  return result;
+  return {...row.rxOriginal,name:row.querySelector('[data-rx="name"]').value.trim()};
 }
 function collectRx() {
-  return [...$("rx-list").querySelectorAll('.rx-row')].map(readRxRow).filter(r => Object.entries(r).some(([k,v]) => k !== 'days' && (Array.isArray(v) ? v.length : v)));
-}
-function updateRxRow(row) {
-  const rx = readRxRow(row), bottle = rx.unit === 'ขวด';
-  row.querySelector('[data-rx-bottle]').hidden = !bottle;
-  row.querySelector('[data-rx-dose-label]').textContent = 'ปริมาณต่อครั้ง' + (rx.unit ? ' (' + (bottle ? rx.measure || 'เลือกหน่วยด้านล่าง' : rx.unit) + ')' : '');
-  const supply = calculateRxSupply(rx);
-  row.querySelector('[data-rx-result]').textContent = supply ? 'ใช้ได้ ' + supply.doses + ' ครั้ง ≈ ' + Number(supply.days.toFixed(2)) + ' วัน (ตามจำนวนยาและความถี่)' : 'กรอกจำนวนยา ปริมาณต่อครั้ง และความถี่เพื่อคำนวณวัน' + (bottle ? ' พร้อมขนาดบรรจุและหน่วยเดียวกัน' : '');
+  return [...$("rx-list").querySelectorAll('.rx-row')].map(readRxRow).filter(r=>r.name || Object.keys(r).some(k=>!['name','days'].includes(k) && (Array.isArray(r[k])?r[k].length:r[k])));
 }
 function addRxRow(saved = {}) {
-  const id = 'rx-' + (++rxRowSequence), row = document.createElement('div');
-  row.className = 'rx-row sub-block';
-  const input = (key,label,type='text',extra='') => '<div class="field-row"><label for="'+id+'-'+key+'"'+(key==='perDose'?' data-rx-dose-label':'')+'>'+label+'</label><input id="'+id+'-'+key+'" data-rx="'+key+'" type="'+type+'" '+(type==='number'?'min="0" step="any" inputmode="decimal"':'')+' '+extra+'></div>';
-  const select = (key,label,options) => '<div class="field-row"><label for="'+id+'-'+key+'">'+label+' (เลือกหรือพิมพ์เอง)</label><input type="text" id="'+id+'-'+key+'" data-rx="'+key+'" list="'+id+'-'+key+'-choices" placeholder="เลือกหรือพิมพ์..."><datalist id="'+id+'-'+key+'-choices">'+options.map(s=>'<option value="'+s+'"></option>').join('')+'</datalist></div>';
-  row.innerHTML = input('name','ชื่อยา','text','list="rx-drug-names"') + input('dose','ขนาดยา / ความแรง (ระบุหน่วย)') +
-    '<div class="rx-grid">'+select('route','วิธีใช้',['Po','Apply','Spray','Eye drop','Wash'])+select('meal','ก่อน/หลังอาหาร',['ac','pc'])+'</div>'+
-    '<fieldset class="rx-times"><legend>ช่วงเวลา (เลือกได้หลายช่วง)</legend>'+['am','pm','before bed'].map(t=>'<label><input type="checkbox" data-rx-time value="'+t+'"> '+t+'</label>').join('')+'</fieldset>'+
-    '<div class="rx-grid">'+select('frequency','ความถี่',['bid','sid','q12h','q8h','q48h'])+select('unit','หน่วยยาที่จ่าย',['เม็ด','ขวด','แคปซูล'])+input('quantity','จำนวนที่จ่าย','number')+input('perDose','ปริมาณต่อครั้ง','number')+'</div>'+
-    '<div data-rx-bottle hidden class="rx-grid">'+input('capacity','ปริมาณต่อขวด','number')+select('measure','หน่วยของปริมาณต่อขวดและต่อครั้ง',['mL','หยด','g','พ่น'])+'</div>'+
-    input('timeOther','ช่วงเวลาอื่น ๆ (free text)') + '<div class="field-row"><label for="'+id+'-instructions">คำแนะนำเพิ่มเติม (free text)</label><textarea id="'+id+'-instructions" data-rx="instructions" rows="2"></textarea></div>' +
-    '<p data-rx-result aria-live="polite"></p><button type="button" class="secondary-btn" data-rx-remove>ลบยารายการนี้</button>';
-  row.querySelectorAll('[data-rx]').forEach(el=>{el.value=saved[el.dataset.rx] == null ? '' : String(saved[el.dataset.rx]);});
-  row.querySelectorAll('[data-rx-time]').forEach(el=>{el.checked=Array.isArray(saved.times)&&saved.times.includes(el.value);});
-  row.addEventListener('input',()=>{updateRxRow(row);onFormChange();});
-  row.addEventListener('change',()=>{updateRxRow(row);onFormChange();});
+  const id='rx-'+(++rxRowSequence),row=document.createElement('div');
+  row.className='rx-row sub-block';row.rxOriginal={...saved};
+  row.innerHTML='<div class="field-row"><label for="'+id+'">ชื่อยา</label><input type="text" id="'+id+'" data-rx="name"></div><button type="button" class="secondary-btn" data-rx-remove>ลบยา</button>';
+  row.querySelector('input').value=saved.name||'';
+  // Preserve previous structured prescriptions when editing historical records.
+  if(Object.keys(saved).some(k=>!['name','days'].includes(k)&&(Array.isArray(saved[k])?saved[k].length:saved[k]))) {
+    const details=document.createElement('details'),summary=document.createElement('summary'),text=document.createElement('p');
+    summary.textContent='รายละเอียดใบสั่งยาเดิม';text.textContent=buildRxParts([saved])[0];details.append(summary,text);row.append(details);
+  }
+  row.addEventListener('input',onFormChange);
   row.querySelector('[data-rx-remove]').addEventListener('click',()=>{row.remove();onFormChange();});
-  $("rx-list").appendChild(row);updateRxRow(row);
+  $("rx-list").appendChild(row);
 }
 function buildRxParts(items) {
   if (!Array.isArray(items)) return [];
@@ -647,7 +644,7 @@ function collectForm() {
   return {
     rx: collectRx(),
     recordType: val("p-record-type") || "ipd",
-    outpatient: {cc: val("o-cc"), hx: val("o-hx"), ddx: val("o-ddx"), tp: val("o-tp")},
+    outpatient: {cc: val("o-cc"), hx: val("o-hx"), ddx: val("o-ddx"), tp: val("o-tp"), prognosis: getFieldValue("o-prognosis")},
     name: val("p-name"),
     vet: val("p-vet"),
     species: getFieldValue("p-species") || "dog",
@@ -1506,6 +1503,7 @@ function populateForm(record) {
   if (Array.isArray(record.rx)) record.rx.forEach(addRxRow);
   $("p-record-type").value = record.recordType === "opd" ? "opd" : "ipd";
   for (const key of ["cc","hx","ddx","tp"]) setInputValue("o-"+key,record.outpatient?.[key]);
+  setChipFieldValue("o-prognosis", record.outpatient?.prognosis);
   updateRecordMode();
   const v = record.vitals || {};
   const e = record.exam || {};
@@ -2037,7 +2035,7 @@ const SECTION_FLOW = [
 function initSectionFlow() {
   document.querySelectorAll(".next-section-btn").forEach(el=>el.remove());
   const opd = $("p-record-type").value === "opd";
-  const extra = {"section-patient":[{id:"section-cc",label:"CC"},{id:"section-hx",label:"Hx"}],"section-labs":[{id:"section-ddx",label:"DDX"}],"section-rx":[{id:"section-tp",label:"TP"}]};
+  const extra = {"section-patient":[{id:"section-cc",label:"CC"},{id:"section-hx",label:"Hx"}],"section-labs":[{id:"section-ddx",label:"DDX"}],"section-rx":[{id:"section-tp",label:"TP"},{id:"section-prognosis",label:"Prognosis"}]};
   const flow = SECTION_FLOW.flatMap(s=>[s,...(opd ? extra[s.id] || [] : [])]);
   const label = s=>opd && s.id==='section-labs' ? 'Investigate' : s.label;
   $("jump-nav").innerHTML = flow.map(s=>'<button type="button" class="jump-nav-btn" data-jump-to="'+s.id+'">'+label(s)+'</button>').join('');
@@ -2051,8 +2049,12 @@ function initSectionFlow() {
 }
 
 function init() {
-  $("rx-add").addEventListener("click", () => { addRxRow(); });
-  $("rx-drug-names").innerHTML = [...$("t-po-med-picker").options].filter(o=>o.value).map(o=>'<option value="'+escapeHtml(o.value)+'"></option>').join("");
+  refreshRxChoices();
+  $("rx-picker").addEventListener("focus",refreshRxChoices);
+  $("rx-picker").addEventListener("change",event=>{const name=event.target.value;if(!name)return;addRxRow({name});event.target.value="";onFormChange();});
+  const addCustomRx=()=>{const name=$("rx-custom").value.trim();if(!name)return;addRxRow({name});$("rx-custom").value="";onFormChange();};
+  $("rx-add").addEventListener("click",addCustomRx);
+  $("rx-custom").addEventListener("keydown",event=>{if(event.key==='Enter'){event.preventDefault();addCustomRx();}});
   initTheme();
   document.querySelectorAll("[data-record-type]").forEach(button => {
     button.addEventListener("click", () => {
@@ -2211,6 +2213,7 @@ function init() {
       } else {
         await Promise.race([saveRecord(record), timeout]);
       }
+      rememberRxNames(record);
       rememberDdx(record);
       clearDraft();
       recordRecentUsage(record);
