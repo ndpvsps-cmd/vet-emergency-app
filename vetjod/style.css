@@ -1226,3 +1226,5 @@ button, input, textarea, select {
 .rx-times label { display:flex; align-items:center; gap:8px; min-height:44px; }
 .rx-times input[type=checkbox] { width:20px; height:20px; accent-color:var(--vj-accent-dark); }
 .rx-grid[hidden] { display:none; }
+
+.note-detail { display:inline-block; box-sizing:border-box; width:100%; padding-left:3em; overflow-wrap:anywhere; }

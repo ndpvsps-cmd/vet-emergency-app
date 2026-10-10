@@ -37,14 +37,33 @@ function escapeHtml(str) {
 // as HTML for on-screen display only, so each section's label (Vitals:, PE:, Tx:, ...)
 // stands out from its values, and the [time] name - species line reads as the card title.
 function indentNoteItems(text) {
-  return (text || "").replace(/^[ \t]*- /gm, "      - ");
+  let section = '', number = 0;
+  const lines = [];
+  for (const line of (text || '').split('\n')) {
+    const heading = line.match(/^(PE|DDX|TP|Prognosis):\s*(.*)$/i);
+    if (heading) {
+      section = heading[1].toUpperCase(); number = 0;
+      lines.push(heading[1] + ':');
+      if (!heading[2].trim()) continue;
+      const value = heading[2].trim();
+      lines.push('      ' + (section === 'DDX' ? (++number) + '. ' + value.replace(/^\d+[.)]\s*/, '') : value));
+      continue;
+    }
+    if (/^\S[^:]*:/.test(line)) { section = ''; number = 0; }
+    if (section && line.trim()) {
+      const value = line.trim();
+      lines.push('      ' + (section === 'DDX' ? (++number) + '. ' + value.replace(/^\d+[.)]\s*/, '') : value));
+    } else lines.push(line.replace(/^[ \t]*- /, '      - '));
+  }
+  return lines.join('\n');
 }
 
 function noteTextToHtml(noteText) {
-  return (noteText || "").split("\n").map((line, idx) => {
+  return indentNoteItems(noteText).split("\n").map((line, idx) => {
     if (idx === 0) return `<span class="note-admit-line">${escapeHtml(line)}</span>`;
     if (idx === 1) return `<span class="note-header-line">${escapeHtml(line)}</span>`;
     if (/^[ \t]*- /.test(line)) return `<span class="note-item">${escapeHtml(line.trimStart())}</span>`;
+    if (/^[ \t]+\S/.test(line)) return `<span class="note-detail">${escapeHtml(line.trimStart())}</span>`;
     // label-only ("Tx:") or "label: content" — content half is optional so a bare
     // section header (followed by its own "- item" lines) still gets bolded
     const m = line.match(/^([^:]{1,24}):(\s(.*))?$/s);
@@ -550,7 +569,7 @@ function buildOutpatientNote(record) {
   const add = (label,value) => {if(value && value.trim()) lines.push(label+':',value.trim());};
   add('CC',o.cc); add('Hx',o.hx);
   const end = oldLines.findIndex((line,i) => i>1 && /^(Labs:|Tx:|RX:|Note:|เบิกเวชภัณฑ์:|แจ้งอาหารหมด:)/.test(line));
-  add('PE',oldLines.slice(2,end===-1 ? undefined : end).join("\n").replace(/^PE: /m,''));
+  add('PE',oldLines.slice(2,end===-1 ? undefined : end).join("\n").replace(/^PE:\s*/m,''));
   add('Investigate',buildLabsLine(record.labs).map(s=>'- '+s).join("\n"));
   add('DDX',o.ddx); add('TX',buildTxParts(record.tx).map(s=>'- '+s).join("\n")); add('RX',buildRxParts(record.rx).map(s=>'- '+s).join("\n")); add('TP',o.tp); add('Prognosis',o.prognosis);
   const notes = [...(record.caseStatus || []),record.caseStatusOther || ''];
