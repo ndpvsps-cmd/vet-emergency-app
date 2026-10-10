@@ -40,7 +40,7 @@ function indentNoteItems(text) {
   let section = '', number = 0;
   const lines = [];
   for (const line of (text || '').split('\n')) {
-    const heading = line.match(/^(PE|DDX|TP|Prognosis):\s*(.*)$/i);
+    const heading = line.match(/^(CC|Hx|PE|DDX|TP|Prognosis):\s*(.*)$/i);
     if (heading) {
       section = heading[1].toUpperCase(); number = 0;
       lines.push(heading[1] + ':');
@@ -823,6 +823,7 @@ function collectForm() {
       checklist: getFieldValue("t-checklist"),
       other: val("t-other"),
       injectionDrug: getFieldValue("t-injection-drug"),
+      injectionOther: val("t-injection-other"),
       injMarboDose: val("t-inj-marbo-dose"),
       injPbDose: val("t-inj-pb-dose"),
       injPbFreq: val("t-inj-pb-freq"),
@@ -1094,6 +1095,8 @@ function buildTxParts(tx) {
       }
     });
   }
+
+  if (tx.injectionOther) parts.push(...tx.injectionOther.split(/\r?\n/).map(line => line.trim()).filter(Boolean));
 
   if (tx.icd === "yes") {
     const sides = [
@@ -1700,6 +1703,7 @@ function populateForm(record) {
   setInputValue("t-note-other", record.caseStatusOther);
   setInputValue("t-other", tx.other);
   setChipFieldValue("t-injection-drug", tx.injectionDrug);
+  setInputValue("t-injection-other", tx.injectionOther);
   setInputValue("t-inj-marbo-dose", tx.injMarboDose);
   setInputValue("t-inj-pb-dose", tx.injPbDose);
   setInputValue("t-inj-pb-freq", tx.injPbFreq);
