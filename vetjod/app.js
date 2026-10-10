@@ -639,6 +639,11 @@ function initExamCategoryNotes() {
     const heading = block.matches('section.accordion') ? block.querySelector(':scope > .accordion-header > span') : block.querySelector(':scope > label, :scope > .sub-block-title');
     if (!heading) return;
     const title = heading.textContent.trim();
+    if (title === 'Other' && block.matches('section.accordion')) {
+      block.querySelector(':scope > .accordion-body').appendChild($("e-other").closest('.field-row'));
+      return;
+    }
+    if (!block.matches('section.accordion') || !['Eye','Maxillofacial','Integument','Skeleton','Neuro','Wound'].includes(title)) return;
     const key = block.dataset.field || block.id || title;
     const container = block.matches('section.accordion') ? block.querySelector(':scope > .accordion-body') : block;
     const wrapper = document.createElement('div');wrapper.className='field-row';
@@ -1652,7 +1657,10 @@ function populateForm(record) {
   for (const key of ["motor", "brainstem", "consciousness"]) setChipFieldValue("e-mgcs-"+key, e.mgcsComponents?.[key] == null ? null : String(e.mgcsComponents[key]));
   updateMgcsDisplay();
   setChipFieldValue("e-pain-score", e.painScore);
-  setInputValue("e-other", e.other);
+  // Retain notes from retired fields in the editable Other field.
+  const activeNoteKeys = new Set([...document.querySelectorAll('[data-exam-note]')].map(el=>el.dataset.examNote));
+  const previousNotes = Object.entries(e.categoryNotes || {}).filter(([key,note])=>!activeNoteKeys.has(key) && note && typeof note.text === "string" && note.text.trim()).map(([key,note])=>(note.label || key)+": "+note.text.trim());
+  setInputValue("e-other", [e.other || "", ...previousNotes].filter(Boolean).join("\n"));
 
   populateLabs(record.labs);
 
