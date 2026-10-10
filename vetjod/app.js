@@ -36,11 +36,15 @@ function escapeHtml(str) {
 // Renders the plain-text note (unchanged — still exactly what gets saved/exported/copied)
 // as HTML for on-screen display only, so each section's label (Vitals:, PE:, Tx:, ...)
 // stands out from its values, and the [time] name - species line reads as the card title.
+function indentNoteItems(text) {
+  return (text || "").replace(/^[ \t]*- /gm, "      - ");
+}
+
 function noteTextToHtml(noteText) {
   return (noteText || "").split("\n").map((line, idx) => {
     if (idx === 0) return `<span class="note-admit-line">${escapeHtml(line)}</span>`;
     if (idx === 1) return `<span class="note-header-line">${escapeHtml(line)}</span>`;
-    if (line.startsWith("- ")) return `<span class="note-item">${escapeHtml(line)}</span>`;
+    if (/^[ \t]*- /.test(line)) return `<span class="note-item">${escapeHtml(line.trimStart())}</span>`;
     // label-only ("Tx:") or "label: content" — content half is optional so a bare
     // section header (followed by its own "- item" lines) still gets bolded
     const m = line.match(/^([^:]{1,24}):(\s(.*))?$/s);
@@ -554,7 +558,7 @@ function buildOutpatientNote(record) {
   if(supply.length) notes.push('เบิกเวชภัณฑ์: '+supply.join(', '));
   if(fmtList(record.dietOut)) notes.push('แจ้งอาหารหมด: '+fmtList(record.dietOut));
   add('NOTE',notes.filter(Boolean).join("\n"));
-  return lines.join("\n");
+  return indentNoteItems(lines.join("\n"));
 }
 
 
@@ -627,6 +631,27 @@ function buildRxParts(items) {
 }
 
 // ===================== form collection =====================
+
+function initExamCategoryNotes() {
+  const body = $("section-exam").querySelector(':scope > .accordion-body');
+  [...body.children].forEach(block => {
+    if (block.dataset.field === 'e-vocalization' || block.querySelector('#e-other')) return;
+    const heading = block.matches('section.accordion') ? block.querySelector(':scope > .accordion-header > span') : block.querySelector(':scope > label, :scope > .sub-block-title');
+    if (!heading) return;
+    const title = heading.textContent.trim();
+    const key = block.dataset.field || block.id || title;
+    const container = block.matches('section.accordion') ? block.querySelector(':scope > .accordion-body') : block;
+    const wrapper = document.createElement('div');wrapper.className='field-row';
+    const label=document.createElement('label'),input=document.createElement('textarea');
+    input.id='pe-note-'+encodeURIComponent(key);input.rows=2;input.dataset.examNote=key;input.dataset.noteLabel=title;
+    input.placeholder='รายละเอียดเพิ่มเติม...';label.htmlFor=input.id;label.textContent=title+' · Free text';
+    wrapper.append(label,input);container.append(wrapper);
+  });
+}
+function collectExamCategoryNotes() {
+  return Object.fromEntries([...document.querySelectorAll('[data-exam-note]')].filter(el=>el.value.trim()).map(el=>[el.dataset.examNote,{label:el.dataset.noteLabel,text:el.value.trim()}]));
+}
+
 function collectForm() {
   const weightKg = num("p-weight");
   const urineAmount = num("v-urine-amount");
@@ -676,6 +701,8 @@ function collectForm() {
     },
     exam: {
       mentation: getFieldValue("e-mentation"),
+      vocalization: getFieldValue("e-vocalization"),
+      categoryNotes: collectExamCategoryNotes(),
       behavior: getFieldValue("e-behavior"),
       mmColor: getFieldValue("e-mm-color"),
       mmTexture: getFieldValue("e-mm-texture"),
@@ -863,7 +890,8 @@ function buildVitalsParts(v) {
 
 function buildPeParts(e) {
   const parts = [];
-  if (e.mentation) parts.push(e.mentation);
+  const mentation = [e.mentation, e.vocalization && e.mentation !== e.vocalization ? e.vocalization : null].filter(Boolean).join(" ");
+  if (mentation) parts.push(mentation);
   if (fmtList(e.behavior)) parts.push(fmtList(e.behavior));
 
   const mm = [];
@@ -1143,6 +1171,8 @@ function buildNoteText(record) {
 
   if (record.exam.other) lines.push("Other: " + record.exam.other);
 
+  Object.values(record.exam.categoryNotes || {}).forEach(note => { if (note && typeof note.text === "string" && note.text.trim()) lines.push((note.label || "PE") + ": " + note.text.trim()); });
+
   const labsParts = buildLabsLine(record.labs);
   if (labsParts.length) {
     lines.push("Labs:");
@@ -1171,7 +1201,7 @@ function buildNoteText(record) {
 
   if (fmtList(record.dietOut)) lines.push("แจ้งอาหารหมด: " + fmtList(record.dietOut));
 
-  return lines.join("\n");
+  return indentNoteItems(lines.join("\n"));
 }
 
 
@@ -1539,7 +1569,9 @@ function populateForm(record) {
   setChipFieldValue("v-feed-unit", v.feedUnit || "mL");
   setChipFieldValue("v-feed-score", v.feedScore);
 
-  setChipFieldValue("e-mentation", e.mentation);
+  setChipFieldValue("e-mentation", e.mentation === "with vocalization" ? null : e.mentation);
+  setChipFieldValue("e-vocalization", e.vocalization || (e.mentation === "with vocalization" ? e.mentation : null));
+  document.querySelectorAll("[data-exam-note]").forEach(el=>{ el.value=e.categoryNotes?.[el.dataset.examNote]?.text || ""; });
   setChipFieldValue("e-behavior", e.behavior);
   setChipFieldValue("e-mm-color", e.mmColor);
   setChipFieldValue("e-mm-texture", e.mmTexture);
@@ -1846,7 +1878,7 @@ async function deleteAllToday() {
 function buildExportText() {
   const lines = [`VETJOD — สรุปบันทึกวันที่ ${todayLabel()}`, `จำนวน ${todayRecords.length} รายการ`, ""];
   [...todayRecords].reverse().forEach((r) => {
-    lines.push(r.noteText || "");
+    lines.push(indentNoteItems(r.noteText));
     lines.push("");
   });
   return lines.join("\n").trim();
@@ -2049,6 +2081,7 @@ function initSectionFlow() {
 }
 
 function init() {
+  initExamCategoryNotes();
   refreshRxChoices();
   $("rx-picker").addEventListener("focus",refreshRxChoices);
   $("rx-picker").addEventListener("change",event=>{const name=event.target.value;if(!name)return;addRxRow({name});event.target.value="";onFormChange();});

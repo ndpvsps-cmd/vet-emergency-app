@@ -1083,7 +1083,11 @@ button, input, textarea, select {
 
 .note-item {
   display: inline-block;
-  padding-left: 6px;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding-left: 3em;
+  text-indent: -1em;
+  overflow-wrap: anywhere;
   color: var(--vj-muted);
 }
 
