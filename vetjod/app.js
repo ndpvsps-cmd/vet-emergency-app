@@ -1809,15 +1809,17 @@ function renderList() {
       </div>
       <div class="record-card-note">${noteTextToHtml(r.noteText)}</div>
       <div class="record-card-actions">
+        <button type="button" class="primary-btn card-vetmanage-btn">คัดลอกสำหรับ Vetmanage</button>
         <button type="button" class="secondary-btn card-duplicate-btn">ทำซ้ำ</button>
         <button type="button" class="secondary-btn card-edit-btn">แก้ไข</button>
         <button type="button" class="danger-btn card-delete-btn">ลบรายการนี้</button>
       </div>
     `;
     card.addEventListener("click", (e) => {
-      if (e.target.closest(".card-delete-btn") || e.target.closest(".card-edit-btn") || e.target.closest(".card-duplicate-btn")) return;
+      if (e.target.closest(".card-vetmanage-btn") || e.target.closest(".card-delete-btn") || e.target.closest(".card-edit-btn") || e.target.closest(".card-duplicate-btn")) return;
       card.classList.toggle("expanded");
     });
+    card.querySelector(".card-vetmanage-btn").addEventListener("click", () => copyForVetmanage(r.noteText));
     card.querySelector(".card-edit-btn").addEventListener("click", () => goToEditEntry(r));
     card.querySelector(".card-duplicate-btn").addEventListener("click", () => goToDuplicateEntry(r));
     card.querySelector(".card-delete-btn").addEventListener("click", () => {
@@ -1914,6 +1916,37 @@ async function deleteAllToday() {
   } catch (err) {
     console.error("VETJOD clear-day error", err);
     showToast("ลบไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ");
+  }
+}
+
+
+// Semantic clipboard markup is independent of the app's theme and screen layout.
+function buildVetmanageClipboard(noteText) {
+  const lines=indentNoteItems(noteText).split('\n');
+  const html=[];let list='';
+  const closeList=()=>{if(list){html.push('</'+list+'>');list='';}};
+  const inline=text=>{const m=text.match(/^([^:]{1,40}):\s*(.*)$/);return m?'<strong>'+escapeHtml(m[1])+':</strong> '+escapeHtml(m[2]):escapeHtml(text);};
+  lines.forEach((raw,index)=>{
+    const text=raw.trim();if(!text){closeList();return;}
+    const bullet=index>1&&text.match(/^(- |\d+\. )(.*)$/);
+    if(bullet){const tag=bullet[1]==='- '?'ul':'ol';if(list!==tag){closeList();list=tag;html.push('<'+tag+' style="margin-top:0;margin-bottom:6px;padding-left:24px;">');}html.push('<li>'+inline(bullet[2])+'</li>');return;}
+    closeList();
+    const isHeading=index<2 || /^[^:]{1,40}:$/.test(text);
+    const indent=!isHeading&&/^[ \t]+/.test(raw);
+    html.push('<p style="margin:0 0 6px;'+(indent?'margin-left:24px;':'')+'">'+(isHeading?'<strong>'+escapeHtml(text)+'</strong>':inline(text))+'</p>');
+  });
+  closeList();
+  return {html:'<div>'+html.join('')+'</div>',text:lines.map(line=>line.trimStart()).join('\n')};
+}
+async function copyForVetmanage(noteText) {
+  const content=buildVetmanageClipboard(noteText);
+  try {
+    if(!navigator.clipboard?.write || typeof ClipboardItem==='undefined')throw new Error('Rich clipboard unavailable');
+    await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([content.html],{type:'text/html'}),'text/plain':new Blob([content.text],{type:'text/plain'})})]);
+    showToast('คัดลอกพร้อมรูปแบบแล้ว — วางใน Vetmanage ได้เลย');
+  } catch (_) {
+    try {await navigator.clipboard.writeText(content.text);showToast('คัดลอกเป็นข้อความธรรมดาแล้ว — เบราว์เซอร์ไม่รองรับ/ไม่อนุญาตรูปแบบ');}
+    catch (_) {showToast('คัดลอกไม่สำเร็จ กรุณาอนุญาตคลิปบอร์ดแล้วลองใหม่');}
   }
 }
 

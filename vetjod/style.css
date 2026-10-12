@@ -1228,3 +1228,6 @@ button, input, textarea, select {
 .rx-grid[hidden] { display:none; }
 
 .note-detail { display:inline-block; box-sizing:border-box; width:100%; padding-left:3em; overflow-wrap:anywhere; }
+
+.record-card-actions { flex-wrap:wrap; }
+.record-card-actions .card-vetmanage-btn { flex:1 0 100%; min-height:44px; }
