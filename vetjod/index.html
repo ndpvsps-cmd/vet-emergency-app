@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261010-note-indent4">
+<link rel="stylesheet" href="style.css?v=20261012-posture">
 </head>
 <body>
 
@@ -241,8 +241,11 @@
             <div class="field-group" data-field="v-urine-uop-hours" data-multi="false">
               <label>ระยะเวลาที่เก็บปัสสาวะ (สำหรับคำนวณ UOP)</label>
               <div class="chips">
-                <button type="button" class="chip active" data-value="4">4 ชม.</button>
-                <button type="button" class="chip" data-value="8">8 ชม.</button>
+                <button type="button" class="chip" data-value="2">2 ชม.</button>
+<button type="button" class="chip" data-value="3">3 ชม.</button>
+<button type="button" class="chip active" data-value="4">4 ชม.</button>
+                <button type="button" class="chip" data-value="6">6 ชม.</button>
+<button type="button" class="chip" data-value="8">8 ชม.</button>
               </div>
             </div>
             <p class="hint-text" id="v-urine-uop-display"></p>
@@ -331,6 +334,19 @@
           </div>
 
           <div class="field-group" data-field="e-vocalization" data-multi="false"><label>Mentation เพิ่มเติม</label><div class="chips"><button type="button" class="chip" data-value="with vocalization">With vocalization</button></div></div>
+          <div class="field-group" data-field="e-posture" data-multi="false">
+            <label>Posture</label><div class="chips">
+<button type="button" class="chip" data-value="normal">normal</button>
+<button type="button" class="chip" data-value="sternal recumbency">sternal recumbency</button>
+<button type="button" class="chip" data-value="lateral recumbency">lateral recumbency</button>
+<button type="button" class="chip" data-value="tetra-paresis">tetra-paresis</button>
+<button type="button" class="chip" data-value="post-paresis">post-paresis</button>
+<button type="button" class="chip" data-value="hemi-paresis">hemi-paresis</button>
+            </div>
+          </div>
+          <div class="reveal-block" data-show-field="e-posture" data-show-values="hemi-paresis" hidden>
+            <div class="field-group" data-field="e-posture-side" data-multi="false"><label>Hemi-paresis — ข้าง</label><div class="chips"><button type="button" class="chip" data-value="left">Left</button><button type="button" class="chip" data-value="right">Right</button></div></div>
+          </div>
           <div class="field-group" data-field="e-behavior" data-multi="true">
             <label>ลักษณะนิสัย</label>
             <div class="chips">
@@ -1506,6 +1522,6 @@
 
   <script src="data.js"></script>
   <script src="firebase-config.js"></script>
-  <script type="module" src="app.js?v=20261010-note-indent4"></script>
+  <script type="module" src="app.js?v=20261012-posture"></script>
 </body>
 </html>

@@ -49,7 +49,10 @@ function indentNoteItems(text) {
       lines.push('      ' + (section === 'DDX' ? (++number) + '. ' + value.replace(/^\d+[.)]\s*/, '') : value));
       continue;
     }
-    if (/^\S[^:]*:/.test(line)) { section = ''; number = 0; }
+    const endsSection = section === 'PE'
+      ? /^(Labs|Investigate|TX|RX|NOTE|เบิกเวชภัณฑ์|แจ้งอาหารหมด):/i.test(line)
+      : /^\S[^:]*:/.test(line);
+    if (endsSection) { section = ''; number = 0; }
     if (section && line.trim()) {
       const value = line.trim();
       lines.push('      ' + (section === 'DDX' ? (++number) + '. ' + value.replace(/^\d+[.)]\s*/, '') : value));
@@ -63,7 +66,11 @@ function noteTextToHtml(noteText) {
     if (idx === 0) return `<span class="note-admit-line">${escapeHtml(line)}</span>`;
     if (idx === 1) return `<span class="note-header-line">${escapeHtml(line)}</span>`;
     if (/^[ \t]*- /.test(line)) return `<span class="note-item">${escapeHtml(line.trimStart())}</span>`;
-    if (/^[ \t]+\S/.test(line)) return `<span class="note-detail">${escapeHtml(line.trimStart())}</span>`;
+    if (/^[ \t]+\S/.test(line)) {
+      const detail = line.trimStart();
+      const label = detail.match(/^([^:]{1,40}):\s*(.*)$/s);
+      return '<span class="note-detail">' + (label ? '<span class="note-label">' + escapeHtml(label[1]) + ':</span> ' + escapeHtml(label[2]) : escapeHtml(detail)) + '</span>';
+    }
     // label-only ("Tx:") or "label: content" — content half is optional so a bare
     // section header (followed by its own "- item" lines) still gets bolded
     const m = line.match(/^([^:]{1,24}):(\s(.*))?$/s);
@@ -728,6 +735,8 @@ function collectForm() {
       vocalization: getFieldValue("e-vocalization"),
       categoryNotes: collectExamCategoryNotes(),
       behavior: getFieldValue("e-behavior"),
+      posture: getFieldValue("e-posture"),
+      postureSide: getFieldValue("e-posture") === "hemi-paresis" ? getFieldValue("e-posture-side") : null,
       mmColor: getFieldValue("e-mm-color"),
       mmTexture: getFieldValue("e-mm-texture"),
       crt: getFieldValue("e-crt"),
@@ -918,6 +927,7 @@ function buildPeParts(e) {
   const mentation = [e.mentation, e.vocalization && e.mentation !== e.vocalization ? e.vocalization : null].filter(Boolean).join(" ");
   if (mentation) parts.push(mentation);
   if (fmtList(e.behavior)) parts.push(fmtList(e.behavior));
+  if (e.posture) parts.push("Posture: " + e.posture + (e.posture === "hemi-paresis" && e.postureSide ? " (" + e.postureSide + ")" : ""));
 
   const mm = [];
   if (fmtList(e.mmColor)) mm.push(fmtList(e.mmColor));
@@ -1600,6 +1610,8 @@ function populateForm(record) {
   setChipFieldValue("e-vocalization", e.vocalization || (e.mentation === "with vocalization" ? e.mentation : null));
   document.querySelectorAll("[data-exam-note]").forEach(el=>{ el.value=e.categoryNotes?.[el.dataset.examNote]?.text || ""; });
   setChipFieldValue("e-behavior", e.behavior);
+  setChipFieldValue("e-posture", e.posture);
+  setChipFieldValue("e-posture-side", e.postureSide);
   setChipFieldValue("e-mm-color", e.mmColor);
   setChipFieldValue("e-mm-texture", e.mmTexture);
   setChipFieldValue("e-crt", e.crt);
