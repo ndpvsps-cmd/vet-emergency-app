@@ -1231,3 +1231,13 @@ button, input, textarea, select {
 
 .record-card-actions { flex-wrap:wrap; }
 .record-card-actions .card-vetmanage-btn { flex:1 0 100%; min-height:44px; }
+
+.note-opd-title { display:inline-block; font-size:1.25rem; font-weight:800; line-height:1.5; color:#60a5fa; margin-bottom:8px; overflow-wrap:anywhere; }
+:root[data-theme="light"] .note-opd-title { color:#1565c0; }
+
+#copy-review-dialog { box-sizing:border-box; width:min(94vw,720px); max-height:90vh; overflow:auto; background:var(--vj-panel-solid); color:var(--vj-text); border:1px solid var(--vj-border); border-radius:14px; padding:20px; }
+#copy-review-dialog::backdrop { background:rgba(0,0,0,.6); }
+#copy-review-text { width:100%; box-sizing:border-box; }
+#copy-review-preview { background:#fff; color:#172033; padding:16px; overflow-wrap:anywhere; border-radius:8px; }
+.copy-record-status { font-size:.85rem; color:var(--vj-accent-text); }
+.copy-record-status:empty { display:none; }

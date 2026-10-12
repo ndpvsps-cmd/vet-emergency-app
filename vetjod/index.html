@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261012-vetmanage-copy">
+<link rel="stylesheet" href="style.css?v=20261012-copy-review">
 </head>
 <body>
 
@@ -1482,6 +1482,15 @@
     </main>
   </div>
 
+  <dialog id="copy-review-dialog" aria-labelledby="copy-review-title">
+    <h2 id="copy-review-title">ตรวจทานก่อนคัดลอก</h2>
+    <p id="copy-review-patient"></p>
+    <p class="hint-text">แก้ข้อความสำหรับคัดลอกได้ โดยไม่เปลี่ยนเวชระเบียนที่บันทึกไว้</p>
+    <label for="copy-review-text">ข้อความ</label><textarea id="copy-review-text" rows="9"></textarea>
+    <h3>ตัวอย่างรูปแบบที่จะคัดลอก</h3><div id="copy-review-preview"></div>
+    <p class="hint-text">สถานะคัดลอกจำเฉพาะเครื่องนี้ ไม่ใช่การยืนยันว่าบันทึกใน Vetmanage แล้ว</p>
+    <div class="modal-actions"><button type="button" class="secondary-btn" id="copy-review-close">ปิด</button><button type="button" class="primary-btn" id="copy-review-confirm">คัดลอกสำหรับ Vetmanage</button></div>
+  </dialog>
   <!-- ===================== EXPORT MODAL ===================== -->
   <div class="modal-overlay" id="export-modal" hidden>
     <div class="modal">
@@ -1522,6 +1531,6 @@
 
   <script src="data.js"></script>
   <script src="firebase-config.js"></script>
-  <script type="module" src="app.js?v=20261012-vetmanage-copy"></script>
+  <script type="module" src="app.js?v=20261012-copy-review"></script>
 </body>
 </html>

@@ -63,7 +63,7 @@ function indentNoteItems(text) {
 
 function noteTextToHtml(noteText) {
   return indentNoteItems(noteText).split("\n").map((line, idx) => {
-    if (idx === 0) return `<span class="note-admit-line">${escapeHtml(line)}</span>`;
+    if (idx === 0) return `<span class="${/^OPD\s*\(/i.test(line) ? "note-opd-title" : "note-admit-line"}">${escapeHtml(line)}</span>`;
     if (idx === 1) return `<span class="note-header-line">${escapeHtml(line)}</span>`;
     if (/^[ \t]*- /.test(line)) return `<span class="note-item">${escapeHtml(line.trimStart())}</span>`;
     if (/^[ \t]+\S/.test(line)) {
@@ -1807,6 +1807,7 @@ function renderList() {
         </div>
         <span class="record-card-time">${escapeHtml(r.createdAtLocal || "")}</span>
       </div>
+      <p class="copy-record-status" aria-live="polite">${escapeHtml(copyStatusText(r))}</p>
       <div class="record-card-note">${noteTextToHtml(r.noteText)}</div>
       <div class="record-card-actions">
         <button type="button" class="primary-btn card-vetmanage-btn">คัดลอกสำหรับ Vetmanage</button>
@@ -1819,7 +1820,7 @@ function renderList() {
       if (e.target.closest(".card-vetmanage-btn") || e.target.closest(".card-delete-btn") || e.target.closest(".card-edit-btn") || e.target.closest(".card-duplicate-btn")) return;
       card.classList.toggle("expanded");
     });
-    card.querySelector(".card-vetmanage-btn").addEventListener("click", () => copyForVetmanage(r.noteText));
+    card.querySelector(".card-vetmanage-btn").addEventListener("click", () => openCopyReview(r));
     card.querySelector(".card-edit-btn").addEventListener("click", () => goToEditEntry(r));
     card.querySelector(".card-duplicate-btn").addEventListener("click", () => goToDuplicateEntry(r));
     card.querySelector(".card-delete-btn").addEventListener("click", () => {
@@ -1931,6 +1932,10 @@ function buildVetmanageClipboard(noteText) {
     const bullet=index>1&&text.match(/^(- |\d+\. )(.*)$/);
     if(bullet){const tag=bullet[1]==='- '?'ul':'ol';if(list!==tag){closeList();list=tag;html.push('<'+tag+' style="margin-top:0;margin-bottom:6px;padding-left:24px;">');}html.push('<li>'+inline(bullet[2])+'</li>');return;}
     closeList();
+    if (index === 0 && /^OPD\s*\(/i.test(text)) {
+      html.push('<p style="margin:0 0 10px;"><strong style="font-size:20px;color:#1565c0;">'+escapeHtml(text)+'</strong></p>');
+      return;
+    }
     const isHeading=index<2 || /^[^:]{1,40}:$/.test(text);
     const indent=!isHeading&&/^[ \t]+/.test(raw);
     html.push('<p style="margin:0 0 6px;'+(indent?'margin-left:24px;':'')+'">'+(isHeading?'<strong>'+escapeHtml(text)+'</strong>':inline(text))+'</p>');
@@ -1944,10 +1949,51 @@ async function copyForVetmanage(noteText) {
     if(!navigator.clipboard?.write || typeof ClipboardItem==='undefined')throw new Error('Rich clipboard unavailable');
     await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([content.html],{type:'text/html'}),'text/plain':new Blob([content.text],{type:'text/plain'})})]);
     showToast('คัดลอกพร้อมรูปแบบแล้ว — วางใน Vetmanage ได้เลย');
+    return 'rich';
   } catch (_) {
-    try {await navigator.clipboard.writeText(content.text);showToast('คัดลอกเป็นข้อความธรรมดาแล้ว — เบราว์เซอร์ไม่รองรับ/ไม่อนุญาตรูปแบบ');}
-    catch (_) {showToast('คัดลอกไม่สำเร็จ กรุณาอนุญาตคลิปบอร์ดแล้วลองใหม่');}
+    try {await navigator.clipboard.writeText(content.text);showToast('คัดลอกเป็นข้อความธรรมดาแล้ว — เบราว์เซอร์ไม่รองรับ/ไม่อนุญาตรูปแบบ');return 'plain';}
+    catch (_) {showToast('คัดลอกไม่สำเร็จ กรุณาอนุญาตคลิปบอร์ดแล้วลองใหม่');return null;}
   }
+}
+
+
+const COPY_HISTORY_KEY = 'vetjod_copy_history_v1';
+let copyReviewRecord = null;
+function loadCopyHistory() {
+  try { const data=JSON.parse(localStorage.getItem(COPY_HISTORY_KEY)||'{}');return data && typeof data==='object' && !Array.isArray(data)?data:{}; }catch(_){return {};}
+}
+function copyStatusText(record) {
+  const entry=loadCopyHistory()[record.id];if(!entry)return '';
+  if(entry.source !== (record.noteText || ''))return 'บันทึกเปลี่ยนหลังคัดลอก — กรุณาคัดลอกฉบับใหม่';
+  const time=new Date(entry.at).toLocaleString('th-TH',{timeZone:'Asia/Bangkok',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+  return 'คัดลอกแล้ว '+time+(entry.edited?' · มีการแก้ข้อความก่อนคัดลอก':'')+(entry.format==='plain'?' · ข้อความธรรมดา':'')+' (เครื่องนี้)';
+}
+function updateCopyReviewPreview() {
+  $('copy-review-preview').innerHTML=buildVetmanageClipboard($('copy-review-text').value).html;
+}
+function openCopyReview(record) {
+  copyReviewRecord={id:record.id,noteText:record.noteText||''};
+  $('copy-review-patient').textContent=record.name||'';
+  $('copy-review-text').value=record.noteText||'';
+  updateCopyReviewPreview();$('copy-review-dialog').showModal();
+}
+function initCopyReview() {
+  $('copy-review-text').addEventListener('input',updateCopyReviewPreview);
+  $('copy-review-close').addEventListener('click',()=>$('copy-review-dialog').close());
+  $('copy-review-dialog').addEventListener('close',()=>{copyReviewRecord=null;});
+  $('copy-review-confirm').addEventListener('click',async()=>{
+    if(!copyReviewRecord)return;
+    const record={...copyReviewRecord},text=$('copy-review-text').value;
+    if(!text.trim()){showToast('ไม่มีข้อความให้คัดลอก');return;}
+    const button=$('copy-review-confirm');button.disabled=true;
+    try {
+      const format=await copyForVetmanage(text);if(!format)return;
+      const history=loadCopyHistory();history[record.id]={source:record.noteText,at:new Date().toISOString(),edited:text!==record.noteText,format};
+      const recent=Object.fromEntries(Object.entries(history).sort((a,b)=>String(b[1].at).localeCompare(String(a[1].at))).slice(0,100));
+      try{localStorage.setItem(COPY_HISTORY_KEY,JSON.stringify(recent));}catch(_){showToast('คัดลอกแล้ว แต่บันทึกสถานะลงเครื่องไม่สำเร็จ');}
+      renderList();
+    }finally{button.disabled=false;}
+  });
 }
 
 // ===================== export =====================
@@ -2157,6 +2203,7 @@ function initSectionFlow() {
 }
 
 function init() {
+  initCopyReview();
   initExamCategoryNotes();
   refreshRxChoices();
   $("rx-picker").addEventListener("focus",refreshRxChoices);
