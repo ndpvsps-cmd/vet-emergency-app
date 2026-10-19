@@ -544,7 +544,6 @@ function collectFluids() {
 
 const DDX_HISTORY_KEY = "vetjod_ddx_history_v1";
 function rememberDdx(record) {
-  if (record.recordType !== "opd") return;
   try {
     const previous = JSON.parse(localStorage.getItem(DDX_HISTORY_KEY) || "[]");
     const entries = (record.outpatient?.ddx || "").split("\n").map(s => s.trim()).filter(Boolean);
@@ -565,6 +564,9 @@ function updateRecordMode() {
   const opd = $("p-record-type").value === "opd";
   $("screen-entry").classList.toggle("opd-mode",opd);
   document.querySelectorAll(".opd-only").forEach(el => {el.hidden = !opd;});
+  $("section-ddx").hidden = false;
+  const ddxNext = $("section-tx");
+  ddxNext.parentNode.insertBefore($("section-ddx"), ddxNext);
   const labels = {"section-exam": opd ? "PE:" : "Physical exam", "section-labs": opd ? "Investigate:" : "Labs", "section-tx": opd ? "TX:" : "Tx", "section-note": opd ? "NOTE:" : "Note"};
   Object.entries(labels).forEach(([id,label]) => {$(id).querySelector('.accordion-header > span').textContent = label;});
   initSectionFlow(); refreshDdxChoices();
@@ -575,7 +577,7 @@ function buildOutpatientNote(record) {
   const lines = ['OPD (' + todayLabel() + ', ' + (record.vet || 'ไม่ระบุ') + ')',oldLines[1]];
   const add = (label,value) => {if(value && value.trim()) lines.push(label+':',value.trim());};
   add('CC',o.cc); add('Hx',o.hx);
-  const end = oldLines.findIndex((line,i) => i>1 && /^(Labs:|Tx:|RX:|Note:|เบิกเวชภัณฑ์:|แจ้งอาหารหมด:)/.test(line));
+  const end = oldLines.findIndex((line,i) => i>1 && /^(DDX:|Labs:|Tx:|RX:|Note:|เบิกเวชภัณฑ์:|แจ้งอาหารหมด:)/.test(line));
   add('PE',oldLines.slice(2,end===-1 ? undefined : end).join("\n").replace(/^PE:\s*/m,''));
   add('Investigate',buildLabsLine(record.labs).map(s=>'- '+s).join("\n"));
   add('DDX',o.ddx); add('TX',buildTxParts(record.tx).map(s=>'- '+s).join("\n")); add('RX',buildRxParts(record.rx).map(s=>'- '+s).join("\n")); add('TP',o.tp); add('Prognosis',o.prognosis);
@@ -1215,6 +1217,8 @@ function buildNoteText(record) {
     lines.push("Labs:");
     labsParts.forEach((p) => lines.push("- " + p));
   }
+
+  if (record.outpatient?.ddx?.trim()) lines.push("DDX:", record.outpatient.ddx.trim());
 
   const txParts = buildTxParts(record.tx);
   if (txParts.length) {
@@ -1936,6 +1940,10 @@ function buildVetmanageClipboard(noteText) {
       html.push('<p style="margin:0 0 10px;"><strong style="font-size:20px;color:#1565c0;">'+escapeHtml(text)+'</strong></p>');
       return;
     }
+    if (index === 0 && /^ADMIT\s*\(/i.test(text)) {
+      html.push('<p style="margin:0 0 10px;"><strong style="font-size:20px;color:#991b1b;">'+escapeHtml(text)+'</strong></p>');
+      return;
+    }
     const isHeading=index<2 || /^[^:]{1,40}:$/.test(text);
     const indent=!isHeading&&/^[ \t]+/.test(raw);
     html.push('<p style="margin:0 0 6px;'+(indent?'margin-left:24px;':'')+'">'+(isHeading?'<strong>'+escapeHtml(text)+'</strong>':inline(text))+'</p>');
@@ -2190,7 +2198,7 @@ function initSectionFlow() {
   document.querySelectorAll(".next-section-btn").forEach(el=>el.remove());
   const opd = $("p-record-type").value === "opd";
   const extra = {"section-patient":[{id:"section-cc",label:"CC"},{id:"section-hx",label:"Hx"}],"section-labs":[{id:"section-ddx",label:"DDX"}],"section-rx":[{id:"section-tp",label:"TP"},{id:"section-prognosis",label:"Prognosis"}]};
-  const flow = SECTION_FLOW.flatMap(s=>[s,...(opd ? extra[s.id] || [] : [])]);
+  const flow = SECTION_FLOW.flatMap(s=>[s,...(opd ? extra[s.id] || [] : s.id === "section-labs" ? [{id:"section-ddx",label:"DDX"}] : [])]);
   const label = s=>opd && s.id==='section-labs' ? 'Investigate' : s.label;
   $("jump-nav").innerHTML = flow.map(s=>'<button type="button" class="jump-nav-btn" data-jump-to="'+s.id+'">'+label(s)+'</button>').join('');
   flow.forEach((sec,idx)=>{
