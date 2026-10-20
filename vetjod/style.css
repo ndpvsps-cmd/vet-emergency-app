@@ -1241,3 +1241,6 @@ button, input, textarea, select {
 #copy-review-preview { background:#fff; color:#172033; padding:16px; overflow-wrap:anywhere; border-radius:8px; }
 .copy-record-status { font-size:.85rem; color:var(--vj-accent-text); }
 .copy-record-status:empty { display:none; }
+
+.list-toolbar { flex-wrap:wrap; }
+.record-sync-status { color:var(--vj-accent-text); font-size:.85rem; }

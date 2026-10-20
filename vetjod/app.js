@@ -2,8 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   initializeFirestore, persistentLocalCache, persistentSingleTabManager,
-  collection, addDoc, updateDoc, deleteDoc, doc, query, where,
-  onSnapshot, serverTimestamp, writeBatch
+  collection, setDoc, updateDoc, deleteDoc, doc, query, where,
+  onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // FIREBASE_CONFIG / TEAM_PASSCODE come from firebase-config.js (plain <script> before this module).
@@ -18,6 +18,9 @@ const db = initializeFirestore(fbApp, {
 });
 
 let todayRecords = [];
+let selectedDate = todayKey(), editingRecordDate = null, remoteRecords = [], subscriptionVersion = 0;
+const activeSends = new Set(), OUTBOX_KEY = 'vetjod_outbox_v1';
+let outbox = loadOutbox();
 let activeVetFilter = "";
 let unsubscribeToday = null;
 let editingRecordId = null;
@@ -160,6 +163,7 @@ function todayKey() {
   return new Date().toLocaleDateString("en-CA");
 }
 
+function dateLabel(key) { return new Date(key+'T12:00:00').toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}); }
 function todayLabel() {
   return new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
 }
@@ -430,7 +434,11 @@ function renderLabsContainer() {
 // Only Glucose gets a time stamp per entry (it's the one commonly checked several times
 // a shift) — other lab types just get a single value, no time clutter.
 function updateLabsRowTimeVisibility(row) {
-  const isGlucose = row.querySelector(".labs-type-select").value === "glucose";
+  const type = row.querySelector(".labs-type-select").value;
+  const panel = row.querySelector(".labs-panel-select");
+  panel.hidden = type !== "blood";
+  if (type !== "blood") panel.value = "";
+  const isGlucose = type === "glucose";
   const timeInput = row.querySelector(".labs-time-input");
   timeInput.hidden = !isGlucose;
   if (!isGlucose) {
@@ -448,6 +456,13 @@ function addLabsRow() {
   const nowTime = new Date().toTimeString().slice(0, 5);
   row.innerHTML = `
     <select class="labs-type-select"><option value="">เลือกรายการ</option>${options}</select>
+    <select class="labs-panel-select" aria-label="ชุดตรวจ Blood test" hidden>
+      <option value="">เลือกชุดตรวจ (ไม่บังคับ)</option>
+      <option value="CBC BP BUN CREA ALT TP">CBC BP BUN CREA ALT TP</option>
+      <option value="CBC BP CREA ALT TP">CBC BP CREA ALT TP</option>
+      <option value="CBC BUN CREA ALT TP">CBC BUN CREA ALT TP</option>
+      <option value="CBC CREA ALT TP">CBC CREA ALT TP</option>
+    </select>
     <div class="labs-row-detail">
       <input type="time" class="labs-time-input" value="${nowTime}" hidden>
       <input type="text" class="labs-value-input" placeholder="ค่า/ผล">
@@ -468,7 +483,8 @@ function collectLabs() {
     const type = row.querySelector(".labs-type-select").value;
     const time = row.querySelector(".labs-time-input").value;
     const value = row.querySelector(".labs-value-input").value.trim();
-    return { type, time, value };
+    const panel = type === "blood" ? row.querySelector(".labs-panel-select").value : "";
+    return { type, time: type === "glucose" ? time : "", value, panel };
   }).filter((l) => l.type);
 }
 
@@ -477,6 +493,7 @@ function buildLabsLine(labs) {
     const item = LABS_ITEMS.find((i) => i.id === l.type);
     const label = item ? item.label : l.type;
     const bits = [];
+    if (l.type === "blood" && l.panel) bits.push(l.panel);
     if (l.time) bits.push(l.time);
     if (l.value) bits.push(l.value);
     return bits.length ? `${label} (${bits.join(", ")})` : label;
@@ -574,7 +591,7 @@ function updateRecordMode() {
 function buildOutpatientNote(record) {
   const oldLines = buildNoteText({...record,recordType:"ipd"}).split("\n");
   const o = record.outpatient || {};
-  const lines = ['OPD (' + todayLabel() + ', ' + (record.vet || 'ไม่ระบุ') + ')',oldLines[1]];
+  const lines = ['OPD (' + dateLabel(record.dateKey || todayKey()) + ', ' + (record.vet || 'ไม่ระบุ') + ')',oldLines[1]];
   const add = (label,value) => {if(value && value.trim()) lines.push(label+':',value.trim());};
   add('CC',o.cc); add('Hx',o.hx);
   const end = oldLines.findIndex((line,i) => i>1 && /^(DDX:|Labs:|Tx:|RX:|Note:|เบิกเวชภัณฑ์:|แจ้งอาหารหมด:)/.test(line));
@@ -700,6 +717,7 @@ function collectForm() {
   const rehydrationCalc = computeRehydration(weightKg, dehydrationPercent, parseFloat(rehydrationHoursVal || ""), ongoingLoss);
 
   return {
+    dateKey: editingRecordId ? (editingRecordDate || selectedDate) : todayKey(),
     rx: collectRx(),
     recordType: val("p-record-type") || "ipd",
     outpatient: {cc: val("o-cc"), hx: val("o-hx"), ddx: val("o-ddx"), tp: val("o-tp"), prognosis: getFieldValue("o-prognosis")},
@@ -1171,7 +1189,7 @@ function buildSupplyParts(supply) {
 function buildNoteText(record) {
   if (record.recordType === "opd") return buildOutpatientNote(record);
   const lines = [];
-  lines.push(`ADMIT (${todayLabel()}, ${record.vet || "ไม่ระบุ"})`);
+  lines.push(`ADMIT (${dateLabel(record.dateKey || todayKey())}, ${record.vet || "ไม่ระบุ"})`);
 
   const headerBits = [];
   headerBits.push(record.name || "(ไม่ระบุชื่อ)");
@@ -1548,6 +1566,7 @@ function populateLabs(labs) {
     updateLabsRowTimeVisibility(row);
     row.querySelector(".labs-time-input").value = l.time || "";
     row.querySelector(".labs-value-input").value = l.value || "";
+    row.querySelector(".labs-panel-select").value = l.type === "blood" ? (l.panel || "") : "";
   });
 }
 
@@ -1813,14 +1832,18 @@ function renderList() {
       </div>
       <p class="copy-record-status" aria-live="polite">${escapeHtml(copyStatusText(r))}</p>
       <div class="record-card-note">${noteTextToHtml(r.noteText)}</div>
+      <p class="record-sync-status" aria-live="polite">${escapeHtml(recordSyncLabel(r))}</p>
       <div class="record-card-actions">
+        ${r._sync === "failed" ? '<button type="button" class="secondary-btn card-retry-btn">ส่งซ้ำ</button>' : ""}
         <button type="button" class="primary-btn card-vetmanage-btn">คัดลอกสำหรับ Vetmanage</button>
         <button type="button" class="secondary-btn card-duplicate-btn">ทำซ้ำ</button>
         <button type="button" class="secondary-btn card-edit-btn">แก้ไข</button>
         <button type="button" class="danger-btn card-delete-btn">ลบรายการนี้</button>
       </div>
     `;
+    card.querySelector(".card-retry-btn")?.addEventListener("click",()=>sendQueuedRecord(r.id));
     card.addEventListener("click", (e) => {
+      if(e.target.closest(".card-retry-btn"))return;
       if (e.target.closest(".card-vetmanage-btn") || e.target.closest(".card-delete-btn") || e.target.closest(".card-edit-btn") || e.target.closest(".card-duplicate-btn")) return;
       card.classList.toggle("expanded");
     });
@@ -1870,39 +1893,65 @@ function showSaveSuccess(record, title, leadText, tailText) {
 }
 
 // ===================== Firestore adapter =====================
-function subscribeToday() {
-  $("today-date-label").textContent = todayLabel();
-  const key = todayKey();
-  // Equality-only query (no orderBy) so this never needs a Firestore composite index to
-  // be created manually in the console — sort newest-first client-side instead, using the
-  // human-readable time we already store (safe here since todayRecords is always one date).
-  const q = query(
-    collection(db, "vetjod_records"),
-    where("dateKey", "==", key)
-  );
-  if (unsubscribeToday) unsubscribeToday();
-  unsubscribeToday = onSnapshot(q, (snap) => {
-    todayRecords = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    todayRecords.sort((a, b) => (b.createdAtLocal || "").localeCompare(a.createdAtLocal || ""));
-    renderList();
-    showSyncBanner(null);
-  }, (err) => {
-    console.error("VETJOD snapshot error", err);
-    showSyncBanner("เชื่อมต่อฐานข้อมูลไม่สำเร็จ — ตรวจสอบการตั้งค่า Firebase (ดู README.md)");
-  });
+// One storage key per record prevents different tabs from replacing each other's queues.
+function loadOutbox() {
+  const result = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(OUTBOX_KEY + ':')) continue;
+      try {
+        const item = JSON.parse(localStorage.getItem(key));
+        if (item?.record && typeof item.record.dateKey === 'string') {
+          result[key.slice(OUTBOX_KEY.length + 1)] = item;
+        }
+      } catch (_) { /* Ignore malformed entries without affecting valid records. */ }
+    }
+  } catch (_) { /* Saving reports unavailable local storage explicitly. */ }
+  return result;
 }
-
-async function saveRecord(record) {
-  record.dateKey = todayKey();
-  record.createdAt = serverTimestamp();
-  await addDoc(collection(db, "vetjod_records"), record);
+function persistOutbox(id) {
+  const key = OUTBOX_KEY + ':' + id;
+  if (outbox[id]) localStorage.setItem(key, JSON.stringify(outbox[id]));
+  else localStorage.removeItem(key);
 }
-
-async function updateRecord(id, record) {
-  await updateDoc(doc(db, "vetjod_records", id), record);
+function recordSyncLabel(r){return {failed:'ส่งไม่สำเร็จ — ข้อมูลอยู่ในเครื่อง กดส่งซ้ำ',pending:'รอส่งข้อมูล — ยังไม่ได้รับการยืนยัน',cached:'ข้อมูลจากเครื่อง — รอตรวจสอบกับระบบ',synced:'บันทึกขึ้นระบบแล้ว'}[r._sync] || 'รอตรวจสอบสถานะ';}
+function refreshRecords(){
+ const records=new Map(remoteRecords.map(r=>[r.id,r]));
+ for(const [id,item] of Object.entries(outbox))if(item.record.dateKey===selectedDate)records.set(id,{...item.record,id,_sync:item.status});
+ todayRecords=[...records.values()].sort((a,b)=>(b.createdAtLocal||'').localeCompare(a.createdAtLocal||''));renderList();
+}
+function subscribeToday(){
+ const key=selectedDate,version=++subscriptionVersion;
+ $('today-date-label').textContent=dateLabel(key);$('history-date').value=key;
+ if(unsubscribeToday)unsubscribeToday();remoteRecords=[];refreshRecords();showSyncBanner('กำลังโหลดบันทึกวันที่เลือก...');
+ unsubscribeToday=onSnapshot(query(collection(db,'vetjod_records'),where('dateKey','==',key)),{includeMetadataChanges:true},snap=>{
+  if(version!==subscriptionVersion)return;
+  remoteRecords=snap.docs.map(d=>({...d.data(),id:d.id,_sync:d.metadata.hasPendingWrites?'pending':d.metadata.fromCache?'cached':'synced'}));refreshRecords();
+  showSyncBanner(snap.metadata.fromCache?'แสดงข้อมูลจากเครื่อง — ประวัติอาจยังไม่ครบจนกว่าจะเชื่อมต่อระบบ':snap.metadata.hasPendingWrites?'มีรายการรอส่งข้อมูล':null);
+ },err=>{if(version!==subscriptionVersion)return;console.error(err);showSyncBanner('โหลดประวัติไม่สำเร็จ — ตรวจการเชื่อมต่อแล้วกดดูรายการอีกครั้ง');});
+}
+async function sendQueuedRecord(id){
+ if(activeSends.has(id)||!outbox[id]||!auth.currentUser)return;
+ activeSends.add(id);const item=outbox[id];item.status='pending';
+ try{
+  persistOutbox(id);refreshRecords();const ref=doc(db,'vetjod_records',id);
+  if(item.isEdit)await updateDoc(ref,{...item.record,updatedAt:serverTimestamp()});
+  else await setDoc(ref,{...item.record,createdAt:serverTimestamp()});
+  if(outbox[id]===item){if(item.record.dateKey===selectedDate){remoteRecords=remoteRecords.filter(r=>r.id!==id);remoteRecords.push({...item.record,id,_sync:'synced'});}delete outbox[id];try{persistOutbox(id);}catch(storageError){console.warn('Server confirmed; local queue cleanup failed',storageError);}}
+  showToast('บันทึกขึ้นระบบแล้ว: '+item.record.name);
+ }catch(err){console.error(err);if(outbox[id]===item){item.status='failed';try{persistOutbox(id);}catch(_){}}showToast('ส่งไม่สำเร็จ — ข้อมูลยังอยู่ในเครื่อง กดส่งซ้ำได้');}
+ finally{activeSends.delete(id);refreshRecords();}
+}
+function retryQueuedRecords() {
+  const stored = loadOutbox();
+  for (const id of Object.keys(outbox)) if (!activeSends.has(id)) delete outbox[id];
+  for (const [id, item] of Object.entries(stored)) if (!activeSends.has(id)) outbox[id] = item;
+  Object.keys(outbox).forEach(id => sendQueuedRecord(id));
 }
 
 async function deleteRecord(id) {
+  if(outbox[id]){showToast("กรุณาส่งข้อมูลให้สำเร็จก่อนลบ");return;}
   try {
     await deleteDoc(doc(db, "vetjod_records", id));
     showToast("ลบแล้ว");
@@ -1911,19 +1960,6 @@ async function deleteRecord(id) {
     showToast("ลบไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ");
   }
 }
-
-async function deleteAllToday() {
-  try {
-    const batch = writeBatch(db);
-    todayRecords.forEach((r) => batch.delete(doc(db, "vetjod_records", r.id)));
-    await batch.commit();
-    showToast("เริ่มบันทึกวันใหม่แล้ว");
-  } catch (err) {
-    console.error("VETJOD clear-day error", err);
-    showToast("ลบไม่สำเร็จ — ตรวจสอบการเชื่อมต่อ");
-  }
-}
-
 
 // Semantic clipboard markup is independent of the app's theme and screen layout.
 function buildVetmanageClipboard(noteText) {
@@ -2006,7 +2042,7 @@ function initCopyReview() {
 
 // ===================== export =====================
 function buildExportText() {
-  const lines = [`VETJOD — สรุปบันทึกวันที่ ${todayLabel()}`, `จำนวน ${todayRecords.length} รายการ`, ""];
+  const lines = [`VETJOD — สรุปบันทึกวันที่ ${dateLabel(selectedDate)}`, `จำนวน ${todayRecords.length} รายการ`, ""];
   [...todayRecords].reverse().forEach((r) => {
     lines.push(indentNoteItems(r.noteText));
     lines.push("");
@@ -2072,6 +2108,8 @@ function goToNewEntry() {
 }
 
 function goToEditEntry(record) {
+  if(outbox[record.id]){showToast("รายการนี้ยังรอส่ง กรุณาส่งซ้ำให้สำเร็จก่อนแก้ไข");return;}
+  editingRecordDate=record.dateKey || selectedDate;
   editingRecordId = record.id;
   editingRecordCreatedAtLocal = record.createdAtLocal || null;
   resetForm();
@@ -2121,6 +2159,7 @@ function unlockAndEnter() {
   $("screen-gate").hidden = true;
   $("screen-list").hidden = false;
   subscribeToday();
+  retryQueuedRecords();
 }
 
 // ===================== passcode gate =====================
@@ -2359,40 +2398,15 @@ function init() {
     goToList();
   });
 
-  async function saveEntry() {
-    const record = collectForm();
-    if (!record.name) {
-      showToast("กรุณากรอกชื่อสัตว์");
-      return;
-    }
-    const isEditing = !!editingRecordId;
-    record.createdAtLocal = isEditing ? (editingRecordCreatedAtLocal || nowTimeLabel()) : nowTimeLabel();
-    record.noteText = buildNoteText(record);
-    const saveBtns = [$("entry-save-btn"), $("entry-save-btn-top")].filter(Boolean);
-    saveBtns.forEach((b) => { b.disabled = true; });
-    const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 20000));
-    try {
-      if (isEditing) {
-        await Promise.race([updateRecord(editingRecordId, record), timeout]);
-      } else {
-        await Promise.race([saveRecord(record), timeout]);
-      }
-      rememberRxNames(record);
-      rememberDdx(record);
-      clearDraft();
-      recordRecentUsage(record);
-      showSaveSuccess(record, "✓ บันทึกสำเร็จ", "บันทึกข้อมูลของ", "เรียบร้อยแล้ว");
-    } catch (err) {
-      console.error("VETJOD save error", err);
-      if (err.message === "timeout") {
-        recordRecentUsage(record);
-        showSaveSuccess(record, "⏳ เชื่อมต่อช้า", "ข้อมูลของ", "ถูกบันทึกลงเครื่องแล้ว และจะขึ้น sync ขึ้นระบบกลางอัตโนมัติทันทีที่เชื่อมต่อได้ — ตรวจสอบรายการได้ที่หน้าแรก");
-      } else {
-        showToast("บันทึกไม่สำเร็จ — ตรวจสอบการเชื่อมต่อแล้วลองใหม่");
-      }
-    } finally {
-      saveBtns.forEach((b) => { b.disabled = false; });
-    }
+  async function saveEntry(){
+    if ($('screen-entry').hidden) return;
+    const record=collectForm();if(!record.name){showToast('กรุณากรอกชื่อสัตว์');return;}
+    const isEdit=!!editingRecordId,id=editingRecordId||doc(collection(db,'vetjod_records')).id;
+    record.createdAtLocal=isEdit?(editingRecordCreatedAtLocal||nowTimeLabel()):nowTimeLabel();record.noteText=buildNoteText(record);
+    outbox[id]={record,isEdit,status:'pending'};
+    try{persistOutbox(id);}catch(_){delete outbox[id];showToast('เก็บข้อมูลในเครื่องไม่สำเร็จ ยังไม่ได้ส่ง กรุณาเก็บข้อความก่อนปิดหน้านี้');return;}
+    rememberRxNames(record);rememberDdx(record);recordRecentUsage(record);clearDraft();
+    selectedDate=record.dateKey;subscribeToday();goToList();showToast('เก็บในเครื่องแล้ว — รอระบบยืนยันการบันทึก');void sendQueuedRecord(id);
   }
 
   $("entry-save-btn").addEventListener("click", saveEntry);
@@ -2423,18 +2437,17 @@ function init() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `vetjod_${todayKey()}.txt`;
+    a.download = `vetjod_${selectedDate}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   });
 
-  $("new-day-btn").addEventListener("click", () => {
-    confirmAction(
-      "เริ่มบันทึกวันใหม่?",
-      `ลบบันทึกทั้งหมดของวันนี้ (${todayRecords.length} รายการ) — กู้คืนไม่ได้`,
-      deleteAllToday
-    );
-  });
+  const showSelectedDate=()=>{const key=$("history-date").value;if(!/^\d{4}-\d{2}-\d{2}$/.test(key))return;selectedDate=key;subscribeToday();};
+  $("history-date").addEventListener("change",showSelectedDate);
+  $("history-refresh").addEventListener("click",showSelectedDate);
+  $("new-day-btn").addEventListener("click",()=>{selectedDate=todayKey();subscribeToday();});
+  $("retry-all-btn").addEventListener("click",retryQueuedRecords);
+  window.addEventListener("online",retryQueuedRecords);
 
   resetForm();
 }

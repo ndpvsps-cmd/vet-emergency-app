@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261019-admit-ddx">
+<link rel="stylesheet" href="style.css?v=20261019-blood-panels">
 </head>
 <body>
 
@@ -44,11 +44,12 @@
       </div>
       <div class="app-header-actions">
         <button type="button" class="icon-btn" id="theme-toggle-btn" title="สลับโหมดสี" aria-label="สลับโหมดสี">🌙</button>
-        <button type="button" class="icon-btn" id="export-btn" title="ส่งออกข้อมูลวันนี้" aria-label="ส่งออกข้อมูลวันนี้">⇪</button>
-        <button type="button" class="icon-btn icon-btn-danger" id="new-day-btn" title="เริ่มบันทึกวันใหม่" aria-label="เริ่มบันทึกวันใหม่">🗑</button>
+        <button type="button" class="icon-btn" id="export-btn" title="ส่งออกข้อมูลวันที่เลือก" aria-label="ส่งออกข้อมูลวันที่เลือก">⇪</button>
+        <button type="button" class="icon-btn" id="new-day-btn" title="กลับมาดูวันนี้ (ไม่ลบข้อมูล)" aria-label="กลับมาดูวันนี้">วันนี้</button>
       </div>
     </header>
 
+    <div class="list-toolbar"><label for="history-date">วันที่บันทึก</label><input type="date" id="history-date"><button type="button" class="secondary-btn" id="history-refresh">ดูรายการ</button><button type="button" class="secondary-btn" id="retry-all-btn">ส่งรายการค้างซ้ำ</button></div>
     <div class="list-toolbar">
       <input type="text" id="list-search-input" placeholder="ค้นหาชื่อสัตว์...">
       <span class="list-count" id="list-count">0 รายการ</span>
@@ -60,7 +61,7 @@
 
     <main class="card-list" id="card-list">
       <div class="empty-state" id="empty-state">
-        <p>ยังไม่มีบันทึกวันนี้</p>
+        <p>ไม่พบบันทึกในวันที่เลือก</p>
         <p class="empty-state-sub">แตะปุ่ม + เพื่อเริ่มบันทึกตัวแรก</p>
       </div>
     </main>
@@ -1494,7 +1495,7 @@
   <!-- ===================== EXPORT MODAL ===================== -->
   <div class="modal-overlay" id="export-modal" hidden>
     <div class="modal">
-      <h2>ส่งออกข้อมูลวันนี้</h2>
+      <h2>ส่งออกข้อมูลวันที่เลือก</h2>
       <textarea id="export-textarea" readonly rows="14"></textarea>
       <div class="modal-actions">
         <button type="button" class="secondary-btn" id="export-close-btn">ปิด</button>
@@ -1531,6 +1532,6 @@
 
   <script src="data.js"></script>
   <script src="firebase-config.js"></script>
-  <script type="module" src="app.js?v=20261019-admit-ddx"></script>
+  <script type="module" src="app.js?v=20261019-blood-panels"></script>
 </body>
 </html>
