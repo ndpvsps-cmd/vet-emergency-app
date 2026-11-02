@@ -236,10 +236,23 @@ function pushRecent(key, value, max) {
 
 // Recent animals carry species + weight along with the name, so tapping a repeat
 // patient's name shortcut also fills in those two — not just the name itself.
+const RECENT_MEDICATION_INPUTS = {
+  "poMedDetail": "t-po-med-detail",
+  "injectionOther": "t-injection-other",
+  "injMarboDose": "t-inj-marbo-dose",
+  "injPbDose": "t-inj-pb-dose",
+  "injPbFreq": "t-inj-pb-freq",
+  "injLecetamDose": "t-inj-lecetam-dose",
+  "injMorphineDose": "t-inj-morphine-dose",
+  "injBloodVolume": "t-inj-blood-volume",
+  "injBloodStart": "t-inj-blood-start",
+  "injBloodEnd": "t-inj-blood-end",
+  "injBloodRate": "t-inj-blood-rate"
+};
 function pushRecentAnimal(record) {
   if (!record.name) return;
   const list = [
-    { name: record.name, species: record.species, weightKg: record.weightKg },
+    { name: record.name, species: record.species, weightKg: record.weightKg, ddx: record.outpatient?.ddx || "", medication: Object.fromEntries(["poMed", "injectionDrug", ...Object.keys(RECENT_MEDICATION_INPUTS)].map(key => [key, record.tx?.[key] ?? ""])) },
     ...loadRecentList(RECENT_NAMES_KEY).filter((a) => a && a.name !== record.name)
   ].slice(0, 10);
   try { localStorage.setItem(RECENT_NAMES_KEY, JSON.stringify(list)); } catch (e) { /* nothing to do */ }
@@ -273,6 +286,11 @@ function renderRecentShortcuts() {
       const animal = recentAnimals[Number(btn.dataset.recentIndex)];
       if (!animal) return;
       $("p-name").value = animal.name;
+      setInputValue("o-ddx", animal.ddx || "");
+      const medication = animal.medication || {};
+      setChipFieldValue("t-po-med", medication.poMed || "");
+      setChipFieldValue("t-injection-drug", medication.injectionDrug || []);
+      for (const [key, id] of Object.entries(RECENT_MEDICATION_INPUTS)) setInputValue(id, medication[key] ?? "");
       if (animal.species) setChipFieldValue("p-species", animal.species);
       if (animal.weightKg != null) {
         $("p-weight").value = animal.weightKg;
@@ -594,10 +612,10 @@ function buildOutpatientNote(record) {
   const lines = ['OPD (' + dateLabel(record.dateKey || todayKey()) + ', ' + (record.vet || 'ไม่ระบุ') + ')',oldLines[1]];
   const add = (label,value) => {if(value && value.trim()) lines.push(label+':',value.trim());};
   add('CC',o.cc); add('Hx',o.hx);
-  const end = oldLines.findIndex((line,i) => i>1 && /^(DDX:|Labs:|Tx:|RX:|Note:|เบิกเวชภัณฑ์:|แจ้งอาหารหมด:)/.test(line));
+  const end = oldLines.findIndex((line,i) => i>1 && /^(DDX:|Labs:|Tx:|RX:|TP:|Note:|เบิกเวชภัณฑ์:|แจ้งอาหารหมด:)/.test(line));
   add('PE',oldLines.slice(2,end===-1 ? undefined : end).join("\n").replace(/^PE:\s*/m,''));
   add('Investigate',buildLabsLine(record.labs).map(s=>'- '+s).join("\n"));
-  add('DDX',o.ddx); add('TX',buildTxParts(record.tx).map(s=>'- '+s).join("\n")); add('RX',buildRxParts(record.rx).map(s=>'- '+s).join("\n")); add('TP',o.tp); add('Prognosis',o.prognosis);
+  add('DDX',o.ddx); add('TX',buildTxParts(record.tx).map(s=>'- '+s).join("\n")); add('RX',buildRxParts(record.rx, record.rxOther).map(s=>'- '+s).join("\n")); add('TP',o.tp); add('Prognosis',o.prognosis);
   const notes = [...(record.caseStatus || []),record.caseStatusOther || ''];
   const supply = buildSupplyParts(record.supply);
   if(supply.length) notes.push('เบิกเวชภัณฑ์: '+supply.join(', '));
@@ -656,9 +674,8 @@ function addRxRow(saved = {}) {
   row.querySelector('[data-rx-remove]').addEventListener('click',()=>{row.remove();onFormChange();});
   $("rx-list").appendChild(row);
 }
-function buildRxParts(items) {
-  if (!Array.isArray(items)) return [];
-  return items.map(rx => {
+function buildRxParts(items, other = "") {
+  const result = (Array.isArray(items) ? items : []).map(rx => {
     const parts = [rx.name || '(ไม่ระบุชื่อยา)'];
     if (rx.dose) parts[0] += ' ('+rx.dose+')';
     for (const key of ['route','meal']) if(rx[key])parts.push(rx[key]);
@@ -673,6 +690,8 @@ function buildRxParts(items) {
     if (rx.instructions) parts.push(rx.instructions);
     return parts.join(', ');
   });
+  if (typeof other === 'string' && other.trim()) result.push(...other.trim().split(/\r?\n/).map(line => line.trim()).filter(Boolean));
+  return result;
 }
 
 // ===================== form collection =====================
@@ -719,6 +738,7 @@ function collectForm() {
   return {
     dateKey: editingRecordId ? (editingRecordDate || selectedDate) : todayKey(),
     rx: collectRx(),
+    rxOther: val("rx-other"),
     recordType: val("p-record-type") || "ipd",
     outpatient: {cc: val("o-cc"), hx: val("o-hx"), ddx: val("o-ddx"), tp: val("o-tp"), prognosis: getFieldValue("o-prognosis")},
     name: val("p-name"),
@@ -1244,8 +1264,10 @@ function buildNoteText(record) {
     txParts.forEach((p) => lines.push("- " + p));
   }
 
-  const rxParts = buildRxParts(record.rx);
+  const rxParts = buildRxParts(record.rx, record.rxOther);
   if (rxParts.length) { lines.push("RX:"); rxParts.forEach(p => lines.push("- " + p)); }
+
+  if (record.outpatient?.tp?.trim()) lines.push("TP:", record.outpatient.tp.trim());
 
   const noteParts = [];
   if (Array.isArray(record.caseStatus)) noteParts.push(...record.caseStatus);
@@ -1591,6 +1613,7 @@ function populateSupply(supply) {
 function populateForm(record) {
   $("rx-list").innerHTML = "";
   if (Array.isArray(record.rx)) record.rx.forEach(addRxRow);
+  setInputValue("rx-other", record.rxOther || "");
   $("p-record-type").value = record.recordType === "opd" ? "opd" : "ipd";
   for (const key of ["cc","hx","ddx","tp"]) setInputValue("o-"+key,record.outpatient?.[key]);
   setChipFieldValue("o-prognosis", record.outpatient?.prognosis);
@@ -2237,7 +2260,7 @@ function initSectionFlow() {
   document.querySelectorAll(".next-section-btn").forEach(el=>el.remove());
   const opd = $("p-record-type").value === "opd";
   const extra = {"section-patient":[{id:"section-cc",label:"CC"},{id:"section-hx",label:"Hx"}],"section-labs":[{id:"section-ddx",label:"DDX"}],"section-rx":[{id:"section-tp",label:"TP"},{id:"section-prognosis",label:"Prognosis"}]};
-  const flow = SECTION_FLOW.flatMap(s=>[s,...(opd ? extra[s.id] || [] : s.id === "section-labs" ? [{id:"section-ddx",label:"DDX"}] : [])]);
+  const flow = SECTION_FLOW.flatMap(s=>[s,...(opd ? extra[s.id] || [] : s.id === "section-labs" ? [{id:"section-ddx",label:"DDX"}] : s.id === "section-rx" ? [{id:"section-tp",label:"TP"}] : [])]);
   const label = s=>opd && s.id==='section-labs' ? 'Investigate' : s.label;
   $("jump-nav").innerHTML = flow.map(s=>'<button type="button" class="jump-nav-btn" data-jump-to="'+s.id+'">'+label(s)+'</button>').join('');
   flow.forEach((sec,idx)=>{
