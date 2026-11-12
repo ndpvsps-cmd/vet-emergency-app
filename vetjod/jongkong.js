@@ -3,11 +3,18 @@ const text = value => typeof value === 'string' || typeof value === 'number' ? S
 export function patientKey(p) {
   return text(p.encounterId) || JSON.stringify([p.hn, p.admitdate, p.name, p.cageId]);
 }
+export function formatWardTimes(times) {
+  if (!Array.isArray(times) || !times.length) return '';
+  const hours = times.map(t => String(t).trim()).map(t => /^(\d{1,2})(?::00)?$/.test(t) ? Number(t.split(':')[0]) % 24 : NaN);
+  const key = [...new Set(hours)].sort((a,b)=>a-b).join(',');
+  const labels = {'9':'am','17':'pm','9,17':'bid','0,9,17':'q8h','9,21':'q12h'};
+  return labels[key] || 'เวลา ' + times.map(text).join(', ');
+}
 export function mapWardPatient(p) {
   let plan = {};
   try { plan = JSON.parse(p.wardPlanJson || '{}') || {}; } catch (_) {}
   const rows = Array.isArray(plan.rows) ? plan.rows : null;
-  const rowText = r => [text(r.label), text(r.detail), Array.isArray(r.times) && r.times.length ? 'เวลา ' + r.times.map(text).join(', ') : ''].filter(Boolean).join(' — ');
+  const rowText = r => [text(r.label), text(r.detail), formatWardTimes(r.times)].filter(Boolean).join(' — ');
   const group = types => rows.filter(r => r && types.includes(r.type)).map(rowText).filter(Boolean).join('\n');
   const oral = rows ? group(['oral_cage','oral_ward']) : [text(p.medoral), text(p.medOralCage)].filter(Boolean).join('\n');
   const injection = rows ? group(['iv']) : [['เช้า',p.medMorn],['เย็น',p.medEve],['21:00',p.v21],['24:00',p.v24],['06:00',p.v06]].filter(([,v])=>text(v)).map(([label,v])=>label+': '+text(v)).join('\n');

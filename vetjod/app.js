@@ -1,4 +1,4 @@
-import { initJongkong } from "./jongkong.js?v=20261112-patient-chips";
+import { initJongkong } from "./jongkong.js?v=20261112-tx-format";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -1184,7 +1184,7 @@ function buildTxParts(tx) {
   if (tx.ga === "yes") parts.push(`GA${tx.gaDrug ? " (" + tx.gaDrug + ")" : ""}`);
   if (tx.otherProcedure) parts.push(tx.otherProcedure);
 
-  return parts;
+  return parts.flatMap(part => String(part).split(/\r?\n/).map(line => line.trim().replace(/^[-•]\s*/, '')).filter(Boolean));
 }
 
 // ===================== supply requisition =====================
@@ -1882,7 +1882,17 @@ function renderList() {
       if (e.target.closest(".card-vetmanage-btn") || e.target.closest(".card-delete-btn") || e.target.closest(".card-edit-btn") || e.target.closest(".card-duplicate-btn")) return;
       card.classList.toggle("expanded");
     });
-    card.querySelector(".card-vetmanage-btn").addEventListener("click", () => openCopyReview(r));
+    const copyButton = card.querySelector(".card-vetmanage-btn");
+    copyButton.addEventListener("click", async () => {
+      copyButton.disabled = true;
+      try {
+        if (await copyRecordForVetmanage(r)) {
+          card.querySelector(".copy-record-status").textContent = copyStatusText(r);
+        }
+      } finally {
+        copyButton.disabled = false;
+      }
+    });
     card.querySelector(".card-edit-btn").addEventListener("click", () => goToEditEntry(r));
     card.querySelector(".card-duplicate-btn").addEventListener("click", () => goToDuplicateEntry(r));
     card.querySelector(".card-delete-btn").addEventListener("click", () => {
@@ -2037,7 +2047,6 @@ async function copyForVetmanage(noteText) {
 
 
 const COPY_HISTORY_KEY = 'vetjod_copy_history_v1';
-let copyReviewRecord = null;
 function loadCopyHistory() {
   try { const data=JSON.parse(localStorage.getItem(COPY_HISTORY_KEY)||'{}');return data && typeof data==='object' && !Array.isArray(data)?data:{}; }catch(_){return {};}
 }
@@ -2047,32 +2056,27 @@ function copyStatusText(record) {
   const time=new Date(entry.at).toLocaleString('th-TH',{timeZone:'Asia/Bangkok',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
   return 'คัดลอกแล้ว '+time+(entry.edited?' · มีการแก้ข้อความก่อนคัดลอก':'')+(entry.format==='plain'?' · ข้อความธรรมดา':'')+' (เครื่องนี้)';
 }
-function updateCopyReviewPreview() {
-  $('copy-review-preview').innerHTML=buildVetmanageClipboard($('copy-review-text').value).html;
-}
-function openCopyReview(record) {
-  copyReviewRecord={id:record.id,noteText:record.noteText||''};
-  $('copy-review-patient').textContent=record.name||'';
-  $('copy-review-text').value=record.noteText||'';
-  updateCopyReviewPreview();$('copy-review-dialog').showModal();
-}
-function initCopyReview() {
-  $('copy-review-text').addEventListener('input',updateCopyReviewPreview);
-  $('copy-review-close').addEventListener('click',()=>$('copy-review-dialog').close());
-  $('copy-review-dialog').addEventListener('close',()=>{copyReviewRecord=null;});
-  $('copy-review-confirm').addEventListener('click',async()=>{
-    if(!copyReviewRecord)return;
-    const record={...copyReviewRecord},text=$('copy-review-text').value;
-    if(!text.trim()){showToast('ไม่มีข้อความให้คัดลอก');return;}
-    const button=$('copy-review-confirm');button.disabled=true;
-    try {
-      const format=await copyForVetmanage(text);if(!format)return;
-      const history=loadCopyHistory();history[record.id]={source:record.noteText,at:new Date().toISOString(),edited:text!==record.noteText,format};
-      const recent=Object.fromEntries(Object.entries(history).sort((a,b)=>String(b[1].at).localeCompare(String(a[1].at))).slice(0,100));
-      try{localStorage.setItem(COPY_HISTORY_KEY,JSON.stringify(recent));}catch(_){showToast('คัดลอกแล้ว แต่บันทึกสถานะลงเครื่องไม่สำเร็จ');}
-      renderList();
-    }finally{button.disabled=false;}
-  });
+async function copyRecordForVetmanage(record) {
+  const source = record.noteText || '';
+  if (!source.trim()) {
+    showToast('ไม่มีข้อความให้คัดลอก');
+    return false;
+  }
+  const format = await copyForVetmanage(source);
+  if (!format) return false;
+
+  const history = loadCopyHistory();
+  history[record.id] = { source, at: new Date().toISOString(), edited: false, format };
+  const recent = Object.fromEntries(Object.entries(history)
+    .sort((a, b) => String(b[1].at).localeCompare(String(a[1].at)))
+    .slice(0, 100));
+  try {
+    localStorage.setItem(COPY_HISTORY_KEY, JSON.stringify(recent));
+  } catch (_) {
+    showToast('คัดลอกแล้ว แต่บันทึกสถานะลงเครื่องไม่สำเร็จ');
+    return false;
+  }
+  return true;
 }
 
 // ===================== export =====================
@@ -2308,7 +2312,6 @@ function init() {
     }
   });
   $("p-name").addEventListener("input", () => { jongkongSource = null; showJongkongSource(); });
-  initCopyReview();
   initExamCategoryNotes();
   refreshRxChoices();
   $("rx-picker").addEventListener("focus",refreshRxChoices);
