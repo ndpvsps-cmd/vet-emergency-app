@@ -1,3 +1,4 @@
+import { initJongkong } from "./jongkong.js?v=20261112-patient-chips";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -18,6 +19,13 @@ const db = initializeFirestore(fbApp, {
 });
 
 let todayRecords = [];
+let jongkongSource = null, jongkongUi = null;
+function showJongkongSource() {
+  const el = $("jk-source");
+  el.hidden = !jongkongSource;
+  el.textContent = jongkongSource ? "ข้อมูลจาก JONGKONG · HN " + (jongkongSource.hn || "—") + " · กรง " + jongkongSource.cageId : "";
+  jongkongUi?.refresh();
+}
 let selectedDate = todayKey(), editingRecordDate = null, remoteRecords = [], subscriptionVersion = 0;
 const activeSends = new Set(), OUTBOX_KEY = 'vetjod_outbox_v1';
 let outbox = loadOutbox();
@@ -285,6 +293,7 @@ function renderRecentShortcuts() {
     btn.addEventListener("click", () => {
       const animal = recentAnimals[Number(btn.dataset.recentIndex)];
       if (!animal) return;
+      jongkongSource = null; showJongkongSource();
       $("p-name").value = animal.name;
       setInputValue("o-ddx", animal.ddx || "");
       const medication = animal.medication || {};
@@ -737,6 +746,7 @@ function collectForm() {
 
   return {
     dateKey: editingRecordId ? (editingRecordDate || selectedDate) : todayKey(),
+    jongkongSource,
     rx: collectRx(),
     rxOther: val("rx-other"),
     recordType: val("p-record-type") || "ipd",
@@ -1478,6 +1488,7 @@ function activateDefault(fieldId, value) {
 }
 
 function resetForm() {
+  jongkongSource = null; showJongkongSource();
   $("rx-list").innerHTML = "";
   $("p-record-type").value = "ipd";
   updateRecordMode();
@@ -1611,6 +1622,7 @@ function populateSupply(supply) {
 }
 
 function populateForm(record) {
+  jongkongSource = record.jongkongSource || null; showJongkongSource();
   $("rx-list").innerHTML = "";
   if (Array.isArray(record.rx)) record.rx.forEach(addRxRow);
   setInputValue("rx-other", record.rxOther || "");
@@ -2273,6 +2285,29 @@ function initSectionFlow() {
 }
 
 function init() {
+  jongkongUi = initJongkong({
+    getSource: () => jongkongSource,
+    confirm: confirmAction,
+    apply: data => {
+      if ($("p-name").value.trim() !== data.name) setChipFieldValue("p-species", "");
+      setInputValue("p-name", data.name);
+      setInputValue("p-weight", data.weightKg);
+      syncSliderFromInput("p-weight-slider", "p-weight");
+      setInputValue("o-ddx", data.ddx);
+      setChipFieldValue("t-po-med", data.oral ? "yes" : "");
+      setInputValue("t-po-med-detail", data.oral);
+      setChipFieldValue("t-injection-drug", []);
+      for (const [key,id] of Object.entries(RECENT_MEDICATION_INPUTS)) if (key.startsWith("inj")) setInputValue(id, "");
+      setInputValue("t-injection-other", data.injection);
+      setInputValue("t-other", data.tx);
+      setInputValue("o-tp", data.tp);
+      jongkongSource = data.source;
+      showJongkongSource();
+      onFormChange();
+      if (data.rawWeight && data.weightKg === null) showToast("น้ำหนักต้นทางไม่ใช่ตัวเลข กรุณากรอกน้ำหนัก: " + data.rawWeight);
+    }
+  });
+  $("p-name").addEventListener("input", () => { jongkongSource = null; showJongkongSource(); });
   initCopyReview();
   initExamCategoryNotes();
   refreshRxChoices();

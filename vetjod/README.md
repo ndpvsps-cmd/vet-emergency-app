@@ -70,3 +70,14 @@ Push โค้ดขึ้น GitHub แล้วเปิด GitHub Pages (Sett
 - ข้อมูลเก็บใน collection ชื่อ `vetjod_records` — เอกสารหนึ่งชิ้น = การตรวจหนึ่งครั้ง (สัตว์ตัวเดียวกันตรวจ
   หลายครั้ง/วัน จะมีหลายการ์ด เรียงตามเวลาที่บันทึกล่าสุดอยู่บนสุด)
 - ปุ่ม "เริ่มบันทึกวันใหม่" จะลบบันทึกของ**วันนี้ทั้งหมด**ถาวร (มีขั้นตอนยืนยันก่อนลบ) เหมาะใช้ตอนเริ่มกะ/วันใหม่
+
+
+## JONGKONG patient import
+
+Open the JONGKONG selector in the patient section and sign in using the existing ward password. The connection uses a separate Firebase app and session-only authentication, checks the enabled member record, and listens read-only to wards/main. It never writes to JONGKONG. The public Firebase client settings are in jongkong-config.json; no password is stored in the source.
+
+Live changes update the list, while an explicit update button protects an in-progress chart from being overwritten. Imports require a server-confirmed snapshot and confirmation. Patient linkage uses encounterId (with HN/admission/name/cage fallback) and is saved with the VETJOD record. Name edits clear the linkage.
+
+Mapping: bw -> weight; diagnosis -> DDx; wardPlanJson rows oral_cage/oral_ward -> PO text; iv -> injection text; procedure -> Tx other; plan -> TP. Legacy medication fields are used when structured rows are unavailable. Invalid weights remain blank. Species is not inferred. These imported fields replace their corresponding form values; other examination fields remain as entered.
+
+Local verification covers mapping and simulated realtime updates. Authenticated live integration must be checked using an authorized JONGKONG ward login; Firestore membership and security rules remain in force.

@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VETJOD</title>
 <meta name="theme-color" content="#0f172a">
 <script>
@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261101-tp-recent-meds">
+<link rel="stylesheet" href="style.css?v=20261112-patient-chips">
 </head>
 <body>
 
@@ -44,14 +44,15 @@
       </div>
       <div class="app-header-actions">
         <button type="button" class="icon-btn" id="theme-toggle-btn" title="สลับโหมดสี" aria-label="สลับโหมดสี">🌙</button>
-        <button type="button" class="icon-btn" id="export-btn" title="ส่งออกข้อมูลวันที่เลือก" aria-label="ส่งออกข้อมูลวันที่เลือก">⇪</button>
+        <button type="button" class="icon-btn" id="export-btn" title="ส่งออกข้อมูลวันที่เลือก" aria-label="ส่งออกข้อมูลวันที่เลือก">ส่งออก</button>
         <button type="button" class="icon-btn" id="new-day-btn" title="กลับมาดูวันนี้ (ไม่ลบข้อมูล)" aria-label="กลับมาดูวันนี้">วันนี้</button>
       </div>
     </header>
 
-    <div class="list-toolbar"><label for="history-date">วันที่บันทึก</label><input type="date" id="history-date"><button type="button" class="secondary-btn" id="history-refresh">ดูรายการ</button><button type="button" class="secondary-btn" id="retry-all-btn">ส่งรายการค้างซ้ำ</button></div>
-    <div class="list-toolbar">
-      <input type="text" id="list-search-input" placeholder="ค้นหาชื่อสัตว์...">
+    <div class="list-intro"><h1>บันทึกผู้ป่วย</h1><p>เลือกวันที่ แล้วค้นหาหรือเลือกผู้ดูแลเพื่อดูบันทึก</p></div>
+    <div class="list-toolbar history-toolbar"><label for="history-date">วันที่บันทึก</label><input type="date" id="history-date"><button type="button" class="secondary-btn" id="history-refresh">ดูรายการ</button><button type="button" class="secondary-btn" id="retry-all-btn">ส่งรายการค้างซ้ำ</button></div>
+    <div class="list-toolbar search-toolbar">
+      <label class="visually-hidden" for="list-search-input">ค้นหาชื่อสัตว์ในวันที่เลือก</label><input type="search" id="list-search-input" placeholder="ค้นหาชื่อสัตว์...">
       <span class="list-count" id="list-count">0 รายการ</span>
     </div>
 
@@ -62,11 +63,11 @@
     <main class="card-list" id="card-list">
       <div class="empty-state" id="empty-state">
         <p>ไม่พบบันทึกในวันที่เลือก</p>
-        <p class="empty-state-sub">แตะปุ่ม + เพื่อเริ่มบันทึกตัวแรก</p>
+        <p class="empty-state-sub">แตะ “บันทึกใหม่” เพื่อเริ่มกรอกเวชระเบียน</p>
       </div>
     </main>
 
-    <button type="button" class="fab" id="new-entry-fab" aria-label="บันทึกใหม่">+</button>
+    <button type="button" class="fab" id="new-entry-fab" aria-label="บันทึกใหม่">＋ บันทึกใหม่</button>
   </div>
 
   <!-- ===================== NEW / EDIT ENTRY ===================== -->
@@ -77,11 +78,11 @@
         <span class="brand" id="entry-title">บันทึกใหม่</span>
       </div>
       <div class="app-header-actions">
-        <button type="button" class="icon-btn icon-btn-save" id="entry-save-btn-top" title="บันทึก" aria-label="บันทึก">💾</button>
+        <button type="button" class="icon-btn icon-btn-save" id="entry-save-btn-top" title="บันทึก" aria-label="บันทึก">บันทึก</button>
       </div>
     </header>
 
-    <button type="button" class="jump-nav-handle" id="jump-nav-handle" aria-label="เมนูลัด">‹</button>
+    <button type="button" class="jump-nav-handle" id="jump-nav-handle" aria-label="เมนูลัด">หัวข้อ ‹</button>
     <div class="jump-nav-backdrop" id="jump-nav-backdrop" hidden></div>
     <nav class="jump-nav" id="jump-nav">
       <button type="button" class="jump-nav-btn" data-jump-to="section-patient">สัตว์</button>
@@ -105,6 +106,13 @@
           </div>
         </div>
         <div class="field-row">
+          <details class="sub-block" id="jk-panel"><summary><strong>นำเข้าจาก JONGKONG</strong><span class="jk-summary-hint">รายชื่อวอร์ด · น้ำหนัก · ยา · แผนรักษา</span></summary>
+            <div class="field-row"><label for="jk-password">รหัสผ่านวอร์ด JONGKONG</label><input id="jk-password" type="password" autocomplete="off"><button type="button" class="secondary-btn" id="jk-login">เชื่อมต่อ JONGKONG</button><button type="button" class="secondary-btn" id="jk-logout" hidden>ออกจาก JONGKONG</button></div>
+            <p id="jk-status" role="status">อ่านข้อมูลจาก JONGKONG โดยไม่แก้ไขข้อมูลต้นทาง</p>
+            <div class="field-row"><label id="jk-patients-label">แตะชื่อสัตว์เพื่อนำเข้าข้อมูล</label><div id="jk-patient-chips" class="chips" role="group" aria-labelledby="jk-patients-label"><p class="jk-empty">เชื่อมต่อ JONGKONG เพื่อแสดงรายชื่อ</p></div></div>
+          </details>
+          <p id="jk-source" role="status" hidden></p>
+          <button type="button" class="secondary-btn" id="jk-update" hidden>มีข้อมูลใหม่จาก JONGKONG — กดอัปเดต</button>
           <label for="p-name">ชื่อสัตว์</label>
           <input type="text" id="p-name" placeholder="เช่น น้องโบว์">
           <div class="quick-chips" id="p-name-recent"></div>
@@ -1532,6 +1540,6 @@
 
   <script src="data.js"></script>
   <script src="firebase-config.js"></script>
-  <script type="module" src="app.js?v=20261101-tp-recent-meds"></script>
+  <script type="module" src="app.js?v=20261112-patient-chips"></script>
 </body>
 </html>
