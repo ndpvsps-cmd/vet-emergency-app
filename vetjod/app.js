@@ -821,7 +821,7 @@ function collectForm() {
   return {
     dateKey: editingRecordId ? (editingRecordDate || selectedDate) : todayKey(),
     jongkongSource,
-    hn: val("p-hn").toUpperCase(),
+    hn: (val("p-hn") || "").toUpperCase(),
     caseSystems: getFieldValue("p-systems"),
     caseEmergency: getFieldValue("p-emergency"),
     rx: collectRx(),
