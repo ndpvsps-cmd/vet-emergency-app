@@ -54,7 +54,7 @@ function markDatedTpItem(value, now = new Date()) {
   const today = Object.fromEntries(todayParts.map(part => [part.type, part.value]));
   const todayKey = Number(today.year + today.month + today.day);
   const checked = /^[☑✅✔]\uFE0F?\s*/u;
-  const original = value.replace(checked, '');
+  const original = value.replace(checked, '').replace(/\s*[☑✅✔]\uFE0F?$/u, '').trimEnd();
   const content = original.replace(/^(?:[-•]|\d+[.)])\s+/, '');
   const monthNames = [
     ['JAN', 'JANUARY', 'ม.ค.', 'มกราคม'], ['FEB', 'FEBRUARY', 'ก.พ.', 'กุมภาพันธ์'],
@@ -87,7 +87,7 @@ function markDatedTpItem(value, now = new Date()) {
   const date = new Date(Date.UTC(year, month - 1, day));
   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return original;
   const dateKey = year * 10000 + month * 100 + day;
-  return dateKey <= todayKey ? '☑️ ' + original : original;
+  return dateKey <= todayKey ? original + ' ☑️' : original;
 }
 
 function indentNoteItems(text) {
@@ -119,9 +119,22 @@ function indentNoteItems(text) {
     if (section && line.trim()) {
       const value = section === "TP" ? markDatedTpItem(line.trim()) : line.trim();
       lines.push('      ' + (section === 'DDX' ? (++number) + '. ' + value.replace(/^\d+[.)]\s*/, '') : value));
-    } else lines.push(line.replace(/^[ \t]*- /, '      - '));
+    } else lines.push(/^ {12}- /.test(line) ? line : line.replace(/^[ \t]*- /, '      - '));
   }
-  return lines.join('\n');
+  const grouped = [];
+  let poGroup = false;
+  for (const line of lines) {
+    const medicine = line.match(/^[ \t]*- (?:💊 )?Po med:\s*(.*)$/i);
+    if (medicine) {
+      if (!poGroup) grouped.push('      Po med:');
+      if (medicine[1]) grouped.push('            - ' + medicine[1]);
+      poGroup = true;
+    } else {
+      grouped.push(line);
+      poGroup = false;
+    }
+  }
+  return grouped.join('\n');
 }
 
 function decorateNoteHeading(text) {
@@ -136,7 +149,7 @@ function noteTextToHtml(noteText) {
   return indentNoteItems(noteText).split("\n").map((line, idx) => {
     if (idx === 0) return `<span class="${/^OPD\s*\(/i.test(line) ? "note-opd-title" : "note-admit-line"}">${escapeHtml(decorateNoteHeading(line))}</span>`;
     if (idx === 1) return `<span class="note-header-line">${escapeHtml(line)}</span>`;
-    if (/^[ \t]*- /.test(line)) return `<span class="note-item">${escapeHtml(line.trimStart().replace(/Po med(?=:|$)/, '💊 Po med'))}</span>`;
+    if (/^[ \t]*- /.test(line)) return `<span class="note-item${/^ {12}/.test(line) ? " note-subitem" : ""}">${escapeHtml(line.trimStart().replace(/Po med(?=:|$)/, '💊 Po med'))}</span>`;
     if (/^[ \t]+\S/.test(line)) {
       const detail = line.trimStart();
       const label = detail.match(/^([^:]{1,40}):\s*(.*)$/s);
@@ -2089,13 +2102,18 @@ async function deleteRecord(id) {
 // Semantic clipboard markup is independent of the app's theme and screen layout.
 function buildVetmanageClipboard(noteText) {
   const lines=indentNoteItems(noteText).split('\n');
-  const html=[];let list='';
+  const html=[];let list='', listDepth=0;
   const closeList=()=>{if(list){html.push('</'+list+'>');list='';}};
   const inline=text=>{const m=text.match(/^([^:]{1,40}):\s*(.*)$/);return m?'<strong style="color:#1e3a8a;">'+escapeHtml(decorateNoteHeading(m[1]))+':</strong> '+escapeHtml(m[2]):escapeHtml(text);};
   lines.forEach((raw,index)=>{
     const text=raw.trim();if(!text){closeList();return;}
+    if (/^ {12}- /.test(raw)) {
+      closeList();
+      html.push('<p style="margin:0 0 6px;margin-left:24px;">' + inline(text) + '</p>');
+      return;
+    }
     const bullet=index>1&&text.match(/^(- |\d+\. )(.*)$/);
-    if(bullet){const tag=bullet[1]==='- '?'ul':'ol';if(list!==tag){closeList();list=tag;html.push('<'+tag+' style="margin-top:0;margin-bottom:6px;padding-left:24px;">');}html.push('<li>'+inline(bullet[2])+'</li>');return;}
+    if(bullet){const tag=bullet[1]==='- '?'ul':'ol';const depth=/^ {12}/.test(raw)?1:0;if(list!==tag || listDepth!==depth){closeList();list=tag;listDepth=depth;html.push('<'+tag+' style="margin-top:0;margin-bottom:6px;padding-left:24px;'+(depth?'margin-left:24px;':'')+'">');}html.push('<li>'+inline(bullet[2])+'</li>');return;}
     closeList();
     if (index === 0 && /^OPD\s*\(/i.test(text)) {
       html.push('<p style="margin:0 0 10px;"><strong style="font-size:20px;color:#1e3a8a;">'+escapeHtml(decorateNoteHeading(text))+'</strong></p>');

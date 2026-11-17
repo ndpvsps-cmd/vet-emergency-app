@@ -1309,3 +1309,5 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 .note-label, .note-opd-title, .note-admit-line { color:#1e3a8a; }
 :root:not([data-theme="light"]) .note-label, :root:not([data-theme="light"]) .note-opd-title, :root:not([data-theme="light"]) .note-admit-line { color:#93c5fd; }
 :root[data-theme="light"] .note-label, :root[data-theme="light"] .note-opd-title, :root[data-theme="light"] .note-admit-line { color:#1e3a8a; }
+
+.note-item.note-subitem { padding-left:3em; }
