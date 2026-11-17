@@ -107,7 +107,7 @@ function indentNoteItems(text) {
       lines.push(heading[1] + ':');
       if (!heading[2].trim()) continue;
       const value = section === "TP" ? markDatedTpItem(heading[2].trim()) : heading[2].trim();
-      lines.push('      ' + (section === 'DDX' ? (++number) + '. ' + value.replace(/^\d+[.)]\s*/, '') : value));
+      lines.push('      ' + (section === 'DDX' ? (++number) + '. ' + value.replace(/^(?:\d+[.)]\s*)?[-•*]*\s*/, '') : value));
       continue;
     }
     const endsSection = section === 'PE'
@@ -118,7 +118,7 @@ function indentNoteItems(text) {
     if (endsSection) { section = ''; number = 0; }
     if (section && line.trim()) {
       const value = section === "TP" ? markDatedTpItem(line.trim()) : line.trim();
-      lines.push('      ' + (section === 'DDX' ? (++number) + '. ' + value.replace(/^\d+[.)]\s*/, '') : value));
+      lines.push('      ' + (section === 'DDX' ? (++number) + '. ' + value.replace(/^(?:\d+[.)]\s*)?[-•*]*\s*/, '') : value));
     } else lines.push(/^ {12}- /.test(line) ? line : line.replace(/^[ \t]*- /, '      - '));
   }
   const grouped = [];
@@ -2114,37 +2114,43 @@ async function deleteRecord(id) {
 
 // Semantic clipboard markup is independent of the app's theme and screen layout.
 function buildVetmanageClipboard(noteText) {
-  const lines=indentNoteItems(noteText).split('\n');
-  const html=[];let list='', listDepth=0;
-  const closeList=()=>{if(list){html.push('</'+list+'>');list='';}};
-  const inline=text=>{const m=text.match(/^([^:]{1,40}):\s*(.*)$/);return m?'<strong style="color:#1e3a8a;">'+escapeHtml(decorateNoteHeading(m[1]))+':</strong> '+escapeHtml(m[2]):escapeHtml(text);};
-  lines.forEach((raw,index)=>{
-    const text=raw.trim();if(!text){closeList();return;}
-    if (/^ {12}- /.test(raw)) {
-      closeList();
-      html.push('<p style="margin:0 0 6px;margin-left:24px;">' + inline(text) + '</p>');
-      return;
+  const lines = indentNoteItems(noteText).split('\n');
+  const sectionHeading = /^(CC|Hx|PE|DDX|Labs|Investigate|Tx|RX|TP|Prognosis|Note|เบิกเวชภัณฑ์|แจ้งอาหารหมด):\s*$/i;
+  const detailLabel = /^(Vitals|Wound|Eye|Skeleton|Neuro|Other|Maxillofacial|Integument|Abdominal|Abd|Po med):\s*(.*)$/i;
+  const html = [];
+  const plain = [];
+  let section = '';
+
+  lines.forEach((raw, index) => {
+    const text = raw.trim();
+    if (!text) return;
+    const heading = text.match(sectionHeading);
+    if (heading) section = heading[1].toUpperCase();
+    const poHeading = /^Po med:\s*$/i.test(text);
+    const title = index === 0;
+    const identity = index === 1;
+    const isHeading = Boolean(heading) || poHeading;
+    const indented = !title && !identity && !heading;
+    let content = text;
+    if (section === 'TP' && !heading) content = text.replace(/^[-•*]+\s*/, '');
+    const label = content.match(detailLabel);
+    let body;
+    if (title || isHeading) {
+      const size = title ? 'font-size:20px;' : '';
+      body = '<strong style="' + size + 'color:#1e3a8a;">' + escapeHtml(decorateNoteHeading(content)) + '</strong>';
+    } else if (identity) {
+      body = '<strong>' + escapeHtml(content) + '</strong>';
+    } else if (label) {
+      body = '<strong style="color:#1e3a8a;">' + escapeHtml(decorateNoteHeading(label[1])) + ':</strong> ' + escapeHtml(label[2]);
+    } else {
+      body = escapeHtml(content);
     }
-    const bullet=index>1&&text.match(/^(- |\d+\. )(.*)$/);
-    if(bullet){const tag=bullet[1]==='- '?'ul':'ol';const depth=/^ {12}/.test(raw)?1:0;if(list!==tag || listDepth!==depth){closeList();list=tag;listDepth=depth;html.push('<'+tag+' style="margin-top:0;margin-bottom:6px;padding-left:24px;'+(depth?'margin-left:24px;':'')+'">');}html.push('<li>'+inline(bullet[2])+'</li>');return;}
-    closeList();
-    if (index === 0 && /^OPD\s*\(/i.test(text)) {
-      html.push('<p style="margin:0 0 10px;"><strong style="font-size:20px;color:#1e3a8a;">'+escapeHtml(decorateNoteHeading(text))+'</strong></p>');
-      return;
-    }
-    if (index === 0 && /^ADMIT\s*\(/i.test(text)) {
-      html.push('<p style="margin:0 0 10px;"><strong style="font-size:20px;color:#1e3a8a;">'+escapeHtml(decorateNoteHeading(text))+'</strong></p>');
-      return;
-    }
-    const isHeading=index<2 || /^[^:]{1,40}:$/.test(text);
-    const indent=!isHeading&&/^[ \t]+/.test(raw);
-    html.push('<p style="margin:0 0 6px;'+(indent?'margin-left:24px;':'')+'">'+(isHeading?'<strong style="color:#1e3a8a;">'+escapeHtml(decorateNoteHeading(text))+'</strong>':inline(text))+'</p>');
+    const topMargin = heading ? '10px' : '0';
+    const indentStyle = indented ? 'margin-left:24px;' : '';
+    html.push('<p style="margin:' + topMargin + ' 0 4px;' + indentStyle + 'line-height:1.5;">' + body + '</p>');
+    plain.push((indented ? '      ' : '') + (title || isHeading ? decorateNoteHeading(content) : content));
   });
-  closeList();
-  return {html:'<div>'+html.join('')+'</div>',text:lines.map((line,index)=>{
-    if (index === 0 || /^[^ \t:][^:]{0,39}:$/.test(line)) return decorateNoteHeading(line);
-    return line.replace(/Po med(?=:|$)/, '💊 Po med');
-  }).join('\n')};
+  return { html: '<div>' + html.join('') + '</div>', text: plain.join('\n') };
 }
 async function copyForVetmanage(noteText) {
   const content=buildVetmanageClipboard(noteText);
