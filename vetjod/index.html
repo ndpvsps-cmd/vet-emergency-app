@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261112-direct-copy">
+<link rel="stylesheet" href="style.css?v=20261117-tp-dates">
 </head>
 <body>
 
@@ -52,13 +52,19 @@
     <div class="list-intro"><h1>บันทึกผู้ป่วย</h1><p>เลือกวันที่ แล้วค้นหาหรือเลือกผู้ดูแลเพื่อดูบันทึก</p></div>
     <div class="list-toolbar history-toolbar"><label for="history-date">วันที่บันทึก</label><input type="date" id="history-date"><button type="button" class="secondary-btn" id="history-refresh">ดูรายการ</button><button type="button" class="secondary-btn" id="retry-all-btn">ส่งรายการค้างซ้ำ</button></div>
     <div class="list-toolbar search-toolbar">
-      <label class="visually-hidden" for="list-search-input">ค้นหาชื่อสัตว์ในวันที่เลือก</label><input type="search" id="list-search-input" placeholder="ค้นหาชื่อสัตว์...">
+      <label class="visually-hidden" for="list-search-input">ค้นหาชื่อสัตว์ในวันที่เลือก</label><input type="search" id="list-search-input" placeholder="ค้นหาชื่อสัตว์หรือ HN...">
       <span class="list-count" id="list-count">0 รายการ</span>
     </div>
 
     <div class="vet-filter-bar" id="vet-filter-bar" hidden></div>
 
     <div class="sync-banner" id="sync-banner" hidden></div>
+
+    <details class="panel case-data-panel">
+      <summary>สถิติเคสตามวันที่เลือก</summary>
+      <p id="case-data-summary"></p>
+      <button type="button" class="secondary-btn" id="case-data-export" disabled>ดาวน์โหลด CSV</button>
+    </details>
 
     <main class="card-list" id="card-list">
       <div class="empty-state" id="empty-state">
@@ -116,6 +122,10 @@
           <label for="p-name">ชื่อสัตว์</label>
           <input type="text" id="p-name" placeholder="เช่น น้องโบว์">
           <div class="quick-chips" id="p-name-recent"></div>
+        </div>
+        <div class="field-row">
+          <label for="p-hn">HN</label>
+          <input type="text" id="p-hn" autocomplete="off" autocapitalize="characters" placeholder="C… = สุนัข, F… = แมว">
         </div>
         <div class="field-row">
           <label for="p-vet">ผู้ดูแล/หมอเจ้าของไข้</label>
@@ -1479,6 +1489,21 @@
       </section>
 
       <!-- ---- Live note preview ---- -->
+      <section class="accordion" id="section-case-data">
+        <button type="button" class="accordion-header"><span>ข้อมูลสถิติเคส</span><span class="accordion-caret">⌄</span></button>
+        <div class="accordion-body">
+          <div class="field-group" data-field="p-systems" data-multi="true">
+            <label>ระบบที่ป่วย (เลือกได้หลายระบบ)</label>
+            <div class="chips" id="p-systems-chips"></div>
+          </div>
+          <div class="field-group" data-field="p-emergency" data-multi="true">
+            <label>ประเภท Emergency (เลือกเมื่อเป็นเคสฉุกเฉิน)</label>
+            <div class="chips" id="p-emergency-chips"></div>
+          </div>
+          <p id="case-procedure-preview" aria-live="polite"></p>
+        </div>
+      </section>
+
       <section class="panel note-preview-panel" id="section-summary">
         <h2>ตัวอย่างบันทึก</h2>
         <pre class="note-preview" id="note-preview">— ยังไม่มีข้อมูล —</pre>
@@ -1529,8 +1554,8 @@
 
   <div class="toast" id="toast" hidden></div>
 
-  <script src="data.js"></script>
+  <script src="data.js?v=20261117-tp-dates"></script>
   <script src="firebase-config.js"></script>
-  <script type="module" src="app.js?v=20261112-direct-copy"></script>
+  <script type="module" src="app.js?v=20261117-tp-dates"></script>
 </body>
 </html>

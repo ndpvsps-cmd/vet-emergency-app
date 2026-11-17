@@ -21,7 +21,7 @@ const WOUND_DRESSING_PROTOCOLS = [
 const TX_CHECKLIST = [
   "New IV cath", "Wash", "Urine cauterization", "Splint",
   "Stitch off", "Ear cleaning", "Wash mouth", "Eye drop", "Void urine",
-  "Nebulization"
+  "Nebulization", "Wound dressing", "Wound suturing", "Urinary catheterization", "X-ray"
 ];
 
 const LABS_ITEMS = [
@@ -89,3 +89,10 @@ const SUPPLY_ITEMS = [
   { id: "pad", label: "แผ่นรองซับ" },
   { id: "catlitter", label: "ทรายแมว" }
 ];
+
+const CASE_SYSTEMS = [
+  'Cardiovascular', 'Hematology', 'Respiratory', 'Gastrointestinal', 'Hepatobiliary',
+  'Urinary', 'Neurologic', 'Musculoskeletal', 'Integumentary', 'Ocular',
+  'Endocrine / Metabolic', 'Reproductive', 'Other'
+];
+const CASE_EMERGENCIES = ['Ocular emergency', 'Acute abdomen', 'Dystocia', 'Toxin', 'Trauma', 'Other'];

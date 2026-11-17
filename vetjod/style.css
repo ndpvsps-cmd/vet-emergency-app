@@ -1301,3 +1301,11 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 #jk-patient-chips { display:flex; flex-wrap:wrap; gap:8px; padding-bottom:14px; }
 #jk-patient-chips .jk-patient-chip { min-height:44px; max-width:100%; padding:10px 14px; margin:0; border-radius:999px; overflow-wrap:anywhere; }
 .jk-empty { margin:4px 0; font-size:.85rem; color:var(--vj-muted); }
+
+.case-data-panel { width:calc(100% - 32px); max-width:608px; margin:8px auto; }
+.case-data-panel summary { cursor:pointer; font-weight:700; }
+#case-data-summary, #case-procedure-preview { white-space:pre-line; color:var(--vj-muted); }
+
+.note-label, .note-opd-title, .note-admit-line { color:#1e3a8a; }
+:root:not([data-theme="light"]) .note-label, :root:not([data-theme="light"]) .note-opd-title, :root:not([data-theme="light"]) .note-admit-line { color:#93c5fd; }
+:root[data-theme="light"] .note-label, :root[data-theme="light"] .note-opd-title, :root[data-theme="light"] .note-admit-line { color:#1e3a8a; }

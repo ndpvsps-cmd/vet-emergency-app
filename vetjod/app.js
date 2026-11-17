@@ -47,45 +47,105 @@ function escapeHtml(str) {
 // Renders the plain-text note (unchanged — still exactly what gets saved/exported/copied)
 // as HTML for on-screen display only, so each section's label (Vitals:, PE:, Tx:, ...)
 // stands out from its values, and the [time] name - species line reads as the card title.
+function markDatedTpItem(value, now = new Date()) {
+  const todayParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(now);
+  const today = Object.fromEntries(todayParts.map(part => [part.type, part.value]));
+  const todayKey = Number(today.year + today.month + today.day);
+  const checked = /^[☑✅✔]\uFE0F?\s*/u;
+  const original = value.replace(checked, '');
+  const content = original.replace(/^(?:[-•]|\d+[.)])\s+/, '');
+  const monthNames = [
+    ['JAN', 'JANUARY', 'ม.ค.', 'มกราคม'], ['FEB', 'FEBRUARY', 'ก.พ.', 'กุมภาพันธ์'],
+    ['MAR', 'MARCH', 'มี.ค.', 'มีนาคม'], ['APR', 'APRIL', 'เม.ย.', 'เมษายน'],
+    ['MAY', 'พ.ค.', 'พฤษภาคม'], ['JUN', 'JUNE', 'มิ.ย.', 'มิถุนายน'],
+    ['JUL', 'JULY', 'ก.ค.', 'กรกฎาคม'], ['AUG', 'AUGUST', 'ส.ค.', 'สิงหาคม'],
+    ['SEP', 'SEPT', 'SEPTEMBER', 'ก.ย.', 'กันยายน'], ['OCT', 'OCTOBER', 'ต.ค.', 'ตุลาคม'],
+    ['NOV', 'NOVEMBER', 'พ.ย.', 'พฤศจิกายน'], ['DEC', 'DECEMBER', 'ธ.ค.', 'ธันวาคม']
+  ];
+  let day, month, year;
+  const iso = content.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?=$|\s|[:.)\]-])/);
+  const numeric = content.match(/^(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?(?=$|\s|[:.)\]-])/);
+  const named = content.match(/^(\d{1,2})\s+([A-Za-z]+\.?|[ก-๙.]+)(?:\s+(\d{4}|\d{2})(?=$|\s|[:.)\]-]))?(?=$|\s|[:)\]-])/);
+  if (iso) {
+    [, year, month, day] = iso;
+  } else if (numeric) {
+    [, day, month, year] = numeric;
+  } else if (named) {
+    day = named[1];
+    month = monthNames.findIndex(names => names.includes(named[2].toUpperCase().replace(/([A-Z])\.$/, '$1'))) + 1;
+    year = named[3];
+  } else {
+    return value;
+  }
+  day = Number(day);
+  month = Number(month);
+  year = year ? Number(year) : Number(today.year);
+  if (year >= 2400) year -= 543;
+  else if (year < 100) return original;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return original;
+  const dateKey = year * 10000 + month * 100 + day;
+  return dateKey <= todayKey ? '☑️ ' + original : original;
+}
+
 function indentNoteItems(text) {
   let section = '', number = 0;
   const lines = [];
-  for (const line of (text || '').split('\n')) {
+  let inTx = false, continuingPo = false;
+  for (let line of (text || '').split('\n')) {
+    if (/^\S[^:]*:/.test(line) && !/^[-•] /.test(line)) {
+      inTx = /^TX:/i.test(line);
+      continuingPo = false;
+    }
+    if (inTx && /^[ \t]*- /.test(line)) continuingPo = /^[ \t]*- Po med:/i.test(line);
+    else if (inTx && continuingPo && line.trim()) line = '      - Po med: ' + line.trim();
     const heading = line.match(/^(CC|Hx|PE|DDX|TP|Prognosis):\s*(.*)$/i);
     if (heading) {
       section = heading[1].toUpperCase(); number = 0;
       lines.push(heading[1] + ':');
       if (!heading[2].trim()) continue;
-      const value = heading[2].trim();
+      const value = section === "TP" ? markDatedTpItem(heading[2].trim()) : heading[2].trim();
       lines.push('      ' + (section === 'DDX' ? (++number) + '. ' + value.replace(/^\d+[.)]\s*/, '') : value));
       continue;
     }
     const endsSection = section === 'PE'
       ? /^(Labs|Investigate|TX|RX|NOTE|เบิกเวชภัณฑ์|แจ้งอาหารหมด):/i.test(line)
-      : /^\S[^:]*:/.test(line);
+      : section === 'TP'
+        ? /^(?:CC|Hx|PE|DDX|Labs|Investigate|TX|RX|Note|Prognosis|เบิกเวชภัณฑ์|แจ้งอาหารหมด):/i.test(line)
+        : /^\S[^:]*:/.test(line);
     if (endsSection) { section = ''; number = 0; }
     if (section && line.trim()) {
-      const value = line.trim();
+      const value = section === "TP" ? markDatedTpItem(line.trim()) : line.trim();
       lines.push('      ' + (section === 'DDX' ? (++number) + '. ' + value.replace(/^\d+[.)]\s*/, '') : value));
     } else lines.push(line.replace(/^[ \t]*- /, '      - '));
   }
   return lines.join('\n');
 }
 
+function decorateNoteHeading(text) {
+  const icons = {CC:'🗣️', HX:'📖', PE:'🩺', VITALS:'🌡️', LABS:'🔬', INVESTIGATE:'🔬', DDX:'🔎', TX:'💉', RX:'💊', 'PO MED':'💊', TP:'📋', PROGNOSIS:'📈', NOTE:'📝'};
+  const label = text.trim().replace(/:$/, '').toUpperCase();
+  if (/^ADMIT\s*\(/.test(label)) return '🏥 ' + text;
+  if (/^OPD\s*\(/.test(label)) return '🩺 ' + text;
+  return icons[label] ? icons[label] + ' ' + text : text;
+}
+
 function noteTextToHtml(noteText) {
   return indentNoteItems(noteText).split("\n").map((line, idx) => {
-    if (idx === 0) return `<span class="${/^OPD\s*\(/i.test(line) ? "note-opd-title" : "note-admit-line"}">${escapeHtml(line)}</span>`;
+    if (idx === 0) return `<span class="${/^OPD\s*\(/i.test(line) ? "note-opd-title" : "note-admit-line"}">${escapeHtml(decorateNoteHeading(line))}</span>`;
     if (idx === 1) return `<span class="note-header-line">${escapeHtml(line)}</span>`;
-    if (/^[ \t]*- /.test(line)) return `<span class="note-item">${escapeHtml(line.trimStart())}</span>`;
+    if (/^[ \t]*- /.test(line)) return `<span class="note-item">${escapeHtml(line.trimStart().replace(/Po med(?=:|$)/, '💊 Po med'))}</span>`;
     if (/^[ \t]+\S/.test(line)) {
       const detail = line.trimStart();
       const label = detail.match(/^([^:]{1,40}):\s*(.*)$/s);
-      return '<span class="note-detail">' + (label ? '<span class="note-label">' + escapeHtml(label[1]) + ':</span> ' + escapeHtml(label[2]) : escapeHtml(detail)) + '</span>';
+      return '<span class="note-detail">' + (label ? '<span class="note-label">' + escapeHtml(decorateNoteHeading(label[1])) + ':</span> ' + escapeHtml(label[2]) : escapeHtml(detail)) + '</span>';
     }
     // label-only ("Tx:") or "label: content" — content half is optional so a bare
     // section header (followed by its own "- item" lines) still gets bolded
     const m = line.match(/^([^:]{1,24}):(\s(.*))?$/s);
-    if (m) return `<span class="note-label">${escapeHtml(m[1])}:</span>${m[3] ? " " + escapeHtml(m[3]) : ""}`;
+    if (m) return `<span class="note-label">${escapeHtml(decorateNoteHeading(m[1]))}:</span>${m[3] ? " " + escapeHtml(m[3]) : ""}`;
     return escapeHtml(line);
   }).join("<br>");
 }
@@ -295,6 +355,7 @@ function renderRecentShortcuts() {
       if (!animal) return;
       jongkongSource = null; showJongkongSource();
       $("p-name").value = animal.name;
+      setInputValue("p-hn", "");
       setInputValue("o-ddx", animal.ddx || "");
       const medication = animal.medication || {};
       setChipFieldValue("t-po-med", medication.poMed || "");
@@ -747,13 +808,16 @@ function collectForm() {
   return {
     dateKey: editingRecordId ? (editingRecordDate || selectedDate) : todayKey(),
     jongkongSource,
+    hn: val("p-hn").toUpperCase(),
+    caseSystems: getFieldValue("p-systems"),
+    caseEmergency: getFieldValue("p-emergency"),
     rx: collectRx(),
     rxOther: val("rx-other"),
     recordType: val("p-record-type") || "ipd",
     outpatient: {cc: val("o-cc"), hx: val("o-hx"), ddx: val("o-ddx"), tp: val("o-tp"), prognosis: getFieldValue("o-prognosis")},
     name: val("p-name"),
     vet: val("p-vet"),
-    species: getFieldValue("p-species") || "dog",
+    species: speciesFromHn(val("p-hn")) || getFieldValue("p-species") || "dog",
     weightKg,
     vitals: {
       temp: num("v-temp"),
@@ -1125,7 +1189,12 @@ function buildTxParts(tx) {
     parts.push(s);
   }
   if (tx.o2 === "yes") parts.push(`O2${tx.o2Detail ? " (" + tx.o2Detail + ")" : ""}`);
-  if (tx.poMed === "yes") parts.push(`Po med${tx.poMedDetail ? ": " + tx.poMedDetail : ""}`);
+  if (tx.poMed === "yes") {
+    const medicines = (tx.poMedDetail || '').split(/\r?\n/)
+      .map(line => line.trim().replace(/^[-•]\s*/, '')).filter(Boolean);
+    if (medicines.length) parts.push(...medicines.map(medicine => 'Po med: ' + medicine));
+    else parts.push('Po med');
+  }
   if (tx.woundDressing) parts.push(`Wound dressing: ${tx.woundDressing}`);
   if (fmtList(tx.checklist)) parts.push(fmtList(tx.checklist));
   if (tx.other) parts.push(tx.other);
@@ -1316,6 +1385,8 @@ function updateMgcsDisplay(preserveLegacy = true) {
 }
 
 function onFormChange() {
+  const species = speciesFromHn(val("p-hn"));
+  if (species && getFieldValue("p-species") !== species) setChipFieldValue("p-species", species);
   updateMgcsDisplay();
   updateReveals();
   updateUopDisplay();
@@ -1476,6 +1547,11 @@ function updateRehydrationCalc() {
 
 function updateNotePreview() {
   const record = collectForm();
+  const counts = countCaseProcedures(record);
+  const procedures = CASE_PROCEDURES.filter(([, key]) => counts[key]).map(([label]) => label);
+  $("case-procedure-preview").textContent = procedures.length
+    ? "หัตถการที่นับในบันทึกนี้: " + procedures.join(" · ")
+    : "ระบบจะนับหัตถการจากรายการที่เลือกใน Tx และ Labs";
   record.createdAtLocal = nowTimeLabel();
   $("note-preview").innerHTML = noteTextToHtml(buildNoteText(record));
 }
@@ -1637,8 +1713,11 @@ function populateForm(record) {
   const tx = record.tx || {};
 
   setInputValue("p-name", record.name);
+  setInputValue("p-hn", record.hn ?? record.jongkongSource?.hn);
+  setChipFieldValue("p-systems", record.caseSystems);
+  setChipFieldValue("p-emergency", record.caseEmergency);
   setInputValue("p-vet", record.vet);
-  setChipFieldValue("p-species", record.species);
+  setChipFieldValue("p-species", speciesFromHn(val("p-hn")) || record.species);
   setInputValue("p-weight", record.weightKg);
   syncSliderFromInput("p-weight-slider", "p-weight");
 
@@ -1844,12 +1923,13 @@ function renderVetFilterBar() {
 function renderList() {
   const listEl = $("card-list");
   const emptyEl = $("empty-state");
+  renderCaseDataSummary(todayRecords);
   renderVetFilterBar();
   const search = $("list-search-input").value.trim().toLowerCase();
   const filtered = todayRecords.filter((r) => {
     if (activeVetFilter && r.vet !== activeVetFilter) return false;
     if (!search) return true;
-    return (r.name || "").toLowerCase().includes(search);
+    return [r.name, r.hn ?? r.jongkongSource?.hn].some(value => String(value || "").toLowerCase().includes(search));
   });
   $("list-count").textContent = `${filtered.length} รายการ`;
   listEl.querySelectorAll(".record-card").forEach((c) => c.remove());
@@ -2011,26 +2091,29 @@ function buildVetmanageClipboard(noteText) {
   const lines=indentNoteItems(noteText).split('\n');
   const html=[];let list='';
   const closeList=()=>{if(list){html.push('</'+list+'>');list='';}};
-  const inline=text=>{const m=text.match(/^([^:]{1,40}):\s*(.*)$/);return m?'<strong>'+escapeHtml(m[1])+':</strong> '+escapeHtml(m[2]):escapeHtml(text);};
+  const inline=text=>{const m=text.match(/^([^:]{1,40}):\s*(.*)$/);return m?'<strong style="color:#1e3a8a;">'+escapeHtml(decorateNoteHeading(m[1]))+':</strong> '+escapeHtml(m[2]):escapeHtml(text);};
   lines.forEach((raw,index)=>{
     const text=raw.trim();if(!text){closeList();return;}
     const bullet=index>1&&text.match(/^(- |\d+\. )(.*)$/);
     if(bullet){const tag=bullet[1]==='- '?'ul':'ol';if(list!==tag){closeList();list=tag;html.push('<'+tag+' style="margin-top:0;margin-bottom:6px;padding-left:24px;">');}html.push('<li>'+inline(bullet[2])+'</li>');return;}
     closeList();
     if (index === 0 && /^OPD\s*\(/i.test(text)) {
-      html.push('<p style="margin:0 0 10px;"><strong style="font-size:20px;color:#1565c0;">'+escapeHtml(text)+'</strong></p>');
+      html.push('<p style="margin:0 0 10px;"><strong style="font-size:20px;color:#1e3a8a;">'+escapeHtml(decorateNoteHeading(text))+'</strong></p>');
       return;
     }
     if (index === 0 && /^ADMIT\s*\(/i.test(text)) {
-      html.push('<p style="margin:0 0 10px;"><strong style="font-size:20px;color:#991b1b;">'+escapeHtml(text)+'</strong></p>');
+      html.push('<p style="margin:0 0 10px;"><strong style="font-size:20px;color:#1e3a8a;">'+escapeHtml(decorateNoteHeading(text))+'</strong></p>');
       return;
     }
     const isHeading=index<2 || /^[^:]{1,40}:$/.test(text);
     const indent=!isHeading&&/^[ \t]+/.test(raw);
-    html.push('<p style="margin:0 0 6px;'+(indent?'margin-left:24px;':'')+'">'+(isHeading?'<strong>'+escapeHtml(text)+'</strong>':inline(text))+'</p>');
+    html.push('<p style="margin:0 0 6px;'+(indent?'margin-left:24px;':'')+'">'+(isHeading?'<strong style="color:#1e3a8a;">'+escapeHtml(decorateNoteHeading(text))+'</strong>':inline(text))+'</p>');
   });
   closeList();
-  return {html:'<div>'+html.join('')+'</div>',text:lines.map(line=>line.trimStart()).join('\n')};
+  return {html:'<div>'+html.join('')+'</div>',text:lines.map((line,index)=>{
+    if (index === 0 || /^[^ \t:][^:]{0,39}:$/.test(line)) return decorateNoteHeading(line);
+    return line.replace(/Po med(?=:|$)/, '💊 Po med');
+  }).join('\n')};
 }
 async function copyForVetmanage(noteText) {
   const content=buildVetmanageClipboard(noteText);
@@ -2080,6 +2163,68 @@ async function copyRecordForVetmanage(record) {
 }
 
 // ===================== export =====================
+const CASE_PROCEDURES = [
+  ['ทำแผล', 'woundDressing'], ['เย็บแผล', 'suturing'], ['เอกซเรย์', 'xray'],
+  ['ใส่เฝือก', 'splint'], ['สวนปัสสาวะ', 'urinaryCatheter'],
+  ['เจาะอก', 'thoracocentesis'], ['เจาะท้อง', 'abdominocentesis']
+];
+
+function speciesFromHn(hn) {
+  const prefix = (hn || '').trim().charAt(0).toUpperCase();
+  return prefix === 'C' ? 'dog' : prefix === 'F' ? 'cat' : '';
+}
+
+function countCaseProcedures(record) {
+  const tx = record.tx || {};
+  const checklist = Array.isArray(tx.checklist) ? tx.checklist : [];
+  const labs = Array.isArray(record.labs) ? record.labs : [];
+  return {
+    woundDressing: Number(Boolean(tx.woundDressing) || checklist.includes('Wound dressing')),
+    suturing: Number(checklist.includes('Wound suturing')),
+    xray: Number(checklist.includes('X-ray') || labs.some(lab => ['cxr', 'axr'].includes(lab.type))),
+    splint: Number(checklist.includes('Splint')),
+    urinaryCatheter: Number(checklist.includes('Urinary catheterization')),
+    thoracocentesis: Number(tx.thoraco === 'yes'),
+    abdominocentesis: Number(tx.abdomino === 'yes')
+  };
+}
+
+function renderCaseDataSummary(records) {
+  const counts = records.map(countCaseProcedures);
+  const totals = CASE_PROCEDURES.map(([label, key]) => label + ' ' + counts.reduce((sum, count) => sum + count[key], 0));
+  const emergencies = records.filter(record => record.caseEmergency?.length).length;
+  $("case-data-summary").textContent = records.length + ' บันทึก · Emergency ' + emergencies + '\n' + totals.join(' · ');
+  $("case-data-export").disabled = !records.length;
+}
+
+function buildCaseCsv(records) {
+  const quote = value => {
+    const text = String(value ?? '');
+    const safe = /^[\s]*[=+@-]|^[\t\r\n]/.test(text) ? "'" + text : text;
+    return '"' + safe.replace(/"/g, '""') + '"';
+  };
+  const rows = [['วันที่', 'ชื่อสัตว์', 'HN', 'ชนิดสัตว์', 'ระบบที่ป่วย', 'Emergency', ...CASE_PROCEDURES.map(([label]) => label)]];
+  for (const record of records) {
+    const hn = record.hn ?? record.jongkongSource?.hn ?? '';
+    const counts = countCaseProcedures(record);
+    const species = speciesFromHn(hn) || record.species;
+    rows.push([record.dateKey, record.name, hn, {dog:'สุนัข', cat:'แมว'}[species] || species,
+      fmtList(record.caseSystems), fmtList(record.caseEmergency), ...CASE_PROCEDURES.map(([, key]) => counts[key])]);
+  }
+  return rows.map(row => row.map(quote).join(',')).join('\r\n');
+}
+
+function downloadCaseCsv() {
+  if (!todayRecords.length) return;
+  const blob = new Blob(['\uFEFF', buildCaseCsv(todayRecords)], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'vetjod_cases_' + selectedDate + '.csv';
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function buildExportText() {
   const lines = [`VETJOD — สรุปบันทึกวันที่ ${dateLabel(selectedDate)}`, `จำนวน ${todayRecords.length} รายการ`, ""];
   [...todayRecords].reverse().forEach((r) => {
@@ -2269,6 +2414,7 @@ const SECTION_FLOW = [
   { id: "section-rx", label: "RX" },
   { id: "section-note", label: "Note" },
   { id: "section-supply", label: "เบิกของ" },
+  { id: "section-case-data", label: "สถิติเคส" },
   { id: "section-summary", label: "สรุป" }
 ];
 
@@ -2295,6 +2441,7 @@ function init() {
     apply: data => {
       if ($("p-name").value.trim() !== data.name) setChipFieldValue("p-species", "");
       setInputValue("p-name", data.name);
+      setInputValue("p-hn", data.source.hn);
       setInputValue("p-weight", data.weightKg);
       syncSliderFromInput("p-weight-slider", "p-weight");
       setInputValue("o-ddx", data.ddx);
@@ -2311,7 +2458,14 @@ function init() {
       if (data.rawWeight && data.weightKg === null) showToast("น้ำหนักต้นทางไม่ใช่ตัวเลข กรุณากรอกน้ำหนัก: " + data.rawWeight);
     }
   });
-  $("p-name").addEventListener("input", () => { jongkongSource = null; showJongkongSource(); });
+  $("p-name").addEventListener("input", () => {
+    if (jongkongSource) setInputValue("p-hn", "");
+    jongkongSource = null;
+    showJongkongSource();
+  });
+  $("p-systems-chips").innerHTML = chipsHtml(CASE_SYSTEMS);
+  $("p-emergency-chips").innerHTML = chipsHtml(CASE_EMERGENCIES);
+  $("case-data-export").addEventListener("click", downloadCaseCsv);
   initExamCategoryNotes();
   refreshRxChoices();
   $("rx-picker").addEventListener("focus",refreshRxChoices);
