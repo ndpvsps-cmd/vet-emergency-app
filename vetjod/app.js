@@ -1954,12 +1954,18 @@ function renderList() {
   filtered.forEach((r) => {
     const card = document.createElement("div");
     card.className = "record-card" + (r.recordType === "opd" ? " opd-mode" : "");
+    card.dataset.sync = r._sync || "cached";
     card.innerHTML = `
       <div class="record-card-top">
         <div>
           <span class="record-card-id">${escapeHtml(r.name || "(ไม่ระบุชื่อ)")}</span>${r.vet ? `<span class="record-card-vet">${escapeHtml(r.vet)}</span>` : ""}
         </div>
         <span class="record-card-time">${escapeHtml(r.createdAtLocal || "")}</span>
+      </div>
+      <div class="record-card-meta">
+        <span class="record-mode-badge">${r.recordType === "opd" ? "OPD" : "ADMIT"}</span>
+        <span>${escapeHtml(r.species === "cat" ? "แมว" : r.species === "dog" ? "สุนัข" : r.species || "")}</span>
+        ${(r.hn || r.jongkongSource?.hn) ? `<span>HN ${escapeHtml(r.hn || r.jongkongSource.hn)}</span>` : ""}
       </div>
       <p class="copy-record-status" aria-live="polite">${escapeHtml(copyStatusText(r))}</p>
       <div class="record-card-note">${noteTextToHtml(r.noteText)}</div>
@@ -1970,13 +1976,17 @@ function renderList() {
         <button type="button" class="secondary-btn card-duplicate-btn">ทำซ้ำ</button>
         <button type="button" class="secondary-btn card-edit-btn">แก้ไข</button>
         <button type="button" class="danger-btn card-delete-btn">ลบรายการนี้</button>
+        <button type="button" class="secondary-btn card-expand-btn" aria-expanded="false">ดูรายละเอียด</button>
       </div>
     `;
     card.querySelector(".card-retry-btn")?.addEventListener("click",()=>sendQueuedRecord(r.id));
     card.addEventListener("click", (e) => {
       if(e.target.closest(".card-retry-btn"))return;
       if (e.target.closest(".card-vetmanage-btn") || e.target.closest(".card-delete-btn") || e.target.closest(".card-edit-btn") || e.target.closest(".card-duplicate-btn")) return;
-      card.classList.toggle("expanded");
+      const expanded = card.classList.toggle("expanded");
+      const expandButton = card.querySelector(".card-expand-btn");
+      expandButton.setAttribute("aria-expanded", String(expanded));
+      expandButton.textContent = expanded ? "ย่อรายละเอียด" : "ดูรายละเอียด";
     });
     const copyButton = card.querySelector(".card-vetmanage-btn");
     copyButton.addEventListener("click", async () => {

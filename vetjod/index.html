@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Cinzel:wght@600;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261117-po-align">
+<link rel="stylesheet" href="style.css?v=20261117-modern-ui">
 </head>
 <body>
 
@@ -49,7 +49,7 @@
       </div>
     </header>
 
-    <div class="list-intro"><h1>บันทึกผู้ป่วย</h1><p>เลือกวันที่ แล้วค้นหาหรือเลือกผู้ดูแลเพื่อดูบันทึก</p></div>
+    <div class="list-intro"><div><h1>บันทึกผู้ป่วย</h1><p>เวชระเบียนและการดูแลประจำวัน</p></div></div>
     <div class="list-toolbar history-toolbar"><label for="history-date">วันที่บันทึก</label><input type="date" id="history-date"><button type="button" class="secondary-btn" id="history-refresh">ดูรายการ</button><button type="button" class="secondary-btn" id="retry-all-btn">ส่งรายการค้างซ้ำ</button></div>
     <div class="list-toolbar search-toolbar">
       <label class="visually-hidden" for="list-search-input">ค้นหาชื่อสัตว์ในวันที่เลือก</label><input type="search" id="list-search-input" placeholder="ค้นหาชื่อสัตว์หรือ HN...">
@@ -1554,8 +1554,8 @@
 
   <div class="toast" id="toast" hidden></div>
 
-  <script src="data.js?v=20261117-er-categories"></script>
+  <script src="data.js?v=20261117-modern-ui"></script>
   <script src="firebase-config.js"></script>
-  <script type="module" src="app.js?v=20261117-er-categories"></script>
+  <script type="module" src="app.js?v=20261117-modern-ui"></script>
 </body>
 </html>
