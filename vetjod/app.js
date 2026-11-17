@@ -1578,6 +1578,7 @@ function activateDefault(fieldId, value) {
 
 function resetForm() {
   jongkongSource = null; showJongkongSource();
+  $("p-emergency-chips").innerHTML = chipsHtml(CASE_EMERGENCIES);
   $("rx-list").innerHTML = "";
   $("p-record-type").value = "ipd";
   updateRecordMode();
@@ -1728,7 +1729,9 @@ function populateForm(record) {
   setInputValue("p-name", record.name);
   setInputValue("p-hn", record.hn ?? record.jongkongSource?.hn);
   setChipFieldValue("p-systems", record.caseSystems);
-  setChipFieldValue("p-emergency", record.caseEmergency);
+  const emergencies = normalizeEmergencyCategories(record.caseEmergency);
+  $("p-emergency-chips").innerHTML = chipsHtml([...new Set([...CASE_EMERGENCIES, ...emergencies])]);
+  setChipFieldValue("p-emergency", emergencies);
   setInputValue("p-vet", record.vet);
   setChipFieldValue("p-species", speciesFromHn(val("p-hn")) || record.species);
   setInputValue("p-weight", record.weightKg);
@@ -2227,7 +2230,7 @@ function buildCaseCsv(records) {
     const counts = countCaseProcedures(record);
     const species = speciesFromHn(hn) || record.species;
     rows.push([record.dateKey, record.name, hn, {dog:'สุนัข', cat:'แมว'}[species] || species,
-      fmtList(record.caseSystems), fmtList(record.caseEmergency), ...CASE_PROCEDURES.map(([, key]) => counts[key])]);
+      fmtList(record.caseSystems), fmtList(normalizeEmergencyCategories(record.caseEmergency)), ...CASE_PROCEDURES.map(([, key]) => counts[key])]);
   }
   return rows.map(row => row.map(quote).join(',')).join('\r\n');
 }

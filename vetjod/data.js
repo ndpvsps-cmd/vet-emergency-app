@@ -95,4 +95,33 @@ const CASE_SYSTEMS = [
   'Urinary', 'Neurologic', 'Musculoskeletal', 'Integumentary', 'Ocular',
   'Endocrine / Metabolic', 'Reproductive', 'Other'
 ];
-const CASE_EMERGENCIES = ['Ocular emergency', 'Acute abdomen', 'Dystocia', 'Toxin', 'Trauma', 'Other'];
+const CASE_EMERGENCIES = [
+  'Acute abdomen (ER)',
+  'Anaphylaxis(ER)',
+  'Anemia and jaundice(ER)',
+  'Cardiology (ER)',
+  'Dystocia(ER)',
+  'Dysuria(ER)',
+  'Endocinal-Metabolic (ER)',
+  'Gastrointestinal (ER)',
+  'Heat stroke(ER)',
+  'Neurological disorders (ER)',
+  'Opthalmic emergency(ER)',
+  'Respiratory distress(ER)',
+  'Toxication(ER)',
+  'Trauma patients(ER)',
+  'Urogenital (ER)'
+];
+
+function normalizeEmergencyCategories(categories) {
+  const previous = {
+    'Acute abdomen': 'Acute abdomen (ER)',
+    'Dystocia': 'Dystocia(ER)',
+    'Ocular emergency': 'Opthalmic emergency(ER)',
+    'Toxin': 'Toxication(ER)',
+    'Trauma': 'Trauma patients(ER)'
+  };
+  return Array.isArray(categories)
+    ? [...new Set(categories.filter(value => typeof value === 'string' && value).map(value => previous[value] || value))]
+    : [];
+}
