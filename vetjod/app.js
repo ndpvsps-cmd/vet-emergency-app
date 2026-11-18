@@ -2113,6 +2113,20 @@ async function deleteRecord(id) {
 }
 
 // Semantic clipboard markup is independent of the app's theme and screen layout.
+// BMP symbols survive destinations that cannot store four-byte emoji.
+function decorateVetmanageHeading(text) {
+  const icons = {
+    CC: '\u260e\ufe0f', HX: '\u2630', PE: '\u2695\ufe0f', VITALS: '\u2668\ufe0f',
+    LABS: '\u2697\ufe0f', INVESTIGATE: '\u2697\ufe0f', DDX: '\u2315',
+    TX: '\u271a', RX: '\u2695\ufe0f', 'PO MED': '\u2695\ufe0f', TP: '\u2611\ufe0f',
+    PROGNOSIS: '\u2197\ufe0f', NOTE: '\u270e'
+  };
+  const label = text.trim().replace(/:$/, '').toUpperCase();
+  if (/^ADMIT\s*\(/.test(label)) return '\u271a ' + text;
+  if (/^OPD\s*\(/.test(label)) return '\u2695\ufe0f ' + text;
+  return icons[label] ? icons[label] + ' ' + text : text;
+}
+
 function buildVetmanageClipboard(noteText) {
   const lines = indentNoteItems(noteText).split('\n');
   const sectionHeading = /^(CC|Hx|PE|DDX|Labs|Investigate|Tx|RX|TP|Prognosis|Note|เบิกเวชภัณฑ์|แจ้งอาหารหมด):\s*$/i;
@@ -2137,18 +2151,18 @@ function buildVetmanageClipboard(noteText) {
     let body;
     if (title || isHeading) {
       const size = title ? 'font-size:20px;' : '';
-      body = '<strong style="' + size + 'color:#1e3a8a;">' + escapeHtml(decorateNoteHeading(content)) + '</strong>';
+      body = '<strong style="' + size + 'color:#1e3a8a;">' + escapeHtml(decorateVetmanageHeading(content)) + '</strong>';
     } else if (identity) {
       body = '<strong>' + escapeHtml(content) + '</strong>';
     } else if (label) {
-      body = '<strong style="color:#1e3a8a;">' + escapeHtml(decorateNoteHeading(label[1])) + ':</strong> ' + escapeHtml(label[2]);
+      body = '<strong style="color:#1e3a8a;">' + escapeHtml(decorateVetmanageHeading(label[1])) + ':</strong> ' + escapeHtml(label[2]);
     } else {
       body = escapeHtml(content);
     }
     const topMargin = heading ? '10px' : '0';
     const indentStyle = indented ? 'margin-left:24px;' : '';
     html.push('<p style="margin:' + topMargin + ' 0 4px;' + indentStyle + 'line-height:1.5;">' + body + '</p>');
-    plain.push((indented ? '      ' : '') + (title || isHeading ? decorateNoteHeading(content) : content));
+    plain.push((indented ? '      ' : '') + (title || isHeading ? decorateVetmanageHeading(content) : content));
   });
   return { html: '<div>' + html.join('') + '</div>', text: plain.join('\n') };
 }
