@@ -2150,7 +2150,7 @@ function buildVetmanageClipboard(noteText) {
     const label = content.match(detailLabel);
     let body;
     if (title || isHeading) {
-      const size = title ? 'font-size:20px;' : '';
+      const size = title ? (/^ADMIT\s*\(/i.test(content) ? 'font-size:26px;' : 'font-size:20px;') : '';
       body = '<strong style="' + size + 'color:#1e3a8a;">' + escapeHtml(decorateVetmanageHeading(content)) + '</strong>';
     } else if (identity) {
       body = '<strong>' + escapeHtml(content) + '</strong>';

@@ -1061,7 +1061,10 @@ button, input, textarea, select {
 .note-admit-line {
   display: inline-block;
   font-weight: 800;
-  font-size: 0.9em;
+  font-size: 1.4rem;
+  line-height: 1.5;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: var(--vj-on-accent);
   background: var(--vj-blue);
   padding: 3px 10px;
