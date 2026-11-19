@@ -91,10 +91,43 @@ const SUPPLY_ITEMS = [
 ];
 
 const CASE_SYSTEMS = [
-  'Cardiovascular', 'Hematology', 'Respiratory', 'Gastrointestinal', 'Hepatobiliary',
-  'Urinary', 'Neurologic', 'Musculoskeletal', 'Integumentary', 'Ocular',
-  'Endocrine / Metabolic', 'Reproductive', 'Other'
+  'Endocrinology',
+  'Metabolic',
+  'Urology (calculi)',
+  'Cardiology',
+  'Ophthalmology',
+  'Rabies Vaccine',
+  'Neurology',
+  'Orthopedic',
+  'Reproduction',
+  'Infectious (feline & canine)',
+  'Oncology',
+  'Dermatology',
+  'Urology (Urology)',
+  'Respiratory',
+  'DHPPi',
+  'Hematology',
+  'Gastrointestinal',
+  'Trauma',
+  'DHPPi + RV',
+  'FCVR + FeLV',
+  'Check health and deworm'
 ];
+
+function normalizeGeneralCategories(categories) {
+  const previous = {
+    Cardiovascular: 'Cardiology',
+    Ocular: 'Ophthalmology',
+    Neurologic: 'Neurology',
+    Musculoskeletal: 'Orthopedic',
+    Integumentary: 'Dermatology',
+    Reproductive: 'Reproduction'
+  };
+  return Array.isArray(categories)
+    ? [...new Set(categories.filter(value => typeof value === 'string' && value).map(value => previous[value] || value))]
+    : [];
+}
+
 const CASE_EMERGENCIES = [
   'Acute abdomen (ER)',
   'Anaphylaxis(ER)',

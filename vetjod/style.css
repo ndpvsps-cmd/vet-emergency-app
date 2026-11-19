@@ -1468,3 +1468,21 @@ body { background:var(--vj-bg); }
 .entry-form select { width:100%; min-height:48px; padding:12px 14px; color:var(--vj-text); font:inherit; }
 .record-card-top > div { min-width:0; }
 @media(max-width:380px) { .record-card.expanded .record-card-actions .card-duplicate-btn, .record-card.expanded .record-card-actions .card-delete-btn { flex:1 1 40%; } }
+
+/* Quick case classification directly on each patient card. */
+.card-case-editor { margin-top:14px; border:1px solid var(--vj-border); border-radius:12px; background:var(--vj-bg); cursor:default; }
+.card-case-editor summary { cursor:pointer; padding:12px 14px; font-size:.82rem; line-height:1.7; }
+.card-case-editor summary strong { margin-right:8px; }
+.card-case-editor summary span { display:block; color:var(--vj-muted); overflow-wrap:anywhere; margin-top:3px; }
+.card-case-editor .case-classified strong { color:var(--vj-accent-text); }
+.card-case-editor .case-unclassified strong { color:var(--vj-warning-text); }
+.card-case-controls { padding:0 14px 14px; }
+.card-case-controls fieldset { border:0; padding:0; margin:16px 0; min-width:0; }
+.card-case-controls legend { font-size:.88rem; font-weight:700; margin-bottom:10px; }
+.card-case-choices { display:flex; flex-wrap:wrap; gap:8px; }
+.card-case-choices label { position:relative; cursor:pointer; max-width:100%; }
+.card-case-choices input { position:absolute; width:1px; height:1px; opacity:0; }
+.card-case-choices span { display:flex; align-items:center; min-height:44px; padding:9px 12px; border:1px solid var(--vj-border-strong); border-radius:10px; background:var(--vj-panel-solid); color:var(--vj-text); font-size:.82rem; overflow-wrap:anywhere; }
+.card-case-choices input:checked + span { background:#2563eb; border-color:#2563eb; color:white; }
+.card-case-choices input:focus-visible + span { outline:3px solid var(--vj-accent-text); outline-offset:2px; }
+.card-case-feedback { font-size:.8rem; color:var(--vj-muted); }

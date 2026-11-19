@@ -1579,6 +1579,7 @@ function activateDefault(fieldId, value) {
 function resetForm() {
   jongkongSource = null; showJongkongSource();
   $("p-emergency-chips").innerHTML = chipsHtml(CASE_EMERGENCIES);
+  $("p-systems-chips").innerHTML = chipsHtml(CASE_SYSTEMS);
   $("rx-list").innerHTML = "";
   $("p-record-type").value = "ipd";
   updateRecordMode();
@@ -1728,7 +1729,9 @@ function populateForm(record) {
 
   setInputValue("p-name", record.name);
   setInputValue("p-hn", record.hn ?? record.jongkongSource?.hn);
-  setChipFieldValue("p-systems", record.caseSystems);
+  const systems = normalizeGeneralCategories(record.caseSystems);
+  $("p-systems-chips").innerHTML = chipsHtml([...new Set([...CASE_SYSTEMS, ...systems])]);
+  setChipFieldValue("p-systems", systems);
   const emergencies = normalizeEmergencyCategories(record.caseEmergency);
   $("p-emergency-chips").innerHTML = chipsHtml([...new Set([...CASE_EMERGENCIES, ...emergencies])]);
   setChipFieldValue("p-emergency", emergencies);
@@ -1936,6 +1939,106 @@ function renderVetFilterBar() {
   });
 }
 
+const cardCaseDrafts = new Map();
+
+function caseCategories(record) {
+  return {
+    caseSystems: normalizeGeneralCategories(record.caseSystems),
+    caseEmergency: normalizeEmergencyCategories(record.caseEmergency)
+  };
+}
+
+function appendCardCaseEditor(card, record) {
+  const saved = caseCategories(record);
+  const chosen = [...saved.caseSystems, ...saved.caseEmergency];
+  const panel = document.createElement('details');
+  panel.className = 'card-case-editor';
+  panel.addEventListener('click', event => event.stopPropagation());
+  const summary = document.createElement('summary');
+  summary.className = chosen.length ? 'case-classified' : 'case-unclassified';
+  const title = document.createElement('strong');
+  title.textContent = chosen.length ? '✓ เลือกหมวดแล้ว' : 'ยังไม่ได้เลือกหมวด';
+  const labels = document.createElement('span');
+  labels.textContent = chosen.length ? chosen.join(' · ') : 'แตะเพื่อเก็บสถิติเคส';
+  summary.append(title, labels);
+  panel.appendChild(summary);
+  const draft = cardCaseDrafts.get(record.id) || { ...saved, open: false };
+  panel.open = draft.open;
+  panel.addEventListener('toggle', () => {
+    draft.open = panel.open;
+    if (panel.open || cardCaseDrafts.has(record.id)) cardCaseDrafts.set(record.id, draft);
+  });
+  const controls = document.createElement('div');
+  controls.className = 'card-case-controls';
+  for (const [field, heading, options] of [
+    ['caseSystems', 'อายุรกรรมทั่วไป', CASE_SYSTEMS],
+    ['caseEmergency', 'หมวด ER', CASE_EMERGENCIES]
+  ]) {
+    const group = document.createElement('fieldset');
+    const legend = document.createElement('legend');
+    legend.textContent = heading;
+    group.appendChild(legend);
+    const choices = document.createElement('div');
+    choices.className = 'card-case-choices';
+    for (const value of new Set([...options, ...draft[field]])) {
+      const label = document.createElement('label');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = value;
+      checkbox.checked = draft[field].includes(value);
+      const caption = document.createElement('span');
+      caption.textContent = value;
+      checkbox.addEventListener('change', () => {
+        draft[field] = [...choices.querySelectorAll('input:checked')].map(input => input.value);
+        cardCaseDrafts.set(record.id, draft);
+        feedback.textContent = 'มีการเปลี่ยนแปลง — กดบันทึกสถิติ';
+      });
+      label.append(checkbox, caption);
+      choices.appendChild(label);
+    }
+    group.appendChild(choices);
+    controls.appendChild(group);
+  }
+  const feedback = document.createElement('p');
+  feedback.className = 'card-case-feedback';
+  feedback.setAttribute('role', 'status');
+  feedback.textContent = outbox[record.id] ? 'มีข้อมูลรอส่ง — ส่งรายการค้างให้สำเร็จก่อนบันทึกสถิติ' : 'เลือกได้หลายหมวด';
+  const save = document.createElement('button');
+  save.type = 'button';
+  save.className = 'secondary-btn';
+  save.textContent = 'บันทึกสถิติ';
+  save.disabled = Boolean(outbox[record.id]);
+  save.addEventListener('click', () => saveCardCaseCategories(record.id, draft));
+  controls.append(feedback, save);
+  panel.appendChild(controls);
+  card.querySelector('.record-card-meta').after(panel);
+}
+
+function saveCardCaseCategories(id, draft) {
+  if (outbox[id]) {
+    showToast('มีรายการรอส่ง กรุณาส่งให้สำเร็จก่อนบันทึกสถิติ');
+    return;
+  }
+  const current = todayRecords.find(record => record.id === id);
+  if (!current) { showToast('ไม่พบรายการ กรุณาโหลดข้อมูลใหม่'); return; }
+  const patch = {
+    caseSystems: [...draft.caseSystems],
+    caseEmergency: [...draft.caseEmergency]
+  };
+  outbox[id] = { record: { ...current, ...patch }, patch, isEdit: true, status: 'pending' };
+  try {
+    persistOutbox(id);
+  } catch (_) {
+    delete outbox[id];
+    showToast('เก็บข้อมูลสถิติไม่สำเร็จ กรุณาลองใหม่');
+    return;
+  }
+  cardCaseDrafts.delete(id);
+  refreshRecords();
+  showToast('เก็บสถิติในเครื่องแล้ว — รอระบบยืนยัน');
+  void sendQueuedRecord(id);
+}
+
 function renderList() {
   const listEl = $("card-list");
   const emptyEl = $("empty-state");
@@ -1979,6 +2082,7 @@ function renderList() {
         <button type="button" class="secondary-btn card-expand-btn" aria-expanded="false">ดูรายละเอียด</button>
       </div>
     `;
+    appendCardCaseEditor(card, r);
     card.querySelector(".card-retry-btn")?.addEventListener("click",()=>sendQueuedRecord(r.id));
     card.addEventListener("click", (e) => {
       if(e.target.closest(".card-retry-btn"))return;
@@ -2087,9 +2191,9 @@ async function sendQueuedRecord(id){
  activeSends.add(id);const item=outbox[id];item.status='pending';
  try{
   persistOutbox(id);refreshRecords();const ref=doc(db,'vetjod_records',id);
-  if(item.isEdit)await updateDoc(ref,{...item.record,updatedAt:serverTimestamp()});
+  if(item.isEdit)await updateDoc(ref,{...(item.patch || item.record),updatedAt:serverTimestamp()});
   else await setDoc(ref,{...item.record,createdAt:serverTimestamp()});
-  if(outbox[id]===item){if(item.record.dateKey===selectedDate){remoteRecords=remoteRecords.filter(r=>r.id!==id);remoteRecords.push({...item.record,id,_sync:'synced'});}delete outbox[id];try{persistOutbox(id);}catch(storageError){console.warn('Server confirmed; local queue cleanup failed',storageError);}}
+  if(outbox[id]===item){if(item.record.dateKey===selectedDate){const previous=remoteRecords.find(r=>r.id===id);remoteRecords=remoteRecords.filter(r=>r.id!==id);remoteRecords.push({...item.record,...(item.patch && previous ? previous : {}),...(item.patch || {}),id,_sync:'synced'});}delete outbox[id];try{persistOutbox(id);}catch(storageError){console.warn('Server confirmed; local queue cleanup failed',storageError);}}
   showToast('บันทึกขึ้นระบบแล้ว: '+item.record.name);
  }catch(err){console.error(err);if(outbox[id]===item){item.status='failed';try{persistOutbox(id);}catch(_){}}showToast('ส่งไม่สำเร็จ — ข้อมูลยังอยู่ในเครื่อง กดส่งซ้ำได้');}
  finally{activeSends.delete(id);refreshRecords();}
@@ -2244,7 +2348,12 @@ function renderCaseDataSummary(records) {
   const counts = records.map(countCaseProcedures);
   const totals = CASE_PROCEDURES.map(([label, key]) => label + ' ' + counts.reduce((sum, count) => sum + count[key], 0));
   const emergencies = records.filter(record => record.caseEmergency?.length).length;
-  $("case-data-summary").textContent = records.length + ' บันทึก · Emergency ' + emergencies + '\n' + totals.join(' · ');
+  const classified = records.filter(record => {
+    const categories = caseCategories(record);
+    return categories.caseSystems.length || categories.caseEmergency.length;
+  }).length;
+  $("case-data-summary").textContent = records.length + ' บันทึก · เลือกหมวดแล้ว ' + classified
+    + ' · ยังไม่เลือก ' + (records.length - classified) + ' · Emergency ' + emergencies + '\n' + totals.join(' · ');
   $("case-data-export").disabled = !records.length;
 }
 
@@ -2254,13 +2363,13 @@ function buildCaseCsv(records) {
     const safe = /^[\s]*[=+@-]|^[\t\r\n]/.test(text) ? "'" + text : text;
     return '"' + safe.replace(/"/g, '""') + '"';
   };
-  const rows = [['วันที่', 'ชื่อสัตว์', 'HN', 'ชนิดสัตว์', 'ระบบที่ป่วย', 'Emergency', ...CASE_PROCEDURES.map(([label]) => label)]];
+  const rows = [['วันที่', 'ชื่อสัตว์', 'HN', 'ชนิดสัตว์', 'อายุรกรรมทั่วไป', 'Emergency', ...CASE_PROCEDURES.map(([label]) => label)]];
   for (const record of records) {
     const hn = record.hn ?? record.jongkongSource?.hn ?? '';
     const counts = countCaseProcedures(record);
     const species = speciesFromHn(hn) || record.species;
     rows.push([record.dateKey, record.name, hn, {dog:'สุนัข', cat:'แมว'}[species] || species,
-      fmtList(record.caseSystems), fmtList(normalizeEmergencyCategories(record.caseEmergency)), ...CASE_PROCEDURES.map(([, key]) => counts[key])]);
+      fmtList(normalizeGeneralCategories(record.caseSystems)), fmtList(normalizeEmergencyCategories(record.caseEmergency)), ...CASE_PROCEDURES.map(([, key]) => counts[key])]);
   }
   return rows.map(row => row.map(quote).join(',')).join('\r\n');
 }
