@@ -2253,8 +2253,11 @@ function buildVetmanageClipboard(noteText) {
     if (section === 'TP' && !heading) content = text.replace(/^[-•*]+\s*/, '');
     const label = content.match(detailLabel);
     let body;
-    if (title || isHeading) {
-      const size = title ? (/^ADMIT\s*\(/i.test(content) ? 'font-size:26px;' : 'font-size:20px;') : '';
+    const admitTitle = title && /^ADMIT\s*\(/i.test(content);
+    if (admitTitle) {
+      body = '<strong style="display:inline-block;max-width:100%;box-sizing:border-box;padding:8px 12px;background-color:#eaf0fb;border:1px solid #dbe4f6;border-radius:10px;color:#1e3a8a;font-size:28px;font-weight:800;letter-spacing:1px;line-height:1.4;overflow-wrap:anywhere;">' + escapeHtml(content) + '</strong>';
+    } else if (title || isHeading) {
+      const size = title ? 'font-size:20px;' : '';
       body = '<strong style="' + size + 'color:#1e3a8a;">' + escapeHtml(decorateVetmanageHeading(content)) + '</strong>';
     } else if (identity) {
       body = '<strong>' + escapeHtml(content) + '</strong>';
@@ -2266,7 +2269,7 @@ function buildVetmanageClipboard(noteText) {
     const topMargin = heading ? '10px' : '0';
     const indentStyle = indented ? 'margin-left:24px;' : '';
     html.push('<p style="margin:' + topMargin + ' 0 4px;' + indentStyle + 'line-height:1.5;">' + body + '</p>');
-    plain.push((indented ? '      ' : '') + (title || isHeading ? decorateVetmanageHeading(content) : content));
+    plain.push((indented ? '      ' : '') + (admitTitle ? content : title || isHeading ? decorateVetmanageHeading(content) : content));
   });
   return { html: '<div>' + html.join('') + '</div>', text: plain.join('\n') };
 }
